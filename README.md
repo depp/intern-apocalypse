@@ -8,6 +8,17 @@ A game being made for [JS13KGames 2019](http://js13kgames.com/) by Dietrich Epp 
 
 The game is written in TypeScript and uses WebGL for graphics. It should run in recent versions of Firefox (version 68) and Chrome (version 76), other browsers are not a priority.
 
+## Building
+
+To build the project,
+
+```shell
+yarn install
+./node_modules/.bin/tsc -p src/tsconfig.json
+```
+
+This will create src/main.js.
+
 ## License
 
 Internship at the Apocalypse is released under the terms of the MIT License. See [LICENSE.txt](LICENSE.txt) for details.
