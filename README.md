@@ -14,10 +14,10 @@ To build the project,
 
 ```shell
 yarn install
-./node_modules/.bin/tsc -p src/tsconfig.json
+node tools/build.js
 ```
 
-This will create src/main.js.
+This will create build/index.html.
 
 ## License
 
