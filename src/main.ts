@@ -1,7 +1,7 @@
 /** Game canvas element. */
 const canvas = document.getElementById('g') as HTMLCanvasElement;
 /** WebGL rendering context. */
-const gl = canvas.getContext('webgl', { alpha: false })!;
+const gl = canvas.getContext('webgl', { alpha: false, antialias: false })!;
 
 if (!gl) {
   throw new Error('Could not create WebGL context');
