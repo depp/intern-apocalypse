@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "lib": ["es2017", "dom"],
-    "module": "commonjs",
+    "module": "es2015",
     "moduleResolution": "node",
     "strict": true,
     "target": "es2017"
