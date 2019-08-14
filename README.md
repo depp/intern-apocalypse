@@ -14,7 +14,7 @@ To build the project,
 
 ```shell
 yarn install
-node tools/build.js
+./node_modules/.bin/ts-node tools/build.ts
 ```
 
 This will create build/index.html.

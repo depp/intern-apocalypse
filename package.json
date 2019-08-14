@@ -1,7 +1,9 @@
 {
   "private": true,
   "devDependencies": {
+    "@types/node": "^12.7.1",
     "handlebars": "^4.1.2",
+    "ts-node": "^8.3.0",
     "typescript": "^3.5.3"
   }
 }
