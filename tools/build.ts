@@ -7,10 +7,14 @@ import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
+import chalk from 'chalk';
 import * as Handlebars from 'handlebars';
 import * as ts from 'typescript';
 
 import * as util from './util';
+
+/** Competition zip file size limit. */
+const sizeTarget = 13 * 1024;
 
 /** Print TypeScript diagnostic messages. */
 function logTSDiagnostics(diagnostics: readonly ts.Diagnostic[]): void {
@@ -83,11 +87,14 @@ async function buildHTML(): Promise<void> {
   });
 }
 
-/** Create a zip file containing the given files. */
+/**
+ * Create a zip file containing the given files.
+ * @returns Size of the zip file, in bytes.
+ */
 async function createZip(
   zipPath: string,
   files: ReadonlyMap<string, string>,
-): Promise<void> {
+): Promise<number> {
   const tempDir = util.tempPath();
   const tempZip = tempDir + '.zip';
   try {
@@ -107,12 +114,24 @@ async function createZip(
   } finally {
     await util.removeAll(tempDir, tempZip);
   }
+  const st = await fs.promises.stat(zipPath);
+  return st.size;
 }
 
 /** Build the packaged zip file. */
 async function buildZip(): Promise<void> {
   const zipPath = 'build/InternApocalypse.zip';
-  await createZip(zipPath, new Map([['index.html', 'build/index.html']]));
+  const size = await createZip(
+    zipPath,
+    new Map([['index.html', 'build/index.html']]),
+  );
+  const percentSize = ((100 * size) / sizeTarget).toFixed(2);
+  const withinTarget =
+    size <= sizeTarget ? chalk.green('yes') : chalk.red.bold('NO');
+  process.stderr.write(
+    `Zip file size: ${size} (${percentSize}% of target)\n` +
+      `Within size limit: ${withinTarget}\n`,
+  );
 }
 
 async function main() {
