@@ -17,7 +17,10 @@ yarn install
 ./node_modules/.bin/ts-node tools/build.ts
 ```
 
-This will create build/index.html.
+This will create two files:
+
+- `build/index.html`: The game, in a self-contained HTML file.
+- `build/InternApocalypse.zip`: The game, packaged for submission to JS13K.
 
 ## License
 

@@ -1,29 +1,16 @@
+/**
+ * Main build script.
+ * @module tools/build
+ */
+
+import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
 import * as Handlebars from 'handlebars';
 import * as ts from 'typescript';
 
-/** Path to root directory containing the project. */
-const projectRoot = path.dirname(__dirname);
-
-/** Escape JavaScript for embedding in script tag. */
-function inlineJavaScript(js: string): Handlebars.SafeString {
-  return new Handlebars.SafeString(
-    js.replace('</script', '<\\/script').replace('<!--', '<\\!--'),
-  );
-}
-
-/** Create a directory if it does not already exist. */
-async function mkdir(dirPath: string): Promise<void> {
-  try {
-    await fs.promises.mkdir(dirPath);
-  } catch (e) {
-    if (e.code != 'EEXIST') {
-      throw e;
-    }
-  }
-}
+import * as util from './util';
 
 /** Print TypeScript diagnostic messages. */
 function logTSDiagnostics(diagnostics: readonly ts.Diagnostic[]): void {
@@ -50,7 +37,7 @@ function readTSConfig(): ts.CompilerOptions {
   const { compilerOptions } = config;
   const { options, errors } = ts.convertCompilerOptionsFromJson(
     compilerOptions,
-    projectRoot,
+    util.projectRoot,
     configPath,
   );
   if (errors.length) {
@@ -75,6 +62,13 @@ function buildCode() {
   }
 }
 
+/** Escape JavaScript for embedding in script tag. */
+function inlineJavaScript(js: string): Handlebars.SafeString {
+  return new Handlebars.SafeString(
+    js.replace('</script', '<\\/script').replace('<!--', '<\\!--'),
+  );
+}
+
 /** Build the game HTML page. */
 async function buildHTML(): Promise<void> {
   const jsSrc = fs.promises.readFile('build/src/main.js', 'utf8');
@@ -89,11 +83,51 @@ async function buildHTML(): Promise<void> {
   });
 }
 
+/** Create a zip file containing the given files. */
+async function createZip(
+  zipPath: string,
+  files: ReadonlyMap<string, string>,
+): Promise<void> {
+  const tempDir = util.tempPath();
+  const tempZip = tempDir + '.zip';
+  try {
+    await fs.promises.mkdir(tempDir);
+    const args = [path.relative(tempDir, tempZip), '--quiet', '--'];
+    for (const [name, src] of files.entries()) {
+      const absSrc = path.join(util.projectRoot, src);
+      const absDest = path.join(tempDir, name);
+      await fs.promises.symlink(absSrc, absDest);
+      args.push(name);
+    }
+    const status = await util.runProcess('zip', args, { cwd: tempDir });
+    if (status != 0) {
+      throw new Error(`Command zip failed with status ${status}`);
+    }
+    await fs.promises.rename(tempZip, zipPath);
+  } finally {
+    await util.removeAll(tempDir, tempZip);
+  }
+}
+
+/** Build the packaged zip file. */
+async function buildZip(): Promise<void> {
+  const zipPath = 'build/InternApocalypse.zip';
+  await createZip(zipPath, new Map([['index.html', 'build/index.html']]));
+}
+
 async function main() {
-  process.chdir(projectRoot);
-  await mkdir('build');
-  buildCode();
-  await buildHTML();
+  try {
+    process.chdir(util.projectRoot);
+    await util.mkdir('build');
+    await util.removeAll('build/tmp');
+    await util.mkdir('build/tmp');
+    buildCode();
+    await buildHTML();
+    await buildZip();
+  } catch (e) {
+    console.error(e);
+    process.exit(1);
+  }
 }
 
 main();
