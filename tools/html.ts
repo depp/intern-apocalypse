@@ -1,9 +1,10 @@
 /**
  * Build rules for creating HTML files.
- * @module src/html
  */
 
 import * as fs from 'fs';
+
+import { BuildContext } from './action';
 
 import * as Handlebars from 'handlebars';
 
@@ -14,16 +15,51 @@ function inlineJavaScript(js: string): Handlebars.SafeString {
   );
 }
 
-/** Build the game HTML page. */
-export async function buildHTML(): Promise<void> {
-  const jsSrc = fs.promises.readFile('build/game.js', 'utf8');
-  const templateSrc = fs.promises.readFile('src/index.html', 'utf8');
-  const template = Handlebars.compile(await templateSrc);
-  const html = template({
-    title: 'Internship at the Apocalypse',
-    script: inlineJavaScript(await jsSrc),
-  });
-  await fs.promises.writeFile('build/index.html', html, {
-    encoding: 'utf8',
-  });
+/** Input to the EvalHTML build step. */
+export interface EvalHTMLInput {
+  /** Path to the script to embed in the HTML. */
+  readonly script: string;
+}
+
+/** Output from the EvalHTML build step. */
+export interface EvalHTMLOutput {
+  /** Path to the HTML template output. */
+  readonly html: string;
+}
+
+/**
+ * Bulid step which evaluates the main HTML page template.
+ */
+export class EvalHTML {
+  createActions(ctx: BuildContext, input: EvalHTMLInput): EvalHTMLOutput {
+    const template = 'src/index.html';
+    const { script } = input;
+    const html = 'build/index.html';
+
+    ctx.addAction({
+      name: 'EvalHTML',
+      inputs: [template, script],
+      outputs: [html],
+      execute: () => this.evalHTML({ template, script, html }),
+    });
+
+    return { html };
+  }
+
+  /** Evaluate the HTML template. */
+  private async evalHTML(arg: {
+    template: string;
+    script: string;
+    html: string;
+  }): Promise<void> {
+    const { template, script, html } = arg;
+    const templateSrc = fs.promises.readFile(template, 'utf8');
+    const scriptSrc = fs.promises.readFile(script, 'utf8');
+    const templateFn = Handlebars.compile(await templateSrc);
+    const result = templateFn({
+      title: 'Internship at the Apocalypse',
+      script: inlineJavaScript(await scriptSrc),
+    });
+    await fs.promises.writeFile(html, result, 'utf8');
+  }
 }

@@ -97,3 +97,69 @@ export function tempPath(): string {
   const n = tempCounter++;
   return `build/tmp/${n}`;
 }
+
+/** Flag for listing files recursively. */
+export const recursive = Symbol('recursive');
+
+/** Get the extension for a path, including the leading dot. */
+export function pathExt(name: string): string {
+  // This works even when result = -1.
+  const basenameStart = name.lastIndexOf('/') + 1;
+  const extStart = name.lastIndexOf('.');
+  if (extStart <= basenameStart) {
+    return '';
+  }
+  return name.substring(extStart);
+}
+
+/**
+ * Replace the paths extension, if any, with a different extension. The
+ * extension should include the leading dot.
+ */
+export function pathWithExt(name: string, ext: string): string {
+  // This works even when result = -1.
+  const basenameStart = name.lastIndexOf('/') + 1;
+  const extStart = name.lastIndexOf('.');
+  if (extStart <= basenameStart) {
+    return name + ext;
+  }
+  return name.substring(0, extStart) + ext;
+}
+
+/**
+ * List files in a given directory with the given extensions. Results will start
+ * with the path to the base directory. The extensions should include the
+ * leading dot. Files and directories starting with '.' will be skipped.
+ */
+export function listFilesWithExtensions(
+  dirpath: string,
+  exts: ReadonlyArray<string>,
+  flag?: typeof recursive,
+): string[] {
+  const result: string[] = [];
+  function scanDir(curpath: string) {
+    const objs = fs.readdirSync(curpath, { withFileTypes: true });
+    for (const obj of objs) {
+      const { name } = obj;
+      if (!name.startsWith('.')) {
+        if (obj.isFile()) {
+          const ext = pathExt(name);
+          let include = false;
+          for (const ematch of exts) {
+            if (ext == ematch) {
+              include = true;
+              break;
+            }
+          }
+          if (include) {
+            result.push(path.join(curpath, name));
+          }
+        } else if (flag == recursive && obj.isDirectory()) {
+          scanDir(path.join(curpath, name));
+        }
+      }
+    }
+  }
+  scanDir(dirpath);
+  return result;
+}

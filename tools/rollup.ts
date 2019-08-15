@@ -1,12 +1,12 @@
 /**
  * Build rules for bundling JavaScript code using rollup.js.
- * @module tools/rollup
  */
 
 import * as fs from 'fs';
 import * as path from 'path';
 
 import * as rollup from 'rollup';
+import { BuildContext } from './action';
 
 /** An error for failure to resolve an imported module. */
 class ResolutionFailure extends Error {
@@ -87,19 +87,51 @@ const resolverPlugin: rollup.Plugin = {
   },
 };
 
-/** Build the bundled JavaScript code. */
-export async function rollupJS(): Promise<void> {
-  const inputOptions: rollup.InputOptions = {
-    input: 'src/main',
-    plugins: [resolverPlugin],
-  };
-  const bundle = await rollup.rollup(inputOptions);
-  const outputOptions: rollup.OutputOptions = {
-    format: 'iife',
-    name: 'Game',
-    sourcemap: true,
-  };
-  const { output } = await bundle.generate(outputOptions);
-  const { code } = output[0];
-  await fs.promises.writeFile('build/game.js', code);
+/** The input for the RollupJS build step. */
+export interface RollupJSInput {
+  /** Path to input JavaScript modules. */
+  readonly jsModules: ReadonlyArray<string>;
+}
+
+/** The result of running the RollupJS build step. */
+export interface RollupJSResult {
+  /** Path to the output JavaScript bundle. */
+  readonly jsBundle: string;
+}
+
+/**
+ * Build step which bundles JavaScript modules into a single file.
+ */
+export class RollupJS {
+  createActions(ctx: BuildContext, input: RollupJSInput): RollupJSResult {
+    const { jsModules } = input;
+    const jsBundle = 'build/game.js';
+
+    ctx.addAction({
+      name: 'RollupJS',
+      inputs: jsModules,
+      outputs: [jsBundle],
+      execute: () => this.rollupJS({ jsBundle }),
+    });
+
+    return { jsBundle };
+  }
+
+  /** Build the bundled JavaScript code. */
+  private async rollupJS(arg: { jsBundle: string }): Promise<void> {
+    const { jsBundle } = arg;
+    const inputOptions: rollup.InputOptions = {
+      input: 'src/main',
+      plugins: [resolverPlugin],
+    };
+    const bundle = await rollup.rollup(inputOptions);
+    const outputOptions: rollup.OutputOptions = {
+      format: 'iife',
+      name: 'Game',
+      sourcemap: true,
+    };
+    const { output } = await bundle.generate(outputOptions);
+    const { code } = output[0];
+    await fs.promises.writeFile(jsBundle, code);
+  }
 }
