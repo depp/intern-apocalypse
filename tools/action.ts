@@ -145,10 +145,8 @@ export class Builder {
     const { name, inputs } = action;
     const curinputs = await this.scanInputs(inputs);
     const preventry = this.actionCache.get(name);
-    if (preventry != null) {
-      if (inputsEqual(curinputs, preventry.inputs)) {
-        return;
-      }
+    if (preventry != null && inputsEqual(curinputs, preventry.inputs)) {
+      return;
     }
     console.log(`Action: ${name}`);
     this.actionCache.delete(name);
