@@ -103,11 +103,28 @@ export enum BuildState {
 }
 
 /**
+ * Configuration options that affect the builder.
+ */
+export interface BuilderOptions {
+  /** If true, print out the amount of time taken by each step. */
+  showBuildTimes: boolean;
+}
+
+/** Format a high-resolution timestamp as a number. */
+function formatHRTime(time: [number, number]): string {
+  const [s, ns] = time;
+  const sns = ns.toString().padStart(9, '0');
+  return `${s}.${sns.substring(0, 3)}s`;
+}
+
+/**
  * Builder for running build steps when necessary.
  */
 export class Builder {
   /** Function which returns a list of actions in the build. */
   private readonly createActions: ActionCreator;
+  /** If true, show the build times. */
+  private readonly showBuildTimes: boolean;
   /** The current state of the build. */
   private _state = BuildState.Dirty;
   /** Cached result of createActions. */
@@ -124,8 +141,10 @@ export class Builder {
   /** Called after the state changes. */
   readonly stateChanged = new SyncEvent<BuildState>();
 
-  constructor(createActions: ActionCreator) {
+  constructor(createActions: ActionCreator, options: BuilderOptions) {
+    const { showBuildTimes } = options;
     this.createActions = createActions;
+    this.showBuildTimes = showBuildTimes;
   }
 
   /** The current state of the build operation. */
@@ -215,6 +234,7 @@ export class Builder {
 
   /** Run a single action if it is out of date. */
   private async runAction(action: BuildAction): Promise<void> {
+    const startTime = process.hrtime();
     const { name, inputs, outputs } = action;
     for (const input of inputs) {
       this.inputs.add(input);
@@ -239,6 +259,10 @@ export class Builder {
     this.actionCache.set(name, {
       inputs: curinputs,
     });
+    const elapsed = process.hrtime(startTime);
+    if (this.showBuildTimes) {
+      console.log(`Action ${name} completed in ${formatHRTime(elapsed)}`);
+    }
   }
 
   /** Called when a watched file changes. */

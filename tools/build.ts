@@ -50,6 +50,7 @@ async function main(): Promise<void> {
   program
     .option('--serve', 'serve the project over HTTP')
     .option('--watch', 'rebuild project as inputs change')
+    .option('--show-build-times', 'show how long it takes to build each step')
     .option('--port <port>', 'port for HTTP server', parseIntArg)
     .option('--host <host>', 'host for HTTP server');
   program.parse(process.argv);
@@ -57,6 +58,7 @@ async function main(): Promise<void> {
   const args = {
     serve: false,
     watch: false,
+    showBuildTimes: false,
     port: 7000,
     host: 'localhost',
   };
@@ -72,7 +74,7 @@ async function main(): Promise<void> {
     await util.mkdir('build');
     await util.removeAll('build/tmp');
     await util.mkdir('build/tmp');
-    const builder = new Builder(makeActionCreator());
+    const builder = new Builder(makeActionCreator(), args);
     if (args.serve) {
       console.log('Building...');
       builder.watch();
