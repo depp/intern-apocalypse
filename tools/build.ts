@@ -5,7 +5,7 @@
 
 import * as minimist from 'minimist';
 
-import { BuildContext, ActionCreator, Builder, Watcher } from './action';
+import { BuildContext, ActionCreator, Builder } from './action';
 import { EvalHTML } from './html';
 import { RollupJS } from './rollup';
 import { serve, ServerOptions } from './server';
@@ -61,12 +61,10 @@ async function main() {
     const builder = new Builder(makeActionCreator());
     if (args.serve) {
       console.log('Building...');
-      const watcher = new Watcher(builder);
-      watcher.watch();
+      builder.watch();
       serve(args);
     } else if (args.watch) {
-      const watcher = new Watcher(builder);
-      watcher.watch();
+      builder.watch();
     } else {
       console.log('Building...');
       await builder.build();
