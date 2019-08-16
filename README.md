@@ -22,6 +22,8 @@ This will create two files:
 - `build/index.html`: The game, in a self-contained HTML file.
 - `build/InternApocalypse.zip`: The game, packaged for submission to JS13K.
 
+The build script accepts the parameter `--watch`, which causes it to continuously rebuild as the input files change.
+
 ## License
 
 Internship at the Apocalypse is released under the terms of the MIT License. See [LICENSE.txt](LICENSE.txt) for details.

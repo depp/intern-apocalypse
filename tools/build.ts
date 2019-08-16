@@ -3,6 +3,8 @@
  * @module tools/build
  */
 
+import * as minimist from 'minimist';
+
 import { BuildContext, ActionCreator, Builder } from './action';
 import { EvalHTML } from './html';
 import { RollupJS } from './rollup';
@@ -32,16 +34,39 @@ function makeActionCreator(): ActionCreator {
   };
 }
 
+/** Return after the given delay, in milliseconds. */
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(() => resolve(), ms));
+}
+
 /** Main entry point for build script. */
 async function main() {
+  const args = (minimist(process.argv.slice(2), {
+    boolean: ['watch'],
+    unknown(arg: string): boolean {
+      console.error(`Unknown argument ${JSON.stringify(arg)}`);
+      return process.exit(2); // Return to satisfy type checker.
+    },
+  }) as unknown) as {
+    watch: boolean;
+  };
+
   try {
     process.chdir(util.projectRoot);
     await util.mkdir('build');
     await util.removeAll('build/tmp');
     await util.mkdir('build/tmp');
-    const createActions = makeActionCreator();
-    const builder = new Builder();
-    await builder.build(createActions);
+    const builder = new Builder(makeActionCreator());
+    if (args.watch) {
+      while (true) {
+        console.log('Building...');
+        await builder.build();
+        await delay(1000);
+      }
+    } else {
+      console.log('Building...');
+      await builder.build();
+    }
   } catch (e) {
     console.error(e);
     process.exit(1);
