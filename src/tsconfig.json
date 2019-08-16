@@ -4,7 +4,8 @@
     "module": "es2015",
     "moduleResolution": "node",
     "strict": true,
-    "target": "es2017"
+    "target": "es2017",
+    "types": []
   },
   "include": ["*.ts"]
 }
