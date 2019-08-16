@@ -129,16 +129,6 @@ export class Builder {
     }
   }
 
-  /** Build all targets asynchronously, and rebuild them as files change. */
-  watch(): void {
-    (async () => {
-      while (true) {
-        await this.build();
-        await delay(1000);
-      }
-    })();
-  }
-
   /** Get a list of all actions to run. */
   private getActions(): readonly BuildAction[] {
     let actions = this.actions;
@@ -166,5 +156,26 @@ export class Builder {
     this.actionCache.set(name, {
       inputs: curinputs,
     });
+  }
+}
+
+/**
+ * Watcher for re-running a build as inputs change.
+ */
+export class Watcher {
+  private readonly builder: Builder;
+
+  constructor(builder: Builder) {
+    this.builder = builder;
+  }
+
+  /** Build all targets asynchronously, and rebuild them as files change. */
+  watch(): void {
+    (async () => {
+      while (true) {
+        await this.builder.build();
+        await delay(1000);
+      }
+    })();
   }
 }
