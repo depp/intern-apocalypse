@@ -8,6 +8,7 @@ import * as minimist from 'minimist';
 import { BuildContext, ActionCreator, Builder } from './action';
 import { EvalHTML } from './html';
 import { RollupJS } from './rollup';
+import { serve, ServerOptions } from './server';
 import { CompileTS } from './typescript';
 import * as util from './util';
 import { CreateZip } from './zip';
@@ -42,14 +43,20 @@ function delay(ms: number): Promise<void> {
 /** Main entry point for build script. */
 async function main() {
   const args = (minimist(process.argv.slice(2), {
-    boolean: ['watch'],
+    boolean: ['serve', 'watch'],
+    string: ['host'],
+    default: {
+      host: 'localhost',
+      port: 7000,
+    },
     unknown(arg: string): boolean {
       console.error(`Unknown argument ${JSON.stringify(arg)}`);
       return process.exit(2); // Return to satisfy type checker.
     },
   }) as unknown) as {
+    serve: boolean;
     watch: boolean;
-  };
+  } & ServerOptions;
 
   try {
     process.chdir(util.projectRoot);
@@ -57,7 +64,11 @@ async function main() {
     await util.removeAll('build/tmp');
     await util.mkdir('build/tmp');
     const builder = new Builder(makeActionCreator());
-    if (args.watch) {
+    if (args.serve) {
+      console.log('Building...');
+      await builder.build();
+      serve(args);
+    } else if (args.watch) {
       while (true) {
         console.log('Building...');
         await builder.build();
