@@ -36,6 +36,8 @@ export interface CompileTSResult {
  * Build step which compiles TypeScript to JavaScript.
  */
 export class CompileTS {
+  private program: ts.Program | undefined;
+
   createActions(ctx: BuildContext): CompileTSResult {
     const sources = ctx.listFilesWithExtensions('src', ['.ts'], recursive);
     const jsModules = sources.map(src =>
@@ -78,7 +80,9 @@ export class CompileTS {
   /** Compile the TypeScript code to JavaScript. */
   private compileTS() {
     const options = this.readTSConfig();
-    const program = ts.createProgram(tsRoots, options);
+    const host = ts.createCompilerHost(options);
+    const program = ts.createProgram(tsRoots, options, host, this.program);
+    this.program = program;
     const emitResult = program.emit();
     const diagnostics = ts
       .getPreEmitDiagnostics(program)
