@@ -88,9 +88,15 @@ function inputsEqual(
   return true;
 }
 
+/**
+ * Builder for running build steps when necessary.
+ */
 export class Builder {
+  /** Function which returns a list of actions in the build. */
   private readonly createActions: ActionCreator;
+  /** Cached result of createActions. */
   private actions: BuildAction[] | null = null;
+  /** Cached results of running actions, indexed by action name. */
   private readonly actionCache: Map<string, ActionCacheEntry> = new Map<
     string,
     ActionCacheEntry
@@ -100,21 +106,25 @@ export class Builder {
     this.createActions = createActions;
   }
 
+  /** Get metadata for a single input file. */
   private async scanInput(filename: string): Promise<CacheInput> {
     const stat = await fs.promises.stat(filename);
     return { filename, mtime: stat.mtimeMs };
   }
 
+  /** Get metadata for a list of input files. */
   private scanInputs(filenames: readonly string[]): Promise<CacheInput[]> {
     return Promise.all(filenames.map(filename => this.scanInput(filename)));
   }
 
+  /** Build the targets, running all actions that are out of date. */
   async build(): Promise<void> {
     for (const action of this.getActions()) {
       await this.runAction(action);
     }
   }
 
+  /** Get a list of all actions to run. */
   private getActions(): readonly BuildAction[] {
     let actions = this.actions;
     if (actions == null) {
@@ -125,6 +135,7 @@ export class Builder {
     return actions;
   }
 
+  /** Run a single action if it is out of date. */
   private async runAction(action: BuildAction): Promise<void> {
     const { name, inputs } = action;
     const curinputs = await this.scanInputs(inputs);
