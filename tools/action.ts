@@ -88,6 +88,11 @@ function inputsEqual(
   return true;
 }
 
+/** Return after the given delay, in milliseconds. */
+function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(() => resolve(), ms));
+}
+
 /**
  * Builder for running build steps when necessary.
  */
@@ -122,6 +127,16 @@ export class Builder {
     for (const action of this.getActions()) {
       await this.runAction(action);
     }
+  }
+
+  /** Build all targets asynchronously, and rebuild them as files change. */
+  watch(): void {
+    (async () => {
+      while (true) {
+        await this.build();
+        await delay(1000);
+      }
+    })();
   }
 
   /** Get a list of all actions to run. */

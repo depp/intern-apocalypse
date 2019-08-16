@@ -35,11 +35,6 @@ function makeActionCreator(): ActionCreator {
   };
 }
 
-/** Return after the given delay, in milliseconds. */
-function delay(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(() => resolve(), ms));
-}
-
 /** Main entry point for build script. */
 async function main() {
   const args = (minimist(process.argv.slice(2), {
@@ -69,11 +64,7 @@ async function main() {
       await builder.build();
       serve(args);
     } else if (args.watch) {
-      while (true) {
-        console.log('Building...');
-        await builder.build();
-        await delay(1000);
-      }
+      builder.watch();
     } else {
       console.log('Building...');
       await builder.build();
