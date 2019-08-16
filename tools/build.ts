@@ -3,7 +3,7 @@
  * @module tools/build
  */
 
-import * as minimist from 'minimist';
+import * as program from 'commander';
 
 import { BuildContext, ActionCreator, Builder } from './action';
 import { EvalHTML } from './html';
@@ -35,23 +35,37 @@ function makeActionCreator(): ActionCreator {
   };
 }
 
+/** Parse an integer command-line option. */
+function parseIntArg(value: any, prev: any): number {
+  return parseInt(value, 10);
+}
+
+/** Get the given flag value or a default value. */
+function flagValue<T>(name: string, defaultValue: T): T {
+  return name in program ? program[name] : defaultValue;
+}
+
 /** Main entry point for build script. */
-async function main() {
-  const args = (minimist(process.argv.slice(2), {
-    boolean: ['serve', 'watch'],
-    string: ['host'],
-    default: {
-      host: 'localhost',
-      port: 7000,
-    },
-    unknown(arg: string): boolean {
-      console.error(`Unknown argument ${JSON.stringify(arg)}`);
-      return process.exit(2); // Return to satisfy type checker.
-    },
-  }) as unknown) as {
-    serve: boolean;
-    watch: boolean;
-  } & ServerOptions;
+async function main(): Promise<void> {
+  program
+    .option('--serve', 'serve the project over HTTP')
+    .option('--watch', 'rebuild project as inputs change')
+    .option('--port <port>', 'port for HTTP server', parseIntArg)
+    .option('--host <host>', 'host for HTTP server');
+  program.parse(process.argv);
+  // This gives us the right types for TypeScript.
+  const args = {
+    serve: false,
+    watch: false,
+    port: 7000,
+    host: 'localhost',
+  };
+  for (const arg of Object.keys(args)) {
+    if (arg in program) {
+      // @ts-ignore: Hack
+      args[arg] = program[arg];
+    }
+  }
 
   try {
     process.chdir(util.projectRoot);
