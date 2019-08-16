@@ -61,7 +61,8 @@ async function main() {
     const builder = new Builder(makeActionCreator());
     if (args.serve) {
       console.log('Building...');
-      await builder.build();
+      const watcher = new Watcher(builder);
+      watcher.watch();
       serve(args);
     } else if (args.watch) {
       const watcher = new Watcher(builder);
