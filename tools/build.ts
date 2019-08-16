@@ -40,11 +40,6 @@ function parseIntArg(value: any, prev: any): number {
   return parseInt(value, 10);
 }
 
-/** Get the given flag value or a default value. */
-function flagValue<T>(name: string, defaultValue: T): T {
-  return name in program ? program[name] : defaultValue;
-}
-
 /** Main entry point for build script. */
 async function main(): Promise<void> {
   program
