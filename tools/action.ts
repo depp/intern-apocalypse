@@ -18,10 +18,23 @@ export { recursive };
 export interface BuildAction {
   /** Name of the action, to print when building. */
   readonly name: string;
-  /** List of all possible action inputs. */
+
+  /**
+   * List of all possible action inputs.
+   *
+   * Some of these inputs may not exist. This will happen if the build step that
+   * produces them did not produce them.
+   */
   inputs: ReadonlyArray<string>;
-  /** List of all possible action outputs. */
+
+  /**
+   * List of all possible action outputs.
+   *
+   * The action is not required to produce all its declared outputs, it can
+   * produce a subset.
+   */
   outputs: ReadonlyArray<string>;
+
   /**
    * Run the action.
    *
@@ -71,6 +84,7 @@ export type ActionEmitter = (ctx: BuildContext) => void;
 
 interface FileMetadata {
   filename: string;
+  exists: boolean;
   mtime: number;
   dirty: boolean;
 }
@@ -91,7 +105,11 @@ function inputsEqual(
   for (let i = 0; i < xinputs.length; i++) {
     const x = xinputs[i];
     const y = yinputs[i];
-    if (x.filename != y.filename || x.mtime != y.mtime) {
+    if (
+      x.filename != y.filename ||
+      x.exists != y.exists ||
+      x.mtime != y.mtime
+    ) {
       return false;
     }
   }
@@ -167,25 +185,44 @@ export class Builder {
     }
   }
 
-  /** Get metadata for a single input file. */
-  private async scanInput(filename: string): Promise<FileMetadata> {
-    let file = this.fileCache.get(filename);
-    if (file != null && !file.dirty) {
-      return file;
+  /** Update metadata for a single file, without reading from the cache. */
+  private async scanFileUncached(filename: string): Promise<FileMetadata> {
+    let file: FileMetadata;
+    try {
+      const stat = await fs.promises.stat(filename);
+      file = {
+        filename,
+        exists: true,
+        mtime: stat.mtimeMs,
+        dirty: false,
+      };
+    } catch (e) {
+      if (e.code != 'ENOENT') {
+        throw e;
+      }
+      file = {
+        filename,
+        exists: true,
+        mtime: 0,
+        dirty: false,
+      };
     }
-    const stat = await fs.promises.stat(filename);
-    file = {
-      filename,
-      mtime: stat.mtimeMs,
-      dirty: false,
-    };
     this.fileCache.set(filename, file);
     return file;
   }
 
+  /** Get metadata for a single file. */
+  private scanFile(filename: string): Promise<FileMetadata> {
+    let file = this.fileCache.get(filename);
+    if (file != null && !file.dirty) {
+      return Promise.resolve(file);
+    }
+    return this.scanFileUncached(filename);
+  }
+
   /** Get metadata for a list of input files. */
   private scanInputs(filenames: readonly string[]): Promise<FileMetadata[]> {
-    return Promise.all(filenames.map(filename => this.scanInput(filename)));
+    return Promise.all(filenames.map(filename => this.scanFile(filename)));
   }
 
   /**
@@ -270,6 +307,16 @@ export class Builder {
       return preventry.success;
     }
     console.log(`Build ${name}`);
+    // Delete outputs so we don't accidentally get something stale.
+    for (const output of outputs) {
+      try {
+        await fs.promises.unlink(output);
+      } catch (e) {
+        if (e.code != 'ENOENT') {
+          throw e;
+        }
+      }
+    }
     this.actionCache.delete(name);
     let success: boolean;
     try {
@@ -278,35 +325,9 @@ export class Builder {
       console.error(e);
       success = false;
     }
-    if (success) {
-      const files: FileMetadata[] = [];
-      for (const output of outputs) {
-        let stat: fs.Stats;
-        try {
-          stat = await fs.promises.stat(output);
-        } catch (e) {
-          if (e.code == 'ENOENT') {
-            console.error(
-              `Rule ${JSON.stringify(
-                name,
-              )} failed to create output ${JSON.stringify(output)}`,
-            );
-            success = false;
-            break;
-          }
-          throw e;
-        }
-        files.push({
-          filename: output,
-          mtime: stat.mtimeMs,
-          dirty: false,
-        });
-      }
-      if (success) {
-        for (const file of files) {
-          this.fileCache.set(file.filename, file);
-        }
-      }
+    // It is OK if the outputs are not created. Actions must deal with this.
+    for (const output of outputs) {
+      this.scanFileUncached(output);
     }
     this.actionCache.set(name, {
       success,
