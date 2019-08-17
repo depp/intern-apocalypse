@@ -279,14 +279,33 @@ export class Builder {
       success = false;
     }
     if (success) {
+      const files: FileMetadata[] = [];
       for (const output of outputs) {
-        const stat = await fs.promises.stat(output);
-        const file = {
+        let stat: fs.Stats;
+        try {
+          stat = await fs.promises.stat(output);
+        } catch (e) {
+          if (e.code == 'ENOENT') {
+            console.error(
+              `Rule ${JSON.stringify(
+                name,
+              )} failed to create output ${JSON.stringify(output)}`,
+            );
+            success = false;
+            break;
+          }
+          throw e;
+        }
+        files.push({
           filename: output,
           mtime: stat.mtimeMs,
           dirty: false,
-        };
-        this.fileCache.set(output, file);
+        });
+      }
+      if (success) {
+        for (const file of files) {
+          this.fileCache.set(file.filename, file);
+        }
       }
     }
     this.actionCache.set(name, {
