@@ -10,7 +10,7 @@ import { evalHTML } from './html';
 import { rollupJS } from './rollup';
 import { serve } from './server';
 import { compileTS } from './typescript';
-import * as util from './util';
+import { pathWithExt, projectRoot, mkdir, removeAll } from './util';
 import { createZip } from './zip';
 
 /** Competition zip file size limit. */
@@ -20,7 +20,7 @@ const sizeTarget = 13 * 1024;
  * Create the build actions.
  */
 function emitActions(ctx: BuildContext) {
-  const tsSources = ctx.listFilesWithExtensions('src', ['.ts'], recursive);
+  const tsSources = ctx.listFilesWithExtensions('src', ['.ts']);
   compileTS(ctx, {
     outDir: 'build/src',
     inputs: tsSources,
@@ -29,14 +29,14 @@ function emitActions(ctx: BuildContext) {
   });
   rollupJS(ctx, {
     output: 'build/game.js',
-    inputs: tsSources.map(src => 'build/' + util.pathWithExt(src, '.js')),
+    inputs: tsSources.map(src => 'build/' + pathWithExt(src, '.js')),
     name: 'src/main',
     global: 'Game',
     external: [],
   });
   evalHTML(ctx, {
     output: 'build/index.html',
-    template: 'src/index.html',
+    template: 'html/static.html',
     script: 'build/game.js',
     title: 'Internship at the Apocalypse',
   });
@@ -44,6 +44,26 @@ function emitActions(ctx: BuildContext) {
     output: 'build/InternApocalypse.zip',
     files: new Map([['index.html', 'build/index.html']]),
     sizeTarget,
+  });
+}
+
+/**
+ * Create the build actions for the loader.
+ */
+function emitLoaderActions(ctx: BuildContext) {
+  const tsSources = ctx.listFilesWithExtensions('tools/loader', ['.ts']);
+  compileTS(ctx, {
+    outDir: 'build/tools/loader',
+    inputs: tsSources,
+    config: 'tools/loader/tsconfig.json',
+    rootNames: ['tools/loader/loader.ts'],
+  });
+  rollupJS(ctx, {
+    output: 'build/loader.js',
+    inputs: tsSources.map(src => 'build/' + pathWithExt(src, '.js')),
+    name: 'tools/loader/loader',
+    global: 'Loader',
+    external: [],
   });
 }
 
@@ -77,15 +97,16 @@ async function main(): Promise<void> {
   }
 
   try {
-    process.chdir(util.projectRoot);
-    await util.mkdir('build');
-    await util.removeAll('build/tmp');
-    await util.mkdir('build/tmp');
+    process.chdir(projectRoot);
+    await mkdir('build');
+    await removeAll('build/tmp');
+    await mkdir('build/tmp');
     const builder = new Builder(emitActions, args);
     if (args.serve) {
-      console.log('Building...');
-      builder.watch();
+      const loadBuilder = new Builder(emitLoaderActions, args);
       serve(args);
+      loadBuilder.watch();
+      builder.watch();
     } else if (args.watch) {
       builder.watch();
     } else {

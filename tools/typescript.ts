@@ -72,7 +72,8 @@ class CompileTS implements BuildAction {
       logTSDiagnostics(errors);
       throw new Error('Could not process TypeScript compiler options');
     }
-    options.outDir = 'build/src';
+    options.rootDir = '.';
+    options.outDir = 'build';
     return options;
   }
 
