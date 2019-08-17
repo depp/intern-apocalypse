@@ -2,19 +2,9 @@
  * Loader WebSocket code.
  */
 
-const ws = new WebSocket(`ws://${window.location.host}/`);
-ws.addEventListener('error', evt => {
-  // FIXME: Retry.
-  console.log('WebSocket Error:', evt);
-});
-ws.addEventListener('open', evt => {
-  console.log('WebSocket Open');
-});
-ws.addEventListener('close', evt => {
-  // FIXME: Reconnect.
-  console.log('WebSocket Closed');
-});
+import { setBuildStatus } from './status';
 
+/** An error when encountering a bad WebSocket message. */
 class BadMessage extends Error {}
 
 /** Handle a build status message. */
@@ -23,7 +13,7 @@ function handleStatusMessage(obj: any) {
   if (typeof status != 'string') {
     throw new BadMessage('Missing build status');
   }
-  console.log('Build status:', status);
+  setBuildStatus(status);
 }
 
 /** Handle a WebSocket message event. */
@@ -60,4 +50,21 @@ function handleMessage(evt: MessageEvent): void {
   }
 }
 
-ws.addEventListener('message', handleMessage);
+/**
+ * Open the web socket for communicating with the build process.
+ */
+export function openWebSocket(): void {
+  const ws = new WebSocket(`ws://${window.location.host}/`);
+  ws.addEventListener('error', evt => {
+    // FIXME: Retry.
+    console.log('WebSocket Error:', evt);
+  });
+  ws.addEventListener('open', evt => {
+    console.log('WebSocket Open');
+  });
+  ws.addEventListener('close', evt => {
+    // FIXME: Reconnect.
+    console.log('WebSocket Closed', evt.code);
+  });
+  ws.addEventListener('message', handleMessage);
+}

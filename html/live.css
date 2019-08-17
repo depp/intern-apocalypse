@@ -11,3 +11,40 @@ h1 {
   margin: 0 auto;
   display: block;
 }
+
+#statusbox {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 5em;
+  height: 5em;
+}
+
+#statusbox div {
+  margin-top: 0.5em;
+}
+
+#statusbox p {
+  text-align: center;
+  margin: 0;
+}
+
+#statusicon {
+  font-size: 2.5em;
+}
+
+.status-unknown {
+  color: #aaa;
+}
+.status-clean {
+  color: #5a5;
+}
+.status-failed {
+  color: #a55;
+}
+.status-dirty {
+  color: #aa5;
+}
+.status-building {
+  color: #aa5;
+}
