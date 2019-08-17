@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as chokidar from 'chokidar';
 import { SyncEvent } from 'ts-events';
 
+import { BuildArgs } from './config';
 import { recursive, listFilesWithExtensions } from './util';
 
 export { recursive };
@@ -102,14 +103,6 @@ export enum BuildState {
   Clean,
 }
 
-/**
- * Configuration options that affect the builder.
- */
-export interface BuilderOptions {
-  /** If true, print out the amount of time taken by each step. */
-  showBuildTimes: boolean;
-}
-
 /** Format a high-resolution timestamp as a number. */
 function formatHRTime(time: [number, number]): string {
   const [s, ns] = time;
@@ -123,6 +116,8 @@ function formatHRTime(time: [number, number]): string {
 export class Builder {
   /** Function which returns a list of actions in the build. */
   private readonly createActions: ActionEmitter;
+  /** List of paths to watch. */
+  private watchPaths: string | string[];
   /** If true, show the build times. */
   private readonly showBuildTimes: boolean;
   /** The current state of the build. */
@@ -141,9 +136,14 @@ export class Builder {
   /** Called after the state changes. */
   readonly stateChanged = new SyncEvent<BuildState>();
 
-  constructor(createActions: ActionEmitter, options: BuilderOptions) {
+  constructor(
+    createActions: ActionEmitter,
+    watchPaths: string | string[],
+    options: BuildArgs,
+  ) {
     const { showBuildTimes } = options;
     this.createActions = createActions;
+    this.watchPaths = watchPaths;
     this.showBuildTimes = showBuildTimes;
   }
 
@@ -201,7 +201,7 @@ export class Builder {
 
   /** Build the targets asynchronously, and rebuild them as inputs change. */
   watch(): void {
-    const watcher = chokidar.watch('src', {
+    const watcher = chokidar.watch(this.watchPaths, {
       ignored: '.*',
     });
     watcher.on('change', (filename, stats) => this.didChange(filename, stats));

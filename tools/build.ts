@@ -102,9 +102,9 @@ async function main(): Promise<void> {
     await mkdir('build');
     await removeAll('build/tmp');
     await mkdir('build/tmp');
-    const builder = new Builder(emitActions, args);
+    const builder = new Builder(emitActions, 'src', args);
     if (args.serve) {
-      const loadBuilder = new Builder(emitLoaderActions, args);
+      const loadBuilder = new Builder(emitLoaderActions, 'tools/loader', args);
       serve(Object.assign({ builder, loadBuilder }, args));
       loadBuilder.watch();
       builder.watch();
