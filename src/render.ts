@@ -1,3 +1,7 @@
+/**
+ * Game renderer.
+ */
+
 import { gl } from './global';
 import { compileShader, compileProgram } from './shader';
 
@@ -24,8 +28,12 @@ const prog = compileProgram(['pos'], vshader, fshader);
 
 const buf = gl.createBuffer()!; // FIXME: check?
 
-/** Render the game. */
-export function render(): void {
+/**
+ * Render the game.
+ *
+ * @param curTimeMS Current time in milliseconds.
+ */
+export function render(curTimeMS: number): void {
   gl.bindBuffer(gl.ARRAY_BUFFER, buf);
   gl.bufferData(
     gl.ARRAY_BUFFER,
@@ -33,7 +41,8 @@ export function render(): void {
     gl.STATIC_DRAW,
   );
 
-  gl.clearColor(0, 0.6, 0.9, 0);
+  const t = curTimeMS * 1e-3;
+  gl.clearColor(Math.sin(t), 0.6, Math.cos(t), 0);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   gl.useProgram(prog);
