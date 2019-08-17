@@ -9,6 +9,6 @@ import * as React from 'react';
  */
 export class BuildStatus extends React.Component {
   render() {
-    return React.createElement('p', null, 'Hello from React');
+    return <p>Hello from React with JSX</p>;
   }
 }

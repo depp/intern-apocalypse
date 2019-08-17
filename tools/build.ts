@@ -53,7 +53,10 @@ function emitActions(ctx: BuildContext) {
  * Create the build actions for the loader.
  */
 function emitLoaderActions(ctx: BuildContext) {
-  const tsSources = ctx.listFilesWithExtensions('tools/loader', ['.ts']);
+  const tsSources = ctx.listFilesWithExtensions('tools/loader', [
+    '.ts',
+    '.tsx',
+  ]);
   compileTS(ctx, {
     outDir: 'build/tools/loader',
     inputs: tsSources,

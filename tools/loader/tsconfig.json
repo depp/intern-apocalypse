@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "jsx": "react",
     "lib": ["es2017", "dom"],
     "module": "es2015",
     "moduleResolution": "node",
@@ -7,5 +8,5 @@
     "target": "es2017",
     "types": []
   },
-  "include": ["*.ts"]
+  "include": ["*.ts", "*.tsx"]
 }
