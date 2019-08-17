@@ -10,12 +10,12 @@ import { Request, Response, NextFunction } from 'express';
 import * as send from 'send';
 import * as Handlebars from 'handlebars';
 import * as WebSocket from 'ws';
-import { BuildState, Builder } from './action';
 
-/** Server configuration options. */
-export interface ServerOptions {
-  port: number;
-  host: string;
+import { BuildState, Builder } from './action';
+import { BuildArgs } from './config';
+
+/** Parameters for running the HTTP server. */
+export interface ServerParameters extends BuildArgs {
   builder: Builder;
   loadBuilder: Builder;
 }
@@ -36,7 +36,7 @@ const baseFiles: readonly StaticFile[] = [
 
 /** Handle requests for /. */
 async function handleRoot(
-  options: ServerOptions,
+  options: ServerParameters,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -65,7 +65,7 @@ function staticHandler(file: StaticFile): express.RequestHandler {
 }
 
 /** Handle WebSocket connections. */
-function handleWebSocket(options: ServerOptions, ws: WebSocket): void {
+function handleWebSocket(options: ServerParameters, ws: WebSocket): void {
   const { builder } = options;
 
   // Send the current build state to the client.
@@ -97,7 +97,7 @@ function handleWebSocket(options: ServerOptions, ws: WebSocket): void {
 }
 
 /** Serve build products over HTTP. */
-export function serve(options: ServerOptions) {
+export function serve(options: ServerParameters) {
   const { host, port } = options;
   const app = express();
   const server = http.createServer(app);

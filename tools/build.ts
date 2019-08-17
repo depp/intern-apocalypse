@@ -5,7 +5,8 @@
 
 import * as program from 'commander';
 
-import { BuildContext, Builder, recursive } from './action';
+import { BuildContext, Builder } from './action';
+import { BuildArgs } from './config';
 import { evalHTML } from './html';
 import { rollupJS } from './rollup';
 import { serve } from './server';
@@ -82,7 +83,7 @@ async function main(): Promise<void> {
     .option('--host <host>', 'host for HTTP server');
   program.parse(process.argv);
   // This gives us the right types for TypeScript.
-  const args = {
+  const args: BuildArgs = {
     serve: false,
     watch: false,
     showBuildTimes: false,
