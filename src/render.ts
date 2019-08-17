@@ -3,6 +3,7 @@
  */
 
 import { gl } from './global';
+import { playerPos } from './player';
 import { compileShader, compileProgram } from './shader';
 
 const vshader = compileShader(
@@ -35,9 +36,10 @@ const buf = gl.createBuffer()!; // FIXME: check?
  */
 export function render(curTimeMS: number): void {
   gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+  let [x, y] = playerPos;
   gl.bufferData(
     gl.ARRAY_BUFFER,
-    new Float32Array([-0.8, -0.8, 0.8, -0.8, 0.0, 0.8]),
+    new Float32Array([-0.1 + x, -0.1 + y, 0.1 + x, -0.1 + y, 0.0 + x, 0.1 + y]),
     gl.STATIC_DRAW,
   );
 

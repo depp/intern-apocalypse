@@ -6,6 +6,8 @@
  */
 
 import { gl } from './global';
+import { startInput, endFrameInput } from './input';
+import { updatePlayer } from './player';
 import { render } from './render';
 
 /**
@@ -16,10 +18,13 @@ import { render } from './render';
  * @param curTimeMS Current time in milliseconds.
  */
 function main(curTimeMS: number): void {
+  updatePlayer();
+  endFrameInput();
   render(curTimeMS);
   requestAnimationFrame(main);
 }
 
 if (gl) {
+  startInput();
   requestAnimationFrame(main);
 }
