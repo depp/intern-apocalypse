@@ -37,6 +37,7 @@ const baseFiles: readonly StaticFile[] = [
     url: '/react-dom.js',
     file: 'node_modules/react-dom/umd/react-dom.development.js',
   },
+  { url: '/game.js', file: 'build/game.js' },
 ];
 
 /** Handle requests for /. */
