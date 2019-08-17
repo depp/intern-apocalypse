@@ -206,9 +206,14 @@ export class Builder {
     });
     watcher.on('change', (filename, stats) => this.didChange(filename, stats));
     (async () => {
-      while (true) {
-        await this.build();
-        await this.waitUntilDirty();
+      try {
+        while (true) {
+          await this.build();
+          await this.waitUntilDirty();
+        }
+      } catch (e) {
+        console.error('Uncaught build error:', e);
+        process.exit(1);
       }
     })();
   }
