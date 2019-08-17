@@ -3,16 +3,21 @@
  */
 
 import * as fs from 'fs';
+import * as http from 'http';
 
 import * as express from 'express';
 import { Request, Response, NextFunction } from 'express';
 import * as send from 'send';
 import * as Handlebars from 'handlebars';
+import * as WebSocket from 'ws';
+import { BuildState, Builder } from './action';
 
 /** Server configuration options. */
 export interface ServerOptions {
   port: number;
   host: string;
+  builder: Builder;
+  loadBuilder: Builder;
 }
 
 interface StaticFile {
@@ -29,6 +34,27 @@ const baseFiles: readonly StaticFile[] = [
   { url: '/static', file: 'build/index.html' },
 ];
 
+/** Handle requests for /. */
+async function handleRoot(
+  options: ServerOptions,
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const source = await fs.promises.readFile('html/live.html', 'utf8');
+    const template = Handlebars.compile(source);
+    const text = template({
+      title: 'Intern at the Apocalypse',
+    });
+    res.setHeader('Cache-Control', 'no-cache');
+    res.send(text);
+  } catch (e) {
+    next(e);
+  }
+}
+
+/** Create a handler for a file on disk. */
 function staticHandler(file: StaticFile): express.RequestHandler {
   return function handler(req: Request, res: Response): void {
     res.setHeader('Cache-Control', 'no-cache');
@@ -38,27 +64,52 @@ function staticHandler(file: StaticFile): express.RequestHandler {
   };
 }
 
+/** Handle WebSocket connections. */
+function handleWebSocket(options: ServerOptions, ws: WebSocket): void {
+  const { builder } = options;
+
+  // Send the current build state to the client.
+  const stateChanged = (state: BuildState) => {
+    setImmediate(() => {
+      ws.send(
+        JSON.stringify({
+          type: 'status',
+          status: BuildState[state],
+        }),
+      );
+    });
+  };
+  stateChanged(builder.state);
+  builder.stateChanged.attach(stateChanged);
+
+  // Ping the client.
+  let counter = 0;
+  const interval = setInterval(() => {
+    counter++;
+    ws.ping(counter.toString());
+  }, 1000);
+
+  // Clean up on close.
+  ws.on('close', (code: number, reason: string) => {
+    builder.stateChanged.detach(stateChanged);
+    clearInterval(interval);
+  });
+}
+
 /** Serve build products over HTTP. */
 export function serve(options: ServerOptions) {
   const { host, port } = options;
   const app = express();
-  app.get('/', async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const source = await fs.promises.readFile('html/live.html', 'utf8');
-      const template = Handlebars.compile(source);
-      const text = template({
-        title: 'Intern at the Apocalypse',
-      });
-      res.setHeader('Cache-Control', 'no-cache');
-      res.send(text);
-    } catch (e) {
-      next(e);
-    }
-  });
+  const server = http.createServer(app);
+  const wss = new WebSocket.Server({ server });
+
+  app.get('/', (res, req, next) => handleRoot(options, res, req, next));
   for (const file of baseFiles) {
     app.get(file.url, staticHandler(file));
   }
-  app.listen(port, host, () => {
+  wss.on('connection', ws => handleWebSocket(options, ws));
+
+  server.listen(port, host, () => {
     console.log(`Listening on http://${host}:${port}/`);
   });
 }

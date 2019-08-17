@@ -104,7 +104,7 @@ async function main(): Promise<void> {
     const builder = new Builder(emitActions, args);
     if (args.serve) {
       const loadBuilder = new Builder(emitLoaderActions, args);
-      serve(args);
+      serve(Object.assign({ builder, loadBuilder }, args));
       loadBuilder.watch();
       builder.watch();
     } else if (args.watch) {
