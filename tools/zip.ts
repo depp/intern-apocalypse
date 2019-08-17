@@ -66,7 +66,7 @@ class CreateZip implements BuildAction {
   get outputs(): readonly string[] {
     return [this.params.output];
   }
-  async execute(): Promise<void> {
+  async execute(): Promise<boolean> {
     const { output, files, sizeTarget } = this.params;
     const size = await runInfoZip(output, files);
     const percentSize = ((100 * size) / sizeTarget).toFixed(2);
@@ -76,6 +76,7 @@ class CreateZip implements BuildAction {
       `Zip file size: ${size} (${percentSize}% of target)\n` +
         `Within size limit: ${withinTarget}\n`,
     );
+    return true;
   }
 }
 

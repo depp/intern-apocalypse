@@ -22,8 +22,12 @@ export interface BuildAction {
   inputs: ReadonlyArray<string>;
   /** List of all possible action outputs. */
   outputs: ReadonlyArray<string>;
-  /** Run the action. */
-  execute(): Promise<void>;
+  /**
+   * Run the action.
+   *
+   * @returns True if the action succeeded.
+   */
+  execute(): Promise<boolean>;
 }
 
 /**
@@ -72,6 +76,7 @@ interface FileMetadata {
 }
 
 interface ActionCacheEntry {
+  success: boolean;
   inputs: FileMetadata[];
 }
 
@@ -101,6 +106,8 @@ export enum BuildState {
   Building,
   /** The build has been run and all outputs are up to date. */
   Clean,
+  /** The build ran unsuccessfully. */
+  Failed,
 }
 
 /** Format a high-resolution timestamp as a number. */
@@ -181,8 +188,12 @@ export class Builder {
     return Promise.all(filenames.map(filename => this.scanInput(filename)));
   }
 
-  /** Build the targets, running all actions that are out of date. */
-  async build(): Promise<void> {
+  /**
+   * Build the targets, running all actions that are out of date.
+   *
+   * @returns True if the build succeeded.
+   */
+  async build(): Promise<boolean> {
     if (this._state == BuildState.Building) {
       throw new Error('concurrent call to Builder.build');
     }
@@ -190,13 +201,18 @@ export class Builder {
     this.inputs.clear();
     this.inputsDidChange = false;
     for (const action of this.getActions()) {
-      await this.runAction(action);
+      const success = await this.runAction(action);
       if (this.inputsDidChange) {
         this.setState(BuildState.Dirty);
-        return;
+        return false;
+      }
+      if (!success) {
+        this.setState(BuildState.Failed);
+        return false;
       }
     }
     this.setState(BuildState.Clean);
+    return true;
   }
 
   /** Build the targets asynchronously, and rebuild them as inputs change. */
@@ -237,8 +253,12 @@ export class Builder {
     return actions;
   }
 
-  /** Run a single action if it is out of date. */
-  private async runAction(action: BuildAction): Promise<void> {
+  /**
+   * Run a single action if it is out of date.
+   *
+   * @returns True if the action executed successfully.
+   */
+  private async runAction(action: BuildAction): Promise<boolean> {
     const startTime = process.hrtime();
     const { name, inputs, outputs } = action;
     for (const input of inputs) {
@@ -247,27 +267,37 @@ export class Builder {
     const curinputs = await this.scanInputs(inputs);
     const preventry = this.actionCache.get(name);
     if (preventry != null && inputsEqual(curinputs, preventry.inputs)) {
-      return;
+      return preventry.success;
     }
-    console.log(`Action: ${name}`);
+    console.log(`Build ${name}`);
     this.actionCache.delete(name);
-    await action.execute();
-    for (const output of outputs) {
-      const stat = await fs.promises.stat(output);
-      const file = {
-        filename: output,
-        mtime: stat.mtimeMs,
-        dirty: false,
-      };
-      this.fileCache.set(output, file);
+    let success: boolean;
+    try {
+      success = await action.execute();
+    } catch (e) {
+      console.error(e);
+      success = false;
+    }
+    if (success) {
+      for (const output of outputs) {
+        const stat = await fs.promises.stat(output);
+        const file = {
+          filename: output,
+          mtime: stat.mtimeMs,
+          dirty: false,
+        };
+        this.fileCache.set(output, file);
+      }
     }
     this.actionCache.set(name, {
+      success,
       inputs: curinputs,
     });
     const elapsed = process.hrtime(startTime);
     if (this.showBuildTimes) {
       console.log(`Action ${name} completed in ${formatHRTime(elapsed)}`);
     }
+    return success;
   }
 
   /** Called when a watched file changes. */
@@ -282,6 +312,7 @@ export class Builder {
           this.inputsDidChange = true;
           break;
         case BuildState.Clean:
+        case BuildState.Failed:
           this.setState(BuildState.Dirty);
           break;
       }

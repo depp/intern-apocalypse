@@ -4,6 +4,7 @@
  */
 
 import * as program from 'commander';
+import chalk from 'chalk';
 
 import { BuildContext, Builder } from './action';
 import { BuildArgs } from './config';
@@ -112,7 +113,12 @@ async function main(): Promise<void> {
       builder.watch();
     } else {
       console.log('Building...');
-      await builder.build();
+      const success = await builder.build();
+      if (!success) {
+        console.log(`Build: ${chalk.red.bold('FAILED')}`);
+        process.exit(1);
+      }
+      console.log(`Build: ${chalk.green('success')}`);
     }
   } catch (e) {
     console.error(e);

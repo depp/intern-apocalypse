@@ -126,7 +126,7 @@ class RollupJS implements BuildAction {
   }
 
   /** Build the bundled JavaScript code. */
-  async execute(): Promise<void> {
+  async execute(): Promise<boolean> {
     const { params } = this;
     const external: string[] = [];
     const globals: { [name: string]: string } = {};
@@ -149,6 +149,7 @@ class RollupJS implements BuildAction {
     const { output } = await bundle.generate(outputOptions);
     const { code } = output[0];
     await fs.promises.writeFile(params.output, code);
+    return true;
   }
 }
 

@@ -53,14 +53,14 @@ class CompileTS implements BuildAction {
   }
 
   /** Read the TypeScript compiler options. */
-  private readTSConfig(): ts.CompilerOptions {
+  private readTSConfig(): ts.CompilerOptions | null {
     const { params } = this;
     const { config, error } = ts.readConfigFile(params.config, path =>
       fs.readFileSync(path, 'utf8'),
     );
     if (error != null) {
       logTSDiagnostics([error]);
-      throw new Error('Could not read TypeScript configuration');
+      return null;
     }
     const { compilerOptions } = config;
     const { options, errors } = ts.convertCompilerOptionsFromJson(
@@ -70,7 +70,7 @@ class CompileTS implements BuildAction {
     );
     if (errors.length) {
       logTSDiagnostics(errors);
-      throw new Error('Could not process TypeScript compiler options');
+      return null;
     }
     options.rootDir = '.';
     options.outDir = 'build';
@@ -78,9 +78,12 @@ class CompileTS implements BuildAction {
   }
 
   /** Compile the TypeScript code to JavaScript. */
-  execute(): Promise<void> {
+  execute(): Promise<boolean> {
     const { params } = this;
     const options = this.readTSConfig();
+    if (options == null) {
+      return Promise.resolve(false);
+    }
     const host = ts.createCompilerHost(options);
     // Fixme: use old program.
     const program = ts.createProgram(params.rootNames, options, host);
@@ -90,9 +93,9 @@ class CompileTS implements BuildAction {
       .concat(emitResult.diagnostics);
     if (diagnostics.length) {
       logTSDiagnostics(diagnostics);
-      throw new Error('TypeScript compilation failed');
+      return Promise.resolve(false);
     }
-    return Promise.resolve();
+    return Promise.resolve(true);
   }
 }
 

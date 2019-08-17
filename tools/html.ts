@@ -48,7 +48,7 @@ class EvalHTML implements BuildAction {
   }
 
   /** Evaluate the HTML template. */
-  async execute(): Promise<void> {
+  async execute(): Promise<boolean> {
     const { params } = this;
     const templateSrc = fs.promises.readFile(params.template, 'utf8');
     const scriptSrc = fs.promises.readFile(params.script, 'utf8');
@@ -58,6 +58,7 @@ class EvalHTML implements BuildAction {
       script: inlineJavaScript(await scriptSrc),
     });
     await fs.promises.writeFile(params.output, result, 'utf8');
+    return true;
   }
 }
 
