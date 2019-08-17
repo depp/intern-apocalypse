@@ -32,6 +32,11 @@ const baseFiles: readonly StaticFile[] = [
   { url: '/live.css', file: 'html/live.css' },
   { url: '/loader.js', file: 'build/loader.js' },
   { url: '/static', file: 'build/index.html' },
+  { url: '/react.js', file: 'node_modules/react/umd/react.development.js' },
+  {
+    url: '/react-dom.js',
+    file: 'node_modules/react-dom/umd/react-dom.development.js',
+  },
 ];
 
 /** Handle requests for /. */
