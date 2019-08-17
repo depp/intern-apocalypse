@@ -61,8 +61,8 @@ export class BuildContext {
   }
 }
 
-/** A function which creates build actions. */
-export type ActionCreator = (ctx: BuildContext) => void;
+/** A function which emits build actions. */
+export type ActionEmitter = (ctx: BuildContext) => void;
 
 interface FileMetadata {
   filename: string;
@@ -122,7 +122,7 @@ function formatHRTime(time: [number, number]): string {
  */
 export class Builder {
   /** Function which returns a list of actions in the build. */
-  private readonly createActions: ActionCreator;
+  private readonly createActions: ActionEmitter;
   /** If true, show the build times. */
   private readonly showBuildTimes: boolean;
   /** The current state of the build. */
@@ -141,7 +141,7 @@ export class Builder {
   /** Called after the state changes. */
   readonly stateChanged = new SyncEvent<BuildState>();
 
-  constructor(createActions: ActionCreator, options: BuilderOptions) {
+  constructor(createActions: ActionEmitter, options: BuilderOptions) {
     const { showBuildTimes } = options;
     this.createActions = createActions;
     this.showBuildTimes = showBuildTimes;

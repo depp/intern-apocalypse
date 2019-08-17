@@ -4,11 +4,10 @@
  */
 
 import * as fs from 'fs';
-import * as path from 'path';
 
 import * as ts from 'typescript';
 
-import { BuildContext, recursive } from './action';
+import { BuildContext, recursive, BuildAction } from './action';
 import { projectRoot, pathWithExt } from './util';
 
 /** Print TypeScript diagnostic messages. */
@@ -23,40 +22,40 @@ function logTSDiagnostics(diagnostics: readonly ts.Diagnostic[]): void {
   );
 }
 
-const configPath = 'src/tsconfig.json';
-const tsRoots = ['src/main.ts'];
-
-/** The result of running the CompileTS build step. */
-export interface CompileTSResult {
-  /** List of paths to output JavaScript modules. */
-  readonly jsModules: ReadonlyArray<string>;
+/** Parameters for compiling TypeScript. */
+export interface CompileTSParameters {
+  /** Path to the directory to store the outputs. */
+  readonly outDir: string;
+  /** Input file paths. */
+  readonly inputs: readonly string[];
+  /** Path to configuration file. */
+  readonly config: string;
+  /** Entry point file paths. */
+  readonly rootNames: readonly string[];
 }
 
 /**
- * Build step which compiles TypeScript to JavaScript.
+ * Build action which compiles TypeScript to JavaScript.
  */
-export class CompileTS {
-  private program: ts.Program | undefined;
-
-  createActions(ctx: BuildContext): CompileTSResult {
-    const sources = ctx.listFilesWithExtensions('src', ['.ts'], recursive);
-    const jsModules = sources.map(src =>
-      path.join('build', pathWithExt(src, '.js')),
-    );
-
-    ctx.addAction({
-      name: 'CompileTS',
-      inputs: [configPath, ...sources],
-      outputs: jsModules,
-      execute: async () => this.compileTS(),
-    });
-
-    return { jsModules };
+class CompileTS implements BuildAction {
+  private readonly params: CompileTSParameters;
+  constructor(params: CompileTSParameters) {
+    this.params = params;
+  }
+  get name(): string {
+    return `CompileTS ${this.params.outDir}`;
+  }
+  get inputs(): readonly string[] {
+    return this.params.inputs;
+  }
+  get outputs(): readonly string[] {
+    return this.params.inputs.map(src => 'build/' + pathWithExt(src, '.js'));
   }
 
   /** Read the TypeScript compiler options. */
   private readTSConfig(): ts.CompilerOptions {
-    const { config, error } = ts.readConfigFile(configPath, path =>
+    const { params } = this;
+    const { config, error } = ts.readConfigFile(params.config, path =>
       fs.readFileSync(path, 'utf8'),
     );
     if (error != null) {
@@ -67,7 +66,7 @@ export class CompileTS {
     const { options, errors } = ts.convertCompilerOptionsFromJson(
       compilerOptions,
       projectRoot,
-      configPath,
+      params.config,
     );
     if (errors.length) {
       logTSDiagnostics(errors);
@@ -78,11 +77,12 @@ export class CompileTS {
   }
 
   /** Compile the TypeScript code to JavaScript. */
-  private compileTS() {
+  execute(): Promise<void> {
+    const { params } = this;
     const options = this.readTSConfig();
     const host = ts.createCompilerHost(options);
-    const program = ts.createProgram(tsRoots, options, host, this.program);
-    this.program = program;
+    // Fixme: use old program.
+    const program = ts.createProgram(params.rootNames, options, host);
     const emitResult = program.emit();
     const diagnostics = ts
       .getPreEmitDiagnostics(program)
@@ -91,5 +91,16 @@ export class CompileTS {
       logTSDiagnostics(diagnostics);
       throw new Error('TypeScript compilation failed');
     }
+    return Promise.resolve();
   }
+}
+
+/**
+ * Create build actions to compile TypeScript code.
+ */
+export function compileTS(
+  ctx: BuildContext,
+  params: CompileTSParameters,
+): void {
+  ctx.addAction(new CompileTS(params));
 }

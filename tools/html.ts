@@ -4,7 +4,7 @@
 
 import * as fs from 'fs';
 
-import { BuildContext } from './action';
+import { BuildAction, BuildContext } from './action';
 
 import * as Handlebars from 'handlebars';
 
@@ -15,51 +15,55 @@ function inlineJavaScript(js: string): Handlebars.SafeString {
   );
 }
 
-/** Input to the EvalHTML build step. */
-export interface EvalHTMLInput {
+/** Parameters for the EvalHTML build rule. */
+export interface EvalHTMLParams {
+  /** Path to the input HTML template. */
+  readonly template: string;
   /** Path to the script to embed in the HTML. */
   readonly script: string;
-}
-
-/** Output from the EvalHTML build step. */
-export interface EvalHTMLOutput {
-  /** Path to the HTML template output. */
-  readonly html: string;
+  /** Title of the page. */
+  readonly title: string;
+  /** Output HTML path. */
+  readonly output: string;
 }
 
 /**
- * Bulid step which evaluates the main HTML page template.
+ * Bulid action which evaluates the main HTML page template.
  */
-export class EvalHTML {
-  createActions(ctx: BuildContext, input: EvalHTMLInput): EvalHTMLOutput {
-    const template = 'src/index.html';
-    const { script } = input;
-    const html = 'build/index.html';
+class EvalHTML implements BuildAction {
+  private readonly params: EvalHTMLParams;
 
-    ctx.addAction({
-      name: 'EvalHTML',
-      inputs: [template, script],
-      outputs: [html],
-      execute: () => this.evalHTML({ template, script, html }),
-    });
+  constructor(params: EvalHTMLParams) {
+    this.params = params;
+  }
 
-    return { html };
+  get name(): string {
+    return `EvalHTML ${this.params.output}`;
+  }
+  get inputs(): readonly string[] {
+    return [this.params.template, this.params.script];
+  }
+  get outputs(): readonly string[] {
+    return [this.params.output];
   }
 
   /** Evaluate the HTML template. */
-  private async evalHTML(arg: {
-    template: string;
-    script: string;
-    html: string;
-  }): Promise<void> {
-    const { template, script, html } = arg;
-    const templateSrc = fs.promises.readFile(template, 'utf8');
-    const scriptSrc = fs.promises.readFile(script, 'utf8');
+  async execute(): Promise<void> {
+    const { params } = this;
+    const templateSrc = fs.promises.readFile(params.template, 'utf8');
+    const scriptSrc = fs.promises.readFile(params.script, 'utf8');
     const templateFn = Handlebars.compile(await templateSrc);
     const result = templateFn({
-      title: 'Internship at the Apocalypse',
+      title: params.title,
       script: inlineJavaScript(await scriptSrc),
     });
-    await fs.promises.writeFile(html, result, 'utf8');
+    await fs.promises.writeFile(params.output, result, 'utf8');
   }
+}
+
+/**
+ * Emit build actions to expand main page HTML templates.
+ */
+export function evalHTML(ctx: BuildContext, params: EvalHTMLParams): void {
+  ctx.addAction(new EvalHTML(params));
 }

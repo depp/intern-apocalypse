@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import * as rollup from 'rollup';
-import { BuildContext } from './action';
+import { BuildAction, BuildContext } from './action';
 
 /** An error for failure to resolve an imported module. */
 class ResolutionFailure extends Error {
@@ -87,51 +87,72 @@ const resolverPlugin: rollup.Plugin = {
   },
 };
 
-/** The input for the RollupJS build step. */
-export interface RollupJSInput {
-  /** Path to input JavaScript modules. */
-  readonly jsModules: ReadonlyArray<string>;
+/** Information about a JavaScript module. */
+export interface Module {
+  /** The JavaScript module name. */
+  readonly name: string;
+  /** The global variable */
+  readonly global: string;
 }
 
-/** The result of running the RollupJS build step. */
-export interface RollupJSResult {
-  /** Path to the output JavaScript bundle. */
-  readonly jsBundle: string;
+/** Parameters for the RollupJS build step. */
+export interface RollupJSParameters extends Module {
+  /** A list of all input modules. */
+  inputs: readonly string[];
+  /** The output bundle file. */
+  readonly output: string;
+  /** A list of external modules this bundle imports. */
+  readonly external: readonly Module[];
 }
 
 /**
  * Build step which bundles JavaScript modules into a single file.
  */
-export class RollupJS {
-  createActions(ctx: BuildContext, input: RollupJSInput): RollupJSResult {
-    const { jsModules } = input;
-    const jsBundle = 'build/game.js';
+class RollupJS implements BuildAction {
+  private readonly params: RollupJSParameters;
 
-    ctx.addAction({
-      name: 'RollupJS',
-      inputs: jsModules,
-      outputs: [jsBundle],
-      execute: () => this.rollupJS({ jsBundle }),
-    });
+  constructor(params: RollupJSParameters) {
+    this.params = params;
+  }
 
-    return { jsBundle };
+  get name(): string {
+    return `RollupJS ${this.params.output}`;
+  }
+  get inputs(): readonly string[] {
+    return this.params.inputs;
+  }
+  get outputs(): readonly string[] {
+    return [this.params.output];
   }
 
   /** Build the bundled JavaScript code. */
-  private async rollupJS(arg: { jsBundle: string }): Promise<void> {
-    const { jsBundle } = arg;
+  async execute(): Promise<void> {
+    const { params } = this;
+    const external: string[] = [];
+    const globals: { [name: string]: string } = {};
+    for (const mod of params.external) {
+      external.push(mod.name);
+      globals[mod.name] = mod.global;
+    }
     const inputOptions: rollup.InputOptions = {
-      input: 'src/main',
+      input: params.name,
       plugins: [resolverPlugin],
+      external,
     };
     const bundle = await rollup.rollup(inputOptions);
     const outputOptions: rollup.OutputOptions = {
       format: 'iife',
-      name: 'Game',
+      name: params.global,
       sourcemap: true,
+      globals: globals,
     };
     const { output } = await bundle.generate(outputOptions);
     const { code } = output[0];
-    await fs.promises.writeFile(jsBundle, code);
+    await fs.promises.writeFile(params.output, code);
   }
+}
+
+/** Emit build actions to bundle JavaScript code. */
+export function rollupJS(ctx: BuildContext, params: RollupJSParameters): void {
+  ctx.addAction(new RollupJS(params));
 }

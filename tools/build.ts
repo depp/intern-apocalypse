@@ -5,34 +5,46 @@
 
 import * as program from 'commander';
 
-import { BuildContext, ActionCreator, Builder } from './action';
-import { EvalHTML } from './html';
-import { RollupJS } from './rollup';
-import { serve, ServerOptions } from './server';
-import { CompileTS } from './typescript';
+import { BuildContext, Builder, recursive } from './action';
+import { evalHTML } from './html';
+import { rollupJS } from './rollup';
+import { serve } from './server';
+import { compileTS } from './typescript';
 import * as util from './util';
-import { CreateZip } from './zip';
+import { createZip } from './zip';
 
 /** Competition zip file size limit. */
 const sizeTarget = 13 * 1024;
 
 /**
- * Create a function which creates build actions.
+ * Create the build actions.
  */
-function makeActionCreator(): ActionCreator {
-  const compileTS = new CompileTS();
-  const rollupJS = new RollupJS();
-  const evalHTML = new EvalHTML();
-  const createZip = new CreateZip();
-  return (ctx: BuildContext) => {
-    const { jsModules } = compileTS.createActions(ctx);
-    const { jsBundle } = rollupJS.createActions(ctx, { jsModules });
-    const { html } = evalHTML.createActions(ctx, { script: jsBundle });
-    createZip.createActions(ctx, {
-      sizeTarget,
-      files: new Map([['index.html', html]]),
-    });
-  };
+function emitActions(ctx: BuildContext) {
+  const tsSources = ctx.listFilesWithExtensions('src', ['.ts'], recursive);
+  compileTS(ctx, {
+    outDir: 'build/src',
+    inputs: tsSources,
+    config: 'src/tsconfig.json',
+    rootNames: ['src/main.ts'],
+  });
+  rollupJS(ctx, {
+    output: 'build/game.js',
+    inputs: tsSources.map(src => 'build/' + util.pathWithExt(src, '.js')),
+    name: 'src/main',
+    global: 'Game',
+    external: [],
+  });
+  evalHTML(ctx, {
+    output: 'build/index.html',
+    template: 'src/index.html',
+    script: 'build/game.js',
+    title: 'Internship at the Apocalypse',
+  });
+  createZip(ctx, {
+    output: 'build/InternApocalypse.zip',
+    files: new Map([['index.html', 'build/index.html']]),
+    sizeTarget,
+  });
 }
 
 /** Parse an integer command-line option. */
@@ -69,7 +81,7 @@ async function main(): Promise<void> {
     await util.mkdir('build');
     await util.removeAll('build/tmp');
     await util.mkdir('build/tmp');
-    const builder = new Builder(makeActionCreator(), args);
+    const builder = new Builder(emitActions, args);
     if (args.serve) {
       console.log('Building...');
       builder.watch();

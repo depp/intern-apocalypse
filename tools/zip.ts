@@ -9,13 +9,13 @@ import * as path from 'path';
 import chalk from 'chalk';
 
 import * as util from './util';
-import { BuildContext } from './action';
+import { BuildAction, BuildContext } from './action';
 
 /**
- * Create a zip file containing the given files.
+ * Create a zip file containing the given files using InfoZip.
  * @returns Size of the zip file, in bytes.
  */
-async function createZip(
+async function runInfoZip(
   zipPath: string,
   files: ReadonlyMap<string, string>,
 ): Promise<number> {
@@ -42,43 +42,33 @@ async function createZip(
   return st.size;
 }
 
-/** Input to the CreateZip build step. */
-export interface ZipInput {
-  sizeTarget: number;
-  files: ReadonlyMap<string, string>;
-}
-
-/** Input to the CreateZip build step. */
-export interface ZipOutput {
-  zip: string;
+/** Specification for creating a zip file. */
+export interface ZipParameters {
+  readonly output: string;
+  readonly files: ReadonlyMap<string, string>;
+  readonly sizeTarget: number;
 }
 
 /**
- * Build step which creates a zip archive.
+ * Build action which creates a zip archive.
  */
-export class CreateZip {
-  createActions(ctx: BuildContext, input: ZipInput): ZipOutput {
-    const { sizeTarget, files } = input;
-    const zip = 'build/InternApocalypse.zip';
-
-    ctx.addAction({
-      name: 'Zip',
-      inputs: [...files.values()],
-      outputs: [zip],
-      execute: () => this.createZip({ zip, files, sizeTarget }),
-    });
-
-    return { zip };
+class CreateZip implements BuildAction {
+  readonly params: ZipParameters;
+  constructor(params: ZipParameters) {
+    this.params = params;
   }
-
-  /** Build the packaged zip file. */
-  private async createZip(input: {
-    zip: string;
-    files: ReadonlyMap<string, string>;
-    sizeTarget: number;
-  }): Promise<void> {
-    const { zip, files, sizeTarget } = input;
-    const size = await createZip(zip, files);
+  get name(): string {
+    return `Zip ${this.params.output}`;
+  }
+  get inputs(): readonly string[] {
+    return [...this.params.files.values()];
+  }
+  get outputs(): readonly string[] {
+    return [this.params.output];
+  }
+  async execute(): Promise<void> {
+    const { output, files, sizeTarget } = this.params;
+    const size = await runInfoZip(output, files);
     const percentSize = ((100 * size) / sizeTarget).toFixed(2);
     const withinTarget =
       size <= sizeTarget ? chalk.green('yes') : chalk.red.bold('NO');
@@ -87,4 +77,9 @@ export class CreateZip {
         `Within size limit: ${withinTarget}\n`,
     );
   }
+}
+
+/** Create a build action that creates a zip archive. */
+export function createZip(ctx: BuildContext, params: ZipParameters) {
+  ctx.addAction(new CreateZip(params));
 }
