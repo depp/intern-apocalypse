@@ -3,12 +3,13 @@
  */
 
 import * as fs from 'fs';
+import * as path from 'path';
 
 import * as chokidar from 'chokidar';
 import { SyncEvent } from 'ts-events';
 
 import { BuildArgs } from './config';
-import { recursive, listFilesWithExtensions } from './util';
+import { recursive, listFilesWithExtensions, pathExt } from './util';
 
 export { recursive };
 
@@ -44,14 +45,25 @@ export interface BuildAction {
 }
 
 /**
+ * A request to list files.
+ */
+interface ListFileRequest {
+  readonly dirpath: string;
+  readonly exts: readonly string[];
+  readonly recursive: boolean;
+}
+
+/**
  * A context for running build actions.
  */
 export class BuildContext {
   /** List of all build, in the order they are added. */
   private readonly actions: BuildAction[];
+  private readonly listFilesRequests: ListFileRequest[];
 
-  constructor(actions: BuildAction[]) {
+  constructor(actions: BuildAction[], listFilesRequests: ListFileRequest[]) {
     this.actions = actions;
+    this.listFilesRequests = listFilesRequests;
   }
 
   /**
@@ -70,11 +82,16 @@ export class BuildContext {
    */
   listFilesWithExtensions(
     dirpath: string,
-    exts: ReadonlyArray<string>,
+    exts: readonly string[],
     flag?: typeof recursive,
-  ): ReadonlyArray<string> {
+  ): readonly string[] {
     const files = listFilesWithExtensions(dirpath, exts, flag);
     files.sort();
+    this.listFilesRequests.push({
+      dirpath,
+      exts,
+      recursive: flag == recursive,
+    });
     return files;
   }
 }
@@ -148,7 +165,9 @@ export class Builder {
   /** The current state of the build. */
   private _state = BuildState.Dirty;
   /** Cached result of createActions. */
-  private actions: BuildAction[] | null = null;
+  private actions: readonly BuildAction[] | null = null;
+  /** File lists requested when creating the actions. */
+  private listFilesRequests: readonly ListFileRequest[] | null = null;
   /** Cached results of running actions, indexed by action name. */
   private readonly actionCache = new Map<string, ActionCacheEntry>();
   /** Cached metadata for files. */
@@ -258,27 +277,35 @@ export class Builder {
       ignored: '.*',
     });
     watcher.on('change', (filename, stats) => this.didChange(filename, stats));
-    (async () => {
-      try {
-        while (true) {
-          await this.build();
-          await this.waitUntilDirty();
-        }
-      } catch (e) {
-        console.error('Uncaught build error:', e);
-        process.exit(1);
+    watcher.on('add', filename => this.didAddOrRemove(filename));
+    watcher.on('unlink', filename => this.didAddOrRemove(filename));
+    watcher.once('ready', () => setImmediate(() => this.watchLoop()));
+  }
+
+  /** Main watch loop. */
+  private async watchLoop(): Promise<void> {
+    try {
+      while (true) {
+        await this.build();
+        await this.waitUntilDirty();
       }
-    })();
+    } catch (e) {
+      console.error('Uncaught build error:', e);
+      process.exit(1);
+    }
   }
 
   /** Get a list of all actions to run. */
   private getActions(): readonly BuildAction[] {
-    let actions = this.actions;
-    if (actions != null) {
-      return actions;
+    // Note: It is especially convenient that this function is synchronous. This
+    // means that there is no gap while this function is running where we might
+    // want to invalidate the build because files are added or removed.
+    if (this.actions != null) {
+      return this.actions;
     }
-    actions = [];
-    this.createActions(new BuildContext(actions));
+    const actions: BuildAction[] = [];
+    const listFilesRequests: ListFileRequest[] = [];
+    this.createActions(new BuildContext(actions, listFilesRequests));
     // Remove cache entries from actions that don't exist any more.
     const actionSet = new Set(actions.map(action => action.name));
     for (const name of this.actionCache.keys()) {
@@ -287,6 +314,7 @@ export class Builder {
       }
     }
     this.actions = actions;
+    this.listFilesRequests = listFilesRequests;
     return actions;
   }
 
@@ -340,6 +368,23 @@ export class Builder {
     return success;
   }
 
+  /**
+   * Invalidate the build inputs, marking the build as dirty. If the build is
+   * currently building, it will be marked dirty after the current action
+   * completes.
+   */
+  private markBuildDirty(): void {
+    switch (this._state) {
+      case BuildState.Building:
+        this.inputsDidChange = true;
+        break;
+      case BuildState.Clean:
+      case BuildState.Failed:
+        this.setState(BuildState.Dirty);
+        break;
+    }
+  }
+
   /** Called when a watched file changes. */
   private didChange(filename: string, stats: fs.Stats | undefined): void {
     const file = this.fileCache.get(filename);
@@ -347,15 +392,40 @@ export class Builder {
       file.dirty = true;
     }
     if (this.inputs.has(filename)) {
-      switch (this._state) {
-        case BuildState.Building:
-          this.inputsDidChange = true;
-          break;
-        case BuildState.Clean:
-        case BuildState.Failed:
-          this.setState(BuildState.Dirty);
-          break;
+      this.markBuildDirty();
+    }
+  }
+
+  /** Return true if the file matches any request to list files. */
+  private fileMatchesAnyList(filename: string): boolean {
+    if (this.listFilesRequests == null) {
+      return false;
+    }
+    const ext = pathExt(filename);
+    for (const req of this.listFilesRequests) {
+      const { dirpath, exts, recursive } = req;
+      if (!exts.includes(ext)) {
+        continue;
       }
+      if (recursive) {
+        const prefix =
+          dirpath != '' && dirpath.endsWith('/') ? dirpath : dirpath + '/';
+        if (!filename.startsWith(prefix)) {
+          continue;
+        }
+      } else if (path.dirname(filename) != dirpath) {
+        continue;
+      }
+      return true;
+    }
+    return false;
+  }
+
+  /** Called when a watched file is added or removed. */
+  private didAddOrRemove(filename: string): void {
+    if (this.fileMatchesAnyList(filename)) {
+      this.actions = null;
+      this.markBuildDirty();
     }
   }
 
