@@ -9,6 +9,7 @@ import { gl } from './global';
 import { startInput, endFrameInput } from './input';
 import { updatePlayer } from './player';
 import { render } from './render';
+import { renderDebug } from './render_debug';
 import { updateTime } from './time';
 
 /**
@@ -23,6 +24,7 @@ function main(curTimeMS: DOMHighResTimeStamp): void {
   updatePlayer();
   endFrameInput();
   render(curTimeMS);
+  renderDebug();
   requestAnimationFrame(main);
 }
 

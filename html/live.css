@@ -10,7 +10,34 @@ h1 {
 #g {
   margin: 0 auto;
   display: block;
+  z-index: 0;
 }
+
+/* =============================================================================
+Debug Canvas
+============================================================================= */
+
+#container {
+  width: 800px;
+  height: 600px;
+  margin: 0 auto;
+  position: relative;
+}
+
+#container canvas {
+  position: absolute;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+}
+
+#debugcanvas {
+  z-index: 1;
+}
+
+/* =============================================================================
+Status Box
+============================================================================= */
 
 #statusbox {
   position: absolute;
