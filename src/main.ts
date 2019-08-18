@@ -9,6 +9,7 @@ import { gl } from './global';
 import { startInput, endFrameInput } from './input';
 import { updatePlayer } from './player';
 import { render } from './render';
+import { updateTime } from './time';
 
 /**
  * Main update loop. Called by requestAnimationFrame, and calls
@@ -17,7 +18,8 @@ import { render } from './render';
  *
  * @param curTimeMS Current time in milliseconds.
  */
-function main(curTimeMS: number): void {
+function main(curTimeMS: DOMHighResTimeStamp): void {
+  updateTime(curTimeMS);
   updatePlayer();
   endFrameInput();
   render(curTimeMS);

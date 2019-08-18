@@ -1,0 +1,13 @@
+/**
+ * Various utility functions.
+ */
+
+/**
+ * Clamp a number to the given range.
+ * @param x The number to clamp.
+ * @param min The minimum value of the result.
+ * @param max The maximum value of the result.
+ */
+export function clamp(x: number, min: number = 0, max: number = 1): number {
+  return Math.max(min, Math.min(max, x));
+}
