@@ -10,7 +10,7 @@ const playerSpeed = 1.0;
 /**
  * Current 2D position of the player.
  */
-export const playerPos: number[] = [0, 0];
+export const playerPos: [number, number] = [0, 0];
 
 /**
  * Update the state of the player.
