@@ -143,15 +143,7 @@ export function listFilesWithExtensions(
       const { name } = obj;
       if (!name.startsWith('.')) {
         if (obj.isFile()) {
-          const ext = pathExt(name);
-          let include = false;
-          for (const ematch of exts) {
-            if (ext == ematch) {
-              include = true;
-              break;
-            }
-          }
-          if (include) {
+          if (exts.includes(pathExt(name))) {
             result.push(path.join(curpath, name));
           }
         } else if (flag == recursive && obj.isDirectory()) {
