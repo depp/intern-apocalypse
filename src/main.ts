@@ -9,7 +9,7 @@ import { gl } from './global';
 import { startInput, endFrameInput } from './input';
 import { updatePlayer } from './player';
 import { render } from './render';
-import { renderDebug } from './render_debug';
+import { renderDebug } from './debug_render';
 import { updateTime } from './time';
 
 /**
