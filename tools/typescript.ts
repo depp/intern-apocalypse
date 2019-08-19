@@ -49,7 +49,10 @@ class CompileTS implements BuildAction {
     return this.params.inputs;
   }
   get outputs(): readonly string[] {
-    return this.params.inputs.map(src => 'build/' + pathWithExt(src, '.js'));
+    return this.params.inputs.flatMap(src => {
+      const js = 'build/' + pathWithExt(src, '.js');
+      return [js, js + '.map'];
+    });
   }
 
   /** Read the TypeScript compiler options. */
@@ -74,6 +77,8 @@ class CompileTS implements BuildAction {
     }
     options.rootDir = '.';
     options.outDir = 'build';
+    options.sourceMap = true;
+    options.sourceRoot = projectRoot;
     return options;
   }
 

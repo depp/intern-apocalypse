@@ -83,7 +83,15 @@ const resolverPlugin: rollup.Plugin = {
   async load(id: string): Promise<rollup.SourceDescription> {
     const srcPath = path.join('build', id + '.js');
     const code = await fs.promises.readFile(srcPath, 'utf8');
-    return { code };
+    const result: rollup.SourceDescription = { code };
+    try {
+      result.map = await fs.promises.readFile(srcPath + '.map', 'utf8');
+    } catch (e) {
+      if (e.code != 'ENOENT') {
+        throw e;
+      }
+    }
+    return result;
   },
 };
 
@@ -147,8 +155,11 @@ class RollupJS implements BuildAction {
       globals: globals,
     };
     const { output } = await bundle.generate(outputOptions);
-    const { code } = output[0];
+    const { code, map } = output[0];
     await fs.promises.writeFile(params.output, code);
+    if (map) {
+      await fs.promises.writeFile(params.output + '.map', map);
+    }
     return true;
   }
 }

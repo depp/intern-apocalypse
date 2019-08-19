@@ -23,6 +23,7 @@ export interface ServerParameters extends BuildArgs {
 interface StaticFile {
   readonly url: string;
   readonly file: string;
+  readonly sourceMap?: string;
 }
 
 /**
@@ -30,14 +31,16 @@ interface StaticFile {
  */
 const baseFiles: readonly StaticFile[] = [
   { url: '/live.css', file: 'html/live.css' },
-  { url: '/loader.js', file: 'build/loader.js' },
+  { url: '/loader.js', file: 'build/loader.js', sourceMap: 'loader.js.map' },
+  { url: '/loader.js.map', file: 'build/loader.js.map' },
   { url: '/static', file: 'build/index.html' },
   { url: '/react.js', file: 'node_modules/react/umd/react.development.js' },
   {
     url: '/react-dom.js',
     file: 'node_modules/react-dom/umd/react-dom.development.js',
   },
-  { url: '/game.js', file: 'build/game.js' },
+  { url: '/game.js', file: 'build/game.js', sourceMap: 'game.js.map' },
+  { url: '/game.js.map', file: 'build/game.js.map' },
 ];
 
 /** Handle requests for /. */
@@ -64,6 +67,10 @@ async function handleRoot(
 function staticHandler(file: StaticFile): express.RequestHandler {
   return function handler(req: Request, res: Response): void {
     res.setHeader('Cache-Control', 'no-cache');
+    const { sourceMap } = file;
+    if (sourceMap) {
+      res.setHeader('SourceMap', sourceMap);
+    }
     send(req, file.file, {
       cacheControl: false,
     }).pipe(res);
