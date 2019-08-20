@@ -232,8 +232,6 @@ function checkBoundary(cell: Cell, count: number): void {
 
 function runTest(test: Test): void {
   const { name, cells, bounds } = test;
-  console.log();
-  console.log(`test: ${name}`);
   const level = new LevelBuilder();
   level.createLevel(cells);
   for (let i = 0; i < bounds.length; i++) {
@@ -267,19 +265,8 @@ function runTest(test: Test): void {
   }
 }
 
-function main(): void {
+describe('Level generation', () => {
   for (const test of tests) {
-    try {
-      runTest(test);
-    } catch (e) {
-      if (e instanceof Failure) {
-        console.error(e.message);
-        // @ts-ignore: FIXME figure this out later.
-        process.exit(1);
-      }
-      throw e;
-    }
+    it(test.name, () => runTest(test));
   }
-}
-
-main();
+});

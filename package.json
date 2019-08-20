@@ -2,6 +2,7 @@
   "private": true,
   "devDependencies": {
     "@types/express": "^4.17.0",
+    "@types/jest": "^24.0.18",
     "@types/minimist": "^1.2.0",
     "@types/node": "^12.7.1",
     "@types/react": "^16.9.2",
@@ -13,6 +14,7 @@
     "express": "^4.17.1",
     "handlebars": "^4.1.2",
     "husky": "^3.0.3",
+    "jest": "^24.9.0",
     "prettier": "^1.18.2",
     "pretty-quick": "^1.11.1",
     "react": "^16.9.0",
@@ -20,6 +22,7 @@
     "rollup": "^1.19.4",
     "send": "^0.17.1",
     "ts-events": "^3.3.1",
+    "ts-jest": "^24.0.2",
     "ts-node": "^8.3.0",
     "typescript": "^3.5.3",
     "ws": "^7.1.2"
