@@ -248,11 +248,9 @@ export class LevelBuilder {
    * center.
    */
   private createSplit(prev: Edge, newCenter: Readonly<Vector>): EdgeSplit {
-    console.log(`  createSplit prev=${prev.index}`);
     let front = prev;
     while (true) {
       const { vertex0, vertex1, center, next } = front;
-      console.log(`    test front=${front.index}`, vertex0, vertex1);
       const diff =
         distanceSquared(newCenter, vertex1) - distanceSquared(center, vertex1);
       if (diff >= 0) {
@@ -267,7 +265,6 @@ export class LevelBuilder {
               alpha,
             });
           }
-          console.log('Alpha:', alpha);
           vertex = lerp(vertex0, vertex1, alpha);
         }
         return { front, back: this.edgeBack(front), vertex };
@@ -281,7 +278,6 @@ export class LevelBuilder {
         // This will happen for border cells.
         return { front, back, vertex: vertex1 };
       }
-      console.log(`        next=${next.index}`);
       if (next == prev) {
         throw new AssertionError('no split found', { prev, newCenter });
       }
@@ -298,15 +294,12 @@ export class LevelBuilder {
     // the cell containing the center of the new cell must do this.
     const firstCell = this.findCell(center);
     // Create split points for all cells bordering the new cell.
-    console.log(' addCell');
-    console.log(`  cell: ${firstCell.index}`);
     let split = this.createSplit(
       findAnySplitEdge(firstCell.edge, center),
       center,
     );
     const splits: EdgeSplit[] = [split];
     while (split.back.cell != firstCell) {
-      console.log(`  cell: ${split.back.cell!.index}`);
       split = this.createSplit(split.back, center);
       splits.push(split);
     }
@@ -323,39 +316,30 @@ export class LevelBuilder {
         throw new AssertionError('so that');
       }
       const [e1, e2] = this.newEdgePair(vertex0, vertex1, center);
-      console.log(`SPLIT cell #${front.cell!.index}`, vertex0, vertex1);
-      console.log('  back:', back.vertex0, vertex0, back.vertex1);
-      console.log('  front:', front.vertex0, vertex1, front.vertex1);
       edges.push(e2);
       let prev: Edge | null, next: Edge | null;
       const eq0 = vertex0 == back.vertex0;
       const eq1 = vertex1 == front.vertex1;
       if (eq0) {
         ({ prev } = back);
-        console.log('  == back equal');
       } else {
         prev = back;
         back.vertex1 = vertex0;
       }
       if (eq1) {
         ({ next } = front);
-        console.log('  == front equal');
       } else {
-        console.log('UNEQUAL', vertex1, front.vertex1);
         next = front;
         front.vertex0 = vertex1;
       }
       if (prev) {
-        console.log(`  ${prev.index} -> ${e1.index}`);
         prev.next = e1;
         e1.prev = prev;
       }
       if (next) {
-        console.log(`  ${e1.index} -> ${next.index}`);
         next.prev = e1;
         e1.next = next;
       }
-
       cell.edge = e1;
       e1.cell = cell;
       ({ back, vertex: vertex0 } = split);
