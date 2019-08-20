@@ -9,14 +9,12 @@ import chalk from 'chalk';
 import { BuildContext, Builder } from './action';
 import { BuildArgs } from './config';
 import { evalHTML } from './html';
+import { projectName, sizeTarget } from './info';
 import { rollupJS } from './rollup';
 import { serve } from './server';
 import { compileTS } from './typescript';
 import { pathWithExt, projectRoot, mkdir, removeAll } from './util';
 import { createZip } from './zip';
-
-/** Competition zip file size limit. */
-const sizeTarget = 13 * 1024;
 
 /**
  * Create the build actions.
@@ -40,7 +38,7 @@ function emitActions(ctx: BuildContext) {
     output: 'build/index.html',
     template: 'html/static.html',
     script: 'build/game.js',
-    title: 'Internship at the Apocalypse',
+    title: projectName,
   });
   createZip(ctx, {
     output: 'build/InternApocalypse.zip',

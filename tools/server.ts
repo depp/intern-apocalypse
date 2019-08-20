@@ -13,6 +13,7 @@ import * as WebSocket from 'ws';
 
 import { BuildState, Builder } from './action';
 import { BuildArgs } from './config';
+import { projectName } from './info';
 
 /** Parameters for running the HTTP server. */
 export interface ServerParameters extends BuildArgs {
@@ -54,7 +55,7 @@ async function handleRoot(
     const source = await fs.promises.readFile('html/live.html', 'utf8');
     const template = Handlebars.compile(source);
     const text = template({
-      title: 'Intern at the Apocalypse',
+      title: projectName,
     });
     res.setHeader('Cache-Control', 'no-cache');
     res.send(text);
