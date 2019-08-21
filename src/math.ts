@@ -35,6 +35,16 @@ export function madd(
   return vector(u.x + v.x * a, u.y + v.y * a);
 }
 
+/** Compute u+(v0-v1)*a. */
+export function maddSubtract(
+  u: Readonly<Vector>,
+  v0: Readonly<Vector>,
+  v1: Readonly<Vector>,
+  a: number = 1,
+): Vector {
+  return vector(u.x + (v0.x - v1.x) * a, u.y + (v0.y - v1.y) * a);
+}
+
 /** Return the squared Euclidean distance between two vectors. */
 export function distanceSquared(
   u: Readonly<Vector>,
