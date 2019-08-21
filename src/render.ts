@@ -36,7 +36,7 @@ const buf = gl.createBuffer()!; // FIXME: check?
  */
 export function render(curTimeMS: number): void {
   gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  let [x, y] = playerPos;
+  let { x, y } = playerPos;
   gl.bufferData(
     gl.ARRAY_BUFFER,
     new Float32Array([-0.1 + x, -0.1 + y, 0.1 + x, -0.1 + y, 0.0 + x, 0.1 + y]),

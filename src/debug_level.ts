@@ -5,6 +5,7 @@
 import { AssertionError } from './debug';
 import { ctx } from './debug_global';
 import { Cell } from './level';
+import { Vector } from './math';
 import { playerPos } from './player';
 import { level } from './world';
 
@@ -85,8 +86,8 @@ function drawCell(cell: Cell, scale: number): void {
 /**
  * Draw an entity in the level.
  */
-function drawEntity(pos: [number, number]): void {
-  const [x, y] = pos;
+function drawEntity(pos: Vector): void {
+  const { x, y } = pos;
   ctx.beginPath();
   ctx.arc(x, y, 1.0, 0, 2 * Math.PI);
 
@@ -108,6 +109,6 @@ export function drawLevel(): void {
       drawCell(cell, scale);
     }
   }
-  // drawEntity(playerPos);
+  drawEntity(playerPos);
   ctx.restore();
 }
