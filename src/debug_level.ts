@@ -5,7 +5,7 @@
 import { AssertionError } from './debug';
 import { debugView } from './debug_controls';
 import { ctx } from './debug_global';
-import { Cell } from './level';
+import { Cell, Edge } from './level';
 import { Vector } from './math';
 import { playerPos } from './player';
 import { level } from './world';
@@ -38,25 +38,60 @@ function drawBorderCell(cell: Cell, scale: number): void {
 }
 
 /**
+ * Calculate vertex for line join.
+ */
+function joinVertex(
+  v0: Readonly<Vector>,
+  v1: Readonly<Vector>,
+  v2: Readonly<Vector>,
+  distance: number,
+): Vector {
+  let x1 = v1.y - v0.y,
+    y1 = v0.x - v1.x;
+  let x2 = v2.y - v1.y,
+    y2 = v1.x - v2.x;
+  const a1 = 1 / Math.hypot(x1, y1);
+  const a2 = 1 / Math.hypot(x2, y2);
+  x1 *= a1;
+  y1 *= a1;
+  x2 *= a2;
+  y2 *= a2;
+  const b = x1 * x2 + y1 * y2;
+  const limit = 5;
+  const c = distance * (b > -(limit - 1) / limit ? 1 / (1 + b) : limit);
+  return {
+    x: v1.x - c * (x1 + x2),
+    y: v1.y - c * (y1 + y2),
+  };
+}
+
+/**
  * Draw an interior cell in the level.
  */
 function drawInteriorCell(cell: Cell, scale: number): void {
+  const inset = 2 / scale;
   const { edge } = cell;
   if (edge == null) {
     throw new AssertionError('edge is null', { cell });
   }
 
   ctx.beginPath();
-  let { x, y } = edge.vertex0;
+  let { x, y } = joinVertex(
+    edge.prev!.vertex0,
+    edge.vertex0,
+    edge.vertex1,
+    inset,
+  );
   ctx.moveTo(x, y);
   for (let cur = edge.next; cur != edge; cur = cur.next) {
     if (cur == null) {
       throw new AssertionError('edge is null', { cell });
     }
-    ({ x, y } = cur.vertex0);
+    ({ x, y } = joinVertex(cur.prev!.vertex0, cur.vertex0, cur.vertex1, inset));
     ctx.lineTo(x, y);
   }
-  ctx.lineWidth = 4 / scale;
+  ctx.lineJoin = 'bevel';
+  ctx.lineWidth = 3 / scale;
   ctx.closePath();
   ctx.stroke();
 
