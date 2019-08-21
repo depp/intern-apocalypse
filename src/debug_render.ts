@@ -2,6 +2,7 @@
  * Debug renderer. Draws the game using simple 2D graphics.
  */
 
+import { debugView } from './debug_controls';
 import { ctx, initContext } from './debug_global';
 import { drawLevel } from './debug_level';
 import { frameDT } from './time';
@@ -20,6 +21,8 @@ function drawDT() {
 export function renderDebug(): void {
   initContext();
   ctx.clearRect(0, 0, 800, 600);
-  drawLevel();
+  if (debugView.level) {
+    drawLevel();
+  }
   drawDT();
 }

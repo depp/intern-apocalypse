@@ -32,7 +32,7 @@ function emitActions(ctx: BuildContext) {
     inputs: tsSources.map(src => 'build/' + pathWithExt(src, '.js')),
     name: 'src/main',
     global: 'Game',
-    external: [],
+    external: [{ name: 'dat.gui', global: 'dat' }],
   });
   evalHTML(ctx, {
     output: 'build/index.html',

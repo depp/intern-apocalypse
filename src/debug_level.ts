@@ -3,6 +3,7 @@
  */
 
 import { AssertionError } from './debug';
+import { debugView } from './debug_controls';
 import { ctx } from './debug_global';
 import { Cell } from './level';
 import { Vector } from './math';
@@ -59,17 +60,19 @@ function drawInteriorCell(cell: Cell, scale: number): void {
   ctx.closePath();
   ctx.stroke();
 
-  ctx.beginPath();
-  ({ x, y } = cell.center);
-  ctx.arc(x, y, 4 / scale, 0, 2 * Math.PI);
-  ctx.fillStyle = '#ccc';
-  ctx.fill();
+  if (debugView.centroids) {
+    ctx.beginPath();
+    ({ x, y } = cell.center);
+    ctx.arc(x, y, 4 / scale, 0, 2 * Math.PI);
+    ctx.fillStyle = '#ccc';
+    ctx.fill();
 
-  ctx.beginPath();
-  ({ x, y } = cell.centroid());
-  ctx.arc(x, y, 4 / scale, 0, 2 * Math.PI);
-  ctx.fillStyle = '#c33';
-  ctx.fill();
+    ctx.beginPath();
+    ({ x, y } = cell.centroid());
+    ctx.arc(x, y, 4 / scale, 0, 2 * Math.PI);
+    ctx.fillStyle = '#c33';
+    ctx.fill();
+  }
 }
 
 /**
@@ -110,6 +113,8 @@ export function drawLevel(): void {
       drawCell(cell, scale);
     }
   }
-  drawEntity(playerPos);
+  if (debugView.player) {
+    drawEntity(playerPos);
+  }
   ctx.restore();
 }
