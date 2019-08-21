@@ -16,6 +16,16 @@ export function distanceSquared(
   return (u.x - v.x) ** 2 + (u.y - v.y) ** 2;
 }
 
+/** Compute the dot product of subtracted vectors, <u-v, a-b>. */
+export function dotSubtract(
+  u: Vector,
+  v: Vector,
+  a: Vector,
+  b: Vector,
+): number {
+  return (u.x - v.x) * (a.x - b.x) + (u.y - v.y) * (a.y - b.y);
+}
+
 /**
  * Linearly interpolate between two vectors.
  *
@@ -57,6 +67,6 @@ export function findLineSplit(
   //     = 2 alpha <c1 - c2, v2 -v1>
   return (
     (0.5 * (distanceSquared(v1, c1) - distanceSquared(v1, c2))) /
-    ((c2.x - c1.x) * (v1.x - v2.x) + (c2.y - c1.y) * (v1.y - v2.y))
+    dotSubtract(c2, c1, v1, v2)
   );
 }
