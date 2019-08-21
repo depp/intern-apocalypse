@@ -20,7 +20,7 @@ Debug Canvas
 #container {
   width: 800px;
   height: 600px;
-  margin: 0 auto;
+  margin: 0 auto 0 1ex;
   position: relative;
 }
 
