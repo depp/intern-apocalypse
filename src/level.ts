@@ -5,6 +5,15 @@
 import { AssertionError } from './debug';
 import { Vector, distanceSquared, findLineSplit, lerp } from './math';
 
+/** Iterate over the edges in an edge loop, once. */
+function* edges(firstEdge: Edge): IterableIterator<Edge> {
+  let edge: Edge | null = firstEdge;
+  do {
+    yield edge;
+    edge = edge.next;
+  } while (edge && edge != firstEdge);
+}
+
 /**
  * The smallest area in a level.
  *
@@ -31,6 +40,22 @@ export class Cell {
       edge.cell = this;
       edge = edge.next;
     } while (edge && edge != firstEdge);
+  }
+
+  /**
+   * Calculate the centroid of the cell.
+   */
+  centroid(): Vector {
+    let area = 0,
+      xarea = 0,
+      yarea = 0;
+    for (const { vertex0, vertex1 } of edges(this.edge)) {
+      const a = vertex0.x * vertex1.y - vertex1.x * vertex0.y;
+      area += a / 2;
+      xarea += ((vertex0.x + vertex1.x) * a) / 6;
+      yarea += ((vertex0.y + vertex1.y) * a) / 6;
+    }
+    return { x: xarea / area, y: yarea / area };
   }
 }
 

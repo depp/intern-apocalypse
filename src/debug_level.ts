@@ -63,6 +63,12 @@ function drawInteriorCell(cell: Cell, scale: number): void {
   ctx.arc(x, y, 4 / scale, 0, 2 * Math.PI);
   ctx.fillStyle = '#ccc';
   ctx.fill();
+
+  ctx.beginPath();
+  ({ x, y } = cell.centroid());
+  ctx.arc(x, y, 4 / scale, 0, 2 * Math.PI);
+  ctx.fillStyle = '#c33';
+  ctx.fill();
 }
 
 /**
