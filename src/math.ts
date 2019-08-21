@@ -8,12 +8,22 @@ export interface Vector {
   y: number;
 }
 
+/** Create a vector. */
+export function vector(x: number, y: number): Vector {
+  return { x, y };
+}
+
 /** Return the squared Euclidean distance between two vectors. */
 export function distanceSquared(
   u: Readonly<Vector>,
   v: Readonly<Vector>,
 ): number {
   return (u.x - v.x) ** 2 + (u.y - v.y) ** 2;
+}
+
+/** Return the Euclidean distance between two vectors. */
+export function distance(u: Readonly<Vector>, v: Readonly<Vector>): number {
+  return Math.sqrt(distanceSquared(u, v));
 }
 
 /** Compute the dot product of subtracted vectors, <u-v, a-b>. */
@@ -24,6 +34,16 @@ export function dotSubtract(
   b: Vector,
 ): number {
   return (u.x - v.x) * (a.x - b.x) + (u.y - v.y) * (a.y - b.y);
+}
+
+/** Compute the wedge product of subtracted vectors, (u-v) ^ (a-b). */
+export function wedgeSubtract(
+  u: Vector,
+  v: Vector,
+  a: Vector,
+  b: Vector,
+): number {
+  return (u.x - v.x) * (a.y - b.y) - (u.y - v.y) * (a.x - b.x);
 }
 
 /**
@@ -68,5 +88,33 @@ export function findLineSplit(
   return (
     (0.5 * (distanceSquared(v1, c1) - distanceSquared(v1, c2))) /
     dotSubtract(c2, c1, v1, v2)
+  );
+}
+
+/**
+ * Test if a line segment intersects a circle.
+ * @param v1 One end of the line segment.
+ * @param v2 The other end of the line segment.
+ * @param c Center of the circle.
+ * @param radius Radius of the circle.
+ */
+export function lineIntersectsCircle(
+  v1: Readonly<Vector>,
+  v2: Readonly<Vector>,
+  c: Readonly<Vector>,
+  radius: number,
+): boolean {
+  if (
+    distanceSquared(v1, c) <= radius ** 2 ||
+    distanceSquared(v2, c) <= radius ** 2
+  ) {
+    return true;
+  }
+  const lengthSquared = distanceSquared(v1, v2);
+  const dot = dotSubtract(v1, v2, c, v2);
+  return (
+    0 <= dot &&
+    dot <= lengthSquared &&
+    wedgeSubtract(v1, v2, c, v2) ** 2 <= radius ** 2 * lengthSquared
   );
 }
