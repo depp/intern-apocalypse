@@ -9,6 +9,7 @@ import {
   length,
   madd,
   maddSubtract,
+  distance,
   lerp,
   lineNormal,
   lineLineIntersection,
@@ -36,10 +37,7 @@ export function walk(
   if (travelDistanceSquared == 0) {
     return start;
   }
-  // Fudge factor... after resolving a collision with an edge, we may end up on
-  // the wrong side. This ensures that we will continue to collide with the same
-  // edge.
-  let pos = madd(start, movement, -0.01 / Math.sqrt(travelDistanceSquared));
+  let pos = start;
   let target = madd(start, movement);
   // Due to the way collisions are resolved, the player may be pushed off axis,
   // but will always stay within a circle whose opposite points are the starting
@@ -74,7 +72,15 @@ export function walk(
     }
     const num1 = wedgeSubtract(vertex0, pos, vertex1, vertex0);
     const num2 = wedgeSubtract(vertex0, pos, target, pos);
-    if (num1 < 0 || denom < num1 || num2 < 0 || denom < num2) {
+    if (denom < num1 || num2 < 0 || denom < num2) {
+      continue;
+    }
+    // Instead of 'num < 0', we use this check. This effectively starts the
+    // trace from behind the current position, in case the collision response
+    // puts us on the back side of an edge. This is not theoretical, it should
+    // happen often, because the collision response will try to put us exactly
+    // touching an edge and roundoff error will put us slightly to one side.
+    if (distance(vertex0, vertex1) * num1 < -walkerRadius * denom) {
       continue;
     }
     edge.edge.debugColor = DebugColor.Red;
@@ -99,10 +105,5 @@ export function walk(
     }
     break;
   }
-  pos = target;
-  // Remove fudge factor.
-  if (dotSubtract(pos, start, movement) <= 0) {
-    return start;
-  }
-  return pos;
+  return target;
 }
