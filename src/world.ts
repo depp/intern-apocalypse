@@ -7,9 +7,10 @@ import { Vector } from './math';
 import { Random } from './random';
 
 /** Level data for the current level. */
-export const level = new LevelBuilder();
+export let level: LevelBuilder;
 
 (() => {
+  level = new LevelBuilder();
   const rand = new Random(1234);
   const size = 10;
   const count = 50;
@@ -21,4 +22,12 @@ export const level = new LevelBuilder();
     });
   }
   level.createLevel(size, cells);
+  // Lloyd's algorithm / Voronoi relaxation
+  for (let j = 0; j < 3; j++) {
+    for (let i = 0; i < count; i++) {
+      cells[i] = level.cells.get(i)!.centroid();
+    }
+    level = new LevelBuilder();
+    level.createLevel(size, cells);
+  }
 })();
