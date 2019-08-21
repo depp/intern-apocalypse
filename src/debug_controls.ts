@@ -2,9 +2,9 @@ import * as dat from 'dat.gui';
 
 /** Settings for debug view. */
 export const debugView = {
-  level: false,
+  level: true,
   centroids: false,
-  player: false,
+  player: true,
 };
 
 if (dat) {

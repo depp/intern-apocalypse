@@ -20,12 +20,20 @@ import { updateTime } from './time';
  * @param curTimeMS Current time in milliseconds.
  */
 function main(curTimeMS: DOMHighResTimeStamp): void {
+  let failed = false;
   updateTime(curTimeMS);
-  updatePlayer();
+  try {
+    updatePlayer();
+  } catch (e) {
+    console.error(e);
+    failed = true;
+  }
   endFrameInput();
   render();
   renderDebug();
-  requestAnimationFrame(main);
+  if (!failed) {
+    requestAnimationFrame(main);
+  }
 }
 
 if (gl) {

@@ -31,6 +31,8 @@ export function walk(
   start: Readonly<Vector>,
   movement: Readonly<Vector>,
 ): Readonly<Vector> {
+  movement = { x: -0.08556281500000068, y: 0 };
+  start = { x: -2.283476601900798, y: 1.2028349173342885 };
   const travelDistanceSquared = lengthSquared(movement);
   if (travelDistanceSquared == 0) {
     return start;
@@ -69,8 +71,10 @@ export function walk(
   // with movement from 'pos' to 'target', and see if that movement is
   // interrupted by an obstacle. If it is interrupted, we create a new
   // trajectory that slides around the obstacle.
+  console.log('Params', { start, movement });
   let testNum: number;
   for (testNum = 0; testNum < 9 && movementRemaining > 0; testNum++) {
+    console.log(`testNum: ${testNum}`, { movementRemaining, pos, target });
     // The new trajectory after hitting an edge.
     let hitEdge: InsetEdge | undefined;
     let hitPos: Vector | undefined;
@@ -82,6 +86,8 @@ export function walk(
         // We are already sliding along this edge.
         continue;
       }
+      const { index } = edge.edge;
+      const flag = index == 329 || index == 331;
       const { vertex0, vertex1 } = edge;
       // Inlined the line-line collision function here. See lineLineIntersection
       // in math.ts for a description of how this works.
@@ -91,19 +97,19 @@ export function walk(
         // parallel to the edge. This should not register a collision, so we can
         // escape if we get stuck on the back side of an edge. This should
         // happen often due to rounding error.
-        edge.edge.debugColor = DebugColor.Gray;
+        flag && console.log('XA', index);
         continue;
       }
       const num1 = wedgeSubtract(vertex0, pos, vertex1, vertex0);
       const num2 = wedgeSubtract(vertex0, pos, target, pos);
       if (denom <= num1) {
         // We don't reach the edge.
-        edge.edge.debugColor = DebugColor.Gray;
+        flag && console.log('XB', index);
         continue;
       }
       if (num2 < 0 || denom < num2) {
         // We pass by the edge to the right (num2 < 0) or left (denom < num2).
-        edge.edge.debugColor = DebugColor.Yellow;
+        flag && console.log('XC', index);
         continue;
       }
       // Check if we start in front of the edge. Instead of testing from pos, we
@@ -114,14 +120,16 @@ export function walk(
       const testFrac = 1 - num1 / denom;
       if ((num1 / denom) * distance(pos, target) < -walkerRadius) {
         // The edge is behind us.
-        edge.edge.debugColor = DebugColor.Green;
+        flag && console.log('XD', index);
         continue;
       }
       if (hitFrac != null && testFrac <= hitFrac) {
+        console.log(`EARLIER: ${testFrac} <= ${hitFrac}`);
         // A previous test collided sooner.
-        edge.edge.debugColor = DebugColor.Gray;
         continue;
       }
+      flag && console.log('XE', index);
+      edge.edge.debugColor = testNum + 1;
       // At this point, we have a positive collision.
       hitEdge = edge;
       // Position on edge, with vertex0..vertex1 as 0..1.
@@ -129,6 +137,11 @@ export function walk(
       hitPos = lerp(vertex0, vertex1, edgeFrac);
       // Factor to multiply movement by due to sliding.
       hitSlideFactor = dotSubtract(vertex1, vertex0, movement);
+      console.log(`Collision at ${num1 / denom}:`, {
+        vertex0,
+        vertex1,
+        index: edge.edge.index,
+      });
       if (
         !hitSlideFactor ||
         (slideFactor && Math.sign(slideFactor) != Math.sign(hitSlideFactor))
@@ -137,8 +150,7 @@ export function walk(
         // wedged in a corner (slideFactor changes sign).
         hitTarget = hitPos;
         hitFrac = 1;
-        // FIXME: debug only.
-        edge.edge.debugColor = DebugColor.Blue;
+        console.log('A');
       } else {
         hitFrac = testFrac;
         // Sliding along edge will add <v1-v0,m>/||v1-v0||^2 to the position.
@@ -146,19 +158,16 @@ export function walk(
           (testFrac * hitSlideFactor) / distanceSquared(vertex1, vertex0);
         let newEdgeFrac = edgeFrac + edgeDeltaFrac;
         if (newEdgeFrac <= 0) {
-          newEdgeFrac = 0;
           hitTarget = vertex0;
-          edge.edge.debugColor = DebugColor.Cyan;
+          console.log('B');
         } else if (newEdgeFrac >= 1) {
-          newEdgeFrac = 1;
           hitTarget = vertex1;
-          edge.edge.debugColor = DebugColor.Magenta;
+          console.log('C');
         } else {
           hitTarget = lerp(vertex0, vertex1, newEdgeFrac);
-          edge.edge.debugColor = DebugColor.Red;
+          console.log('D', { edgeFrac, newEdgeFrac, testFrac });
         }
       }
-      break;
     }
     if (!hitEdge) {
       // No collisions on this loop, we are done.
@@ -179,5 +188,14 @@ export function walk(
     target = hitTarget;
     movementRemaining *= hitFrac;
   }
+  const dist2 = distanceSquared(madd(start, movement, 0.5), target);
+  const maxDist2 = lengthSquared(movement) * 0.5;
+  if (dist2 > maxDist2 * 1.01) {
+    console.log({ start, movement, pos });
+    throw new Error(
+      `bad walk: distance ${Math.sqrt(dist2)} > ${Math.sqrt(maxDist2)})`,
+    );
+  }
+  throw new Error('ok');
   return pos;
 }
