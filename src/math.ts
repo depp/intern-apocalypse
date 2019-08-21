@@ -96,17 +96,17 @@ export function findLineSplit(
  * @param v1 One end of the line segment.
  * @param v2 The other end of the line segment.
  * @param c Center of the circle.
- * @param radius Radius of the circle.
+ * @param radiusSquared Radius of the circle, squared.
  */
 export function lineIntersectsCircle(
   v1: Readonly<Vector>,
   v2: Readonly<Vector>,
   c: Readonly<Vector>,
-  radius: number,
+  radiusSquared: number,
 ): boolean {
   if (
-    distanceSquared(v1, c) <= radius ** 2 ||
-    distanceSquared(v2, c) <= radius ** 2
+    distanceSquared(v1, c) <= radiusSquared ||
+    distanceSquared(v2, c) <= radiusSquared
   ) {
     return true;
   }
@@ -115,6 +115,6 @@ export function lineIntersectsCircle(
   return (
     0 <= dot &&
     dot <= lengthSquared &&
-    wedgeSubtract(v1, v2, c, v2) ** 2 <= radius ** 2 * lengthSquared
+    wedgeSubtract(v1, v2, c, v2) ** 2 <= radiusSquared * lengthSquared
   );
 }

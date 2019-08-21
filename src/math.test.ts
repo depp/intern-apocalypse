@@ -49,7 +49,7 @@ describe('lineIntersectsCircle', () => {
   ];
   for (const t of tests) {
     test(t.name, () => {
-      expect(lineIntersectsCircle(v1, v2, t.c, t.radius)).toBe(t.result);
+      expect(lineIntersectsCircle(v1, v2, t.c, t.radius ** 2)).toBe(t.result);
     });
   }
 });
