@@ -4,7 +4,7 @@
 
 import { debugView } from './debug_controls';
 import { ctx, initContext } from './debug_global';
-import { drawLevel } from './debug_level';
+import { resetLevelDebug, drawLevel } from './debug_level';
 import { frameDT } from './time';
 
 /**
@@ -24,5 +24,6 @@ export function renderDebug(): void {
   if (debugView.level) {
     drawLevel();
   }
+  resetLevelDebug();
   drawDT();
 }

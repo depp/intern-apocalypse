@@ -30,4 +30,8 @@ export let level: LevelBuilder;
     level = new LevelBuilder();
     level.createLevel(size, cells);
   }
+  for (let i = 0; i < count; i++) {
+    const cell = level.cells.get(i)!;
+    cell.walkable = rand.range() < 0.8;
+  }
 })();

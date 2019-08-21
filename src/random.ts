@@ -28,7 +28,7 @@ export class Random {
   /**
    * Return a pseudorandom floating-point number in the given range.
    */
-  range(min: number, max: number): number {
+  range(min: number = 0, max: number = 1): number {
     return min + this.next() * (max - min) * 2 ** -32;
   }
 }

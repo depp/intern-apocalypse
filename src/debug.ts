@@ -17,3 +17,9 @@ export class AssertionError extends Error {
     this.object = object;
   }
 }
+
+/** Colors to use for highlighting objects on the debug map. */
+export enum DebugColor {
+  None,
+  Red,
+}

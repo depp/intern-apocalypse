@@ -2,8 +2,14 @@
  * Levels, the static geometry where the game takes place.
  */
 
-import { AssertionError } from './debug';
-import { Vector, distanceSquared, findLineSplit, lerp } from './math';
+import { AssertionError, DebugColor } from './debug';
+import {
+  Vector,
+  distanceSquared,
+  findLineSplit,
+  lerp,
+  lineIntersectsCircle,
+} from './math';
 
 /** Iterate over the edges in an edge loop, once. */
 function* edges(firstEdge: Edge): IterableIterator<Edge> {
@@ -27,11 +33,14 @@ export class Cell {
   readonly index: number;
   /** Arbitrary edge in the cell. */
   edge: Edge;
+  /** True if you can walk through this cell. */
+  walkable: boolean;
 
   constructor(center: Readonly<Vector>, index: number, firstEdge: Edge) {
     this.center = center;
     this.index = index;
     this.edge = firstEdge;
+    this.walkable = true;
     let edge: Edge | null = firstEdge;
     do {
       if (edge.cell != null) {
@@ -100,6 +109,9 @@ export interface Edge {
    */
 
   next: Edge | null;
+
+  /** Highlight color for this edge. */
+  debugColor?: DebugColor;
 }
 
 /**
@@ -371,5 +383,31 @@ export class LevelBuilder {
     edges.reverse();
     // Generate the new cell.
     this.newCell(center, edges);
+  }
+
+  /**
+   * List all edges within the given circle.
+   * @param center Center of the circle.
+   * @param radius Radius of the circle.
+   */
+  findEdges(center: Readonly<Vector>, radius: number): Edge[] {
+    const result: Edge[] = [];
+    for (const cell of this.cells.values()) {
+      if (cell.index >= 0) {
+        for (const edge of edges(cell.edge)) {
+          if (
+            lineIntersectsCircle(
+              edge.vertex0,
+              edge.vertex1,
+              center,
+              radius ** 2,
+            )
+          ) {
+            result.push(edge);
+          }
+        }
+      }
+    }
+    return result;
   }
 }

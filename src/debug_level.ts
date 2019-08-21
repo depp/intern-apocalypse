@@ -2,13 +2,21 @@
  * Debug view of the level.
  */
 
-import { AssertionError } from './debug';
+import { AssertionError, DebugColor } from './debug';
 import { debugView } from './debug_controls';
 import { ctx } from './debug_global';
 import { Cell, Edge } from './level';
 import { Vector } from './math';
 import { playerPos } from './player';
+import { walkerRadius } from './walk';
 import { level } from './world';
+
+const edgeInset = 2;
+
+const edgeColors: { [c in DebugColor]: string } = {
+  [DebugColor.None]: '',
+  [DebugColor.Red]: '#f00',
+};
 
 /**
  * Draw a border cell in the level.
@@ -65,11 +73,55 @@ function joinVertex(
   };
 }
 
+/** Map from highlight colors to lists of edges with that color. */
+const edgeHighlight = new Map<DebugColor, Edge[]>();
+
+/**
+ * Check if an edge is highlighted and needs to be drawn later.
+ */
+function visitEdge(edge: Edge): void {
+  const { debugColor } = edge;
+  if (debugColor != null && debugColor != DebugColor.None) {
+    let list = edgeHighlight.get(debugColor);
+    if (!list) {
+      list = [];
+      edgeHighlight.set(debugColor, list);
+    }
+    list.push(edge);
+  }
+}
+
+/**
+ * Draw all highlighted edges.
+ */
+function drawEdges(scale: number): void {
+  const inset = edgeInset / scale;
+  for (const [debugColor, edges] of edgeHighlight.entries()) {
+    if (edges.length) {
+      ctx.strokeStyle = edgeColors[debugColor];
+      ctx.lineJoin = 'bevel';
+      ctx.beginPath();
+      for (const edge of edges) {
+        const v0 = edge.prev!.vertex0;
+        const v1 = edge.vertex0;
+        const v2 = edge.vertex1;
+        const v3 = edge.next!.vertex1;
+        const e0 = joinVertex(v0, v1, v2, inset);
+        const e1 = joinVertex(v1, v2, v3, inset);
+        ctx.moveTo(e0.x, e0.y);
+        ctx.lineTo(e1.x, e1.y);
+      }
+      ctx.stroke();
+      edges.length = 0;
+    }
+  }
+}
+
 /**
  * Draw an interior cell in the level.
  */
 function drawInteriorCell(cell: Cell, scale: number): void {
-  const inset = 2 / scale;
+  const inset = edgeInset / scale;
   const { edge } = cell;
   if (edge == null) {
     throw new AssertionError('edge is null', { cell });
@@ -83,16 +135,24 @@ function drawInteriorCell(cell: Cell, scale: number): void {
     inset,
   );
   ctx.moveTo(x, y);
+  visitEdge(edge);
   for (let cur = edge.next; cur != edge; cur = cur.next) {
     if (cur == null) {
       throw new AssertionError('edge is null', { cell });
     }
+    visitEdge(cur);
     ({ x, y } = joinVertex(cur.prev!.vertex0, cur.vertex0, cur.vertex1, inset));
     ctx.lineTo(x, y);
   }
   ctx.lineJoin = 'bevel';
   ctx.lineWidth = 3 / scale;
   ctx.closePath();
+  if (cell.walkable) {
+    ctx.fillStyle = 'rgba(0.2, 0.8, 0.1, 0.2)';
+  } else {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+  }
+  ctx.fill();
   ctx.stroke();
 
   if (debugView.centroids) {
@@ -127,7 +187,7 @@ function drawCell(cell: Cell, scale: number): void {
 function drawEntity(pos: Vector): void {
   const { x, y } = pos;
   ctx.beginPath();
-  ctx.arc(x, y, 1.0, 0, 2 * Math.PI);
+  ctx.arc(x, y, walkerRadius, 0, 2 * Math.PI);
 
   ctx.fillStyle = '#f00';
   ctx.fill();
@@ -151,5 +211,15 @@ export function drawLevel(): void {
   if (debugView.player) {
     drawEntity(playerPos);
   }
+  drawEdges(scale);
   ctx.restore();
+}
+
+/**
+ * Reset the debug view of the level.
+ */
+export function resetLevelDebug(): void {
+  for (const edge of level.edges.values()) {
+    edge.debugColor = DebugColor.None;
+  }
 }

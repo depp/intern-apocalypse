@@ -13,6 +13,15 @@ export function vector(x: number, y: number): Vector {
   return { x, y };
 }
 
+/** Compute u+v*a. */
+export function madd(
+  u: Readonly<Vector>,
+  v: Readonly<Vector>,
+  a: number = 1,
+): Vector {
+  return vector(u.x + v.x * a, u.y + v.y * a);
+}
+
 /** Return the squared Euclidean distance between two vectors. */
 export function distanceSquared(
   u: Readonly<Vector>,
