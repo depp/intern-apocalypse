@@ -104,6 +104,7 @@ export function drawLevel(): void {
   ctx.save();
   ctx.translate(clientWidth / 2, clientHeight / 2);
   ctx.scale(scale, -scale);
+  ctx.translate(-playerPos.x, -playerPos.y);
   for (const cell of level.cells.values()) {
     if (cell.index >= 0) {
       drawCell(cell, scale);
