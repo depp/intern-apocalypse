@@ -16,6 +16,7 @@ const edgeInset = 2;
 const edgeColors: { [c in DebugColor]: string } = {
   [DebugColor.None]: '',
   [DebugColor.Red]: '#f00',
+  [DebugColor.Blue]: '#00f',
 };
 
 /**

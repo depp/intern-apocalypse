@@ -3,7 +3,7 @@
  */
 
 import { DebugColor } from './debug';
-import { Vector, madd } from './math';
+import { Vector, length, madd, wedgeSubtract } from './math';
 import { level } from './world';
 
 /** The collision radius of walking entities. */
@@ -20,8 +20,15 @@ export function walk(
   movement: Readonly<Vector>,
 ): Readonly<Vector> {
   const target = madd(start, movement);
-  for (const edge of level.findEdges(start, walkerRadius)) {
-    edge.debugColor = DebugColor.Red;
+  const center = madd(start, movement, 0.5);
+  for (const edge of level.findEdges(
+    center,
+    walkerRadius + length(movement) + 0.1,
+  )) {
+    edge.debugColor =
+      wedgeSubtract(target, start, edge.vertex1, edge.vertex0) > 0
+        ? DebugColor.Red
+        : DebugColor.Blue;
   }
   return target;
 }

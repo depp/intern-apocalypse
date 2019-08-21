@@ -22,4 +22,5 @@ export class AssertionError extends Error {
 export enum DebugColor {
   None,
   Red,
+  Blue,
 }
