@@ -13,6 +13,16 @@ export function vector(x: number, y: number): Vector {
   return { x, y };
 }
 
+/** Compute the length of a vector, squared. */
+export function lengthSquared(u: Readonly<Vector>): number {
+  return u.x ** 2 + u.y ** 2;
+}
+
+/** Compute the length of a vector, squared. */
+export function length(u: Readonly<Vector>): number {
+  return Math.hypot(u.x, u.y);
+}
+
 /** Compute u+v*a. */
 export function madd(
   u: Readonly<Vector>,
@@ -126,4 +136,41 @@ export function lineIntersectsCircle(
     dot <= lengthSquared &&
     wedgeSubtract(v1, v2, c, v2) ** 2 <= radiusSquared * lengthSquared
   );
+}
+
+/**
+ * Calculate the point of intersection of two oriented line segments if they are
+ * not collinear and line 1 passes from the front to the back of line 2.
+ * @param v0 First end of line segment 1.
+ * @param v1 Second end of line segment 1.
+ * @param v2 First end of line segment 2.
+ * @param v3 Second end of line segment 2.
+ * @returns If the line segments intersect, the fraction along line segment 1
+ * that the intersection occurs, in the range 0..1. Otherwise, or if the line
+ * segments are collinear, or if the line passes in the wrong direction, -1.
+ */
+export function lineLineIntersection(
+  v0: Readonly<Vector>,
+  v1: Readonly<Vector>,
+  v2: Readonly<Vector>,
+  v3: Readonly<Vector>,
+): number {
+  // Let alpha = fraction along line 1, beta = fraction along line 2.
+  // alpha = (v0-v2) ^ (v3-v2) / (v3-v2) ^ (v1-v0)
+  // beta  = (v2-v0) ^ (v1-v0) / (v1-v0) ^ (v3-v2)
+  // The wedge products have been rearranged a bit.
+  const denom = wedgeSubtract(v0, v1, v2, v3);
+  if (!denom) {
+    // Parallel, either non-intersecting or collinear.
+    return -1;
+  }
+  const num1 = wedgeSubtract(v2, v0, v3, v2);
+  if (num1 < 0 || denom < num1) {
+    return -1;
+  }
+  const num2 = wedgeSubtract(v2, v0, v1, v0);
+  if (num2 < 0 || denom < num2) {
+    return -1;
+  }
+  return num1 / denom;
 }
