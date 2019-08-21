@@ -2,7 +2,7 @@
  * Debug view of the level.
  */
 
-import { AssertionError, DebugColor } from './debug';
+import { AssertionError, DebugColor, debugColors } from './debug';
 import { debugView } from './debug_controls';
 import { ctx } from './debug_global';
 import { Cell, Edge } from './level';
@@ -12,12 +12,6 @@ import { walkerRadius } from './walk';
 import { level } from './world';
 
 const edgeInset = 2;
-
-const edgeColors: { [c in DebugColor]: string } = {
-  [DebugColor.None]: '',
-  [DebugColor.Red]: '#f00',
-  [DebugColor.Blue]: '#00f',
-};
 
 /**
  * Draw a border cell in the level.
@@ -99,7 +93,7 @@ function drawEdges(scale: number): void {
   const inset = edgeInset / scale;
   for (const [debugColor, edges] of edgeHighlight.entries()) {
     if (edges.length) {
-      ctx.strokeStyle = edgeColors[debugColor];
+      ctx.strokeStyle = debugColors[debugColor];
       ctx.lineJoin = 'bevel';
       ctx.beginPath();
       for (const edge of edges) {

@@ -22,5 +22,26 @@ export class AssertionError extends Error {
 export enum DebugColor {
   None,
   Red,
+  Green,
   Blue,
+  Cyan,
+  Magenta,
+  Yellow,
+  Black,
+  Gray,
+  White,
 }
+
+/** Values of colors for objects on the debug map. */
+export const debugColors: { [c in DebugColor]: string } = {
+  [DebugColor.None]: '',
+  [DebugColor.Red]: '#f00',
+  [DebugColor.Green]: '#0f0',
+  [DebugColor.Blue]: '#00f',
+  [DebugColor.Cyan]: '#0ff',
+  [DebugColor.Magenta]: '#ff0',
+  [DebugColor.Yellow]: '#ff0',
+  [DebugColor.Black]: '#000',
+  [DebugColor.Gray]: '#555',
+  [DebugColor.White]: '#fff',
+};
