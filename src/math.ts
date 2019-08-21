@@ -160,8 +160,8 @@ export function lineLineIntersection(
   // beta  = (v2-v0) ^ (v1-v0) / (v1-v0) ^ (v3-v2)
   // The wedge products have been rearranged a bit.
   const denom = wedgeSubtract(v0, v1, v2, v3);
-  if (!denom) {
-    // Parallel, either non-intersecting or collinear.
+  if (denom <= 0) {
+    // Parallel or cross in the wrong direction.
     return -1;
   }
   const num1 = wedgeSubtract(v2, v0, v3, v2);
