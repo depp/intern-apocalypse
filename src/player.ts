@@ -7,7 +7,8 @@ import { Vector } from './math';
 import { frameDT } from './time';
 import { walk } from './walk';
 
-const playerSpeed = 1.0;
+/** Player walking speed, in meters per second. */
+const playerSpeed = 5.0;
 
 /**
  * Current 2D position of the player.

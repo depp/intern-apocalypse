@@ -3,7 +3,7 @@
  */
 
 import { DebugColor } from './debug';
-import { Vector, lerp, distance, madd } from './math';
+import { Vector, madd } from './math';
 import { level } from './world';
 
 /** The collision radius of walking entities. */
