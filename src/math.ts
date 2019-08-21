@@ -13,6 +13,9 @@ export function vector(x: number, y: number): Vector {
   return { x, y };
 }
 
+/** The zero vector. */
+export const zeroVector = vector(0, 0);
+
 /** Compute the length of a vector, squared. */
 export function lengthSquared(u: Readonly<Vector>): number {
   return u.x ** 2 + u.y ** 2;
@@ -50,7 +53,7 @@ export function dotSubtract(
   u: Vector,
   v: Vector,
   a: Vector,
-  b: Vector,
+  b: Vector = zeroVector,
 ): number {
   return (u.x - v.x) * (a.x - b.x) + (u.y - v.y) * (a.y - b.y);
 }
@@ -80,6 +83,14 @@ export function lerp(
     x: u.x + alpha * (v.x - u.x),
     y: u.y + alpha * (v.y - u.y),
   };
+}
+
+/** Compute the normal vector for an oriented line. */
+export function lineNormal(v0: Readonly<Vector>, v1: Readonly<Vector>) {
+  const x = v0.y - v1.y,
+    y = v1.x - v0.x,
+    a = 1 / Math.hypot(x, y);
+  return vector(x * a, y * a);
 }
 
 /**
