@@ -35,11 +35,6 @@ const baseFiles: readonly StaticFile[] = [
   { url: '/loader.js', file: 'build/loader.js', sourceMap: 'loader.js.map' },
   { url: '/loader.js.map', file: 'build/loader.js.map' },
   { url: '/static', file: 'build/index.html' },
-  { url: '/react.js', file: 'node_modules/react/umd/react.development.js' },
-  {
-    url: '/react-dom.js',
-    file: 'node_modules/react-dom/umd/react-dom.development.js',
-  },
   { url: '/game.js', file: 'build/game.js', sourceMap: 'game.js.map' },
   { url: '/game.js.map', file: 'build/game.js.map' },
 ];

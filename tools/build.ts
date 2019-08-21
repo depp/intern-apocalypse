@@ -66,10 +66,7 @@ function emitLoaderActions(ctx: BuildContext) {
     inputs: tsSources.map(src => 'build/' + pathWithExt(src, '.js')),
     name: 'tools/loader/loader',
     global: 'Loader',
-    external: [
-      { name: 'react', global: 'React' },
-      { name: 'react-dom', global: 'ReactDOM' },
-    ],
+    external: [],
   });
 }
 
