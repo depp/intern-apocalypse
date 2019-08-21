@@ -31,10 +31,8 @@ const buf = gl.createBuffer()!; // FIXME: check?
 
 /**
  * Render the game.
- *
- * @param curTimeMS Current time in milliseconds.
  */
-export function render(curTimeMS: number): void {
+export function render(): void {
   gl.bindBuffer(gl.ARRAY_BUFFER, buf);
   let { x, y } = playerPos;
   gl.bufferData(
@@ -43,8 +41,7 @@ export function render(curTimeMS: number): void {
     gl.STATIC_DRAW,
   );
 
-  const t = curTimeMS * 1e-3;
-  gl.clearColor(Math.sin(t), 0.6, Math.cos(t), 0);
+  gl.clearColor(0.5, 0.5, 0.5, 0);
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   gl.useProgram(prog);

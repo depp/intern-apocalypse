@@ -23,7 +23,7 @@ function main(curTimeMS: DOMHighResTimeStamp): void {
   updateTime(curTimeMS);
   updatePlayer();
   endFrameInput();
-  render(curTimeMS);
+  render();
   renderDebug();
   requestAnimationFrame(main);
 }
