@@ -127,8 +127,7 @@ export class LevelBuilder {
   /**
    * Create the level using the given cell centers.
    */
-  createLevel(centers: readonly Readonly<Vector>[]) {
-    const size = 5;
+  createLevel(size: number, centers: readonly Readonly<Vector>[]) {
     const center = centers[0];
     const vertexes: Vector[] = [
       { x: size, y: size },

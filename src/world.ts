@@ -3,14 +3,20 @@
  */
 
 import { LevelBuilder } from './level';
+import { Vector } from './math';
 
 /** Level data for the current level. */
 export const level = new LevelBuilder();
 
-level.createLevel([
-  { x: 0, y: 4 },
-  { x: 2, y: 0 },
-  { x: 0, y: -3 },
-  { x: -1, y: 0 },
-  { x: 0, y: 0 },
-]);
+(() => {
+  const size = 10;
+  const count = 50;
+  const cells: Vector[] = [];
+  for (let i = 0; i < count; i++) {
+    cells.push({
+      x: Math.random() * (size * 2) - size,
+      y: Math.random() * (size * 2) - size,
+    });
+  }
+  level.createLevel(size, cells);
+})();
