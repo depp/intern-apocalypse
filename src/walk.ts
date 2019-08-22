@@ -246,7 +246,7 @@ export function walk(
         // The edge is perpendicular to our path (!newSlideFactor) or we are
         // wedged in a corner (slideFactor changes sign).
         hitTarget = hitPos;
-        hitFrac = 1;
+        hitFrac = 0;
         test.write('H. in a corner');
       } else {
         hitFrac = testFrac;
