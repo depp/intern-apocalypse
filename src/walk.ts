@@ -31,8 +31,8 @@ export function walk(
   start: Readonly<Vector>,
   movement: Readonly<Vector>,
 ): Readonly<Vector> {
-  movement = { x: -0.08556281500000068, y: 0 };
-  start = { x: -2.283476601900798, y: 1.2028349173342885 };
+  movement = { x: -0.0857393699977547, y: 0.0857393699977547 };
+  start = { x: -2.374630765411581, y: 1.17366275527845 };
   const travelDistanceSquared = lengthSquared(movement);
   if (travelDistanceSquared == 0) {
     return start;
