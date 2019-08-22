@@ -114,7 +114,8 @@ class Logger {
   }
 }
 
-let logger = new Logger();
+let logger: Logger | undefined;
+let prevLogger: Logger | undefined;
 
 /**
  * Resolve walking movement.
@@ -126,17 +127,8 @@ export function walk(
   start: Readonly<Vector>,
   movement: Readonly<Vector>,
 ): Readonly<Vector> {
-  start = {
-    x: -2.374630765411581,
-    y: 1.17366275527845,
-  };
-  movement = {
-    x: -0.08131255500000066,
-    y: 0.08131255500000066,
-  };
+  logger = new Logger();
   logger.startWalk(start, movement);
-  movement = { x: -0.0857393699977547, y: 0.0857393699977547 };
-  start = { x: -2.374630765411581, y: 1.17366275527845 };
   const travelDistanceSquared = lengthSquared(movement);
   if (travelDistanceSquared == 0) {
     return start;
@@ -225,7 +217,7 @@ export function walk(
       }
       if (hitFrac != null && testFrac <= hitFrac) {
         // A previous test collided sooner.
-        test.write('F. earlier collision exists');
+        test.write('F. earlier collision exists (${testFrac} <= ${hitFrac})');
         continue;
       }
       test.write('G. collided');
@@ -296,16 +288,14 @@ export function walk(
   const dist2 = distanceSquared(madd(start, movement, 0.5), target);
   const maxDist2 = lengthSquared(movement) * 0.5;
   if (dist2 > maxDist2 * 1.01) {
+    if (prevLogger) {
+      prevLogger.dump();
+    }
     logger.dump();
     throw new AssertionError(
       `bad walk: distance ${Math.sqrt(dist2)} > ${Math.sqrt(maxDist2)})`,
     );
   }
-  const startCell = level.findCell(start);
-  for (const edge of rawEdges) {
-    if (edge.cell == startCell) {
-    }
-  }
-  // throw new Error('ok');
+  prevLogger = logger;
   return pos;
 }
