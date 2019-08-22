@@ -239,31 +239,20 @@ export function walk(
         num2,
         denom,
       });
-      if (
-        !hitSlideFactor ||
-        (slideFactor && Math.sign(slideFactor) != Math.sign(hitSlideFactor))
-      ) {
-        // The edge is perpendicular to our path (!newSlideFactor) or we are
-        // wedged in a corner (slideFactor changes sign).
-        hitTarget = hitPos;
-        hitFrac = 0;
-        test.write('H. in a corner');
+      hitFrac = testFrac;
+      // Sliding along edge will add <v1-v0,m>/||v1-v0||^2 to the position.
+      const edgeDeltaFrac =
+        (testFrac * hitSlideFactor) / distanceSquared(vertex1, vertex0);
+      let newEdgeFrac = edgeFrac + edgeDeltaFrac;
+      if (newEdgeFrac <= 0) {
+        hitTarget = vertex0;
+        test.write('I. reaches vertex 0');
+      } else if (newEdgeFrac >= 1) {
+        hitTarget = vertex1;
+        test.write('J. reaches vertex 1');
       } else {
-        hitFrac = testFrac;
-        // Sliding along edge will add <v1-v0,m>/||v1-v0||^2 to the position.
-        const edgeDeltaFrac =
-          (testFrac * hitSlideFactor) / distanceSquared(vertex1, vertex0);
-        let newEdgeFrac = edgeFrac + edgeDeltaFrac;
-        if (newEdgeFrac <= 0) {
-          hitTarget = vertex0;
-          test.write('I. reaches vertex 0');
-        } else if (newEdgeFrac >= 1) {
-          hitTarget = vertex1;
-          test.write('J. reaches vertex 1');
-        } else {
-          hitTarget = lerp(vertex0, vertex1, newEdgeFrac);
-          test.write('K. in middle', { newEdgeFrac });
-        }
+        hitTarget = lerp(vertex0, vertex1, newEdgeFrac);
+        test.write('K. in middle', { newEdgeFrac });
       }
     }
     if (!hitEdge) {
@@ -279,8 +268,15 @@ export function walk(
     ) {
       throw new AssertionError('invalid collision test');
     }
-    hitEdge.sliding = true;
     pos = hitPos;
+    if (
+      !hitSlideFactor ||
+      (slideFactor && Math.sign(slideFactor) != Math.sign(hitSlideFactor))
+    ) {
+      // Player is moving into a corner or directly against a wall, movement stops.
+      break;
+    }
+    hitEdge.sliding = true;
     slideFactor = hitSlideFactor;
     target = hitTarget;
     movementRemaining *= hitFrac;
