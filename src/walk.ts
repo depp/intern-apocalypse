@@ -3,7 +3,7 @@
  */
 
 import { DebugColor, AssertionError } from './debug';
-import { Edge } from './level';
+import { Edge, Cell } from './level';
 import {
   Vector,
   length,
@@ -21,6 +21,101 @@ import { level } from './world';
 /** The collision radius of walking entities. */
 export const walkerRadius = 0.5;
 
+interface InsetEdge {
+  edge: Edge;
+  vertex0: Readonly<Vector>;
+  vertex1: Readonly<Vector>;
+  sliding: boolean;
+}
+
+class LogTest {
+  readonly edge: InsetEdge;
+  readonly messages: string[] = [];
+  constructor(edge: InsetEdge) {
+    this.edge = edge;
+  }
+  write(message: string, data?: any & object): void {
+    if (data) {
+      message = `${message}\n${JSON.stringify(data, null, 2)}`;
+    }
+    this.messages.push(message);
+  }
+}
+
+interface SegmentInfo {
+  movementRemaining: number;
+  slideFactor: number | undefined;
+  pos: Readonly<Vector>;
+  target: Readonly<Vector>;
+}
+
+interface LogSegment extends SegmentInfo {
+  tests: LogTest[];
+}
+
+class Logger {
+  private start: Readonly<Vector> | null = null;
+  private movement: Readonly<Vector> | null = null;
+  private readonly segments: LogSegment[] = [];
+  startWalk(start: Readonly<Vector>, movement: Readonly<Vector>) {
+    this.start = start;
+    this.movement = movement;
+    this.segments.length = 0;
+  }
+  startSegment(info: SegmentInfo): void {
+    this.segments.push(
+      Object.assign({}, info, {
+        tests: [],
+      }),
+    );
+  }
+  addTest(edge: InsetEdge): LogTest {
+    if (!this.segments.length) {
+      throw new AssertionError('no segments');
+    }
+    const segment = this.segments[this.segments.length - 1];
+    const test = new LogTest(edge);
+    segment.tests.push(test);
+    return test;
+  }
+  dump(): void {
+    console.log('%cCollision test', 'font-size: 150%; font-weight: bold;');
+    console.log(
+      JSON.stringify(
+        {
+          start: this.start,
+          movement: this.movement,
+        },
+        null,
+        2,
+      ),
+    );
+    const center = madd(this.start!, this.movement!, 0.5);
+    for (let i = 0; i < this.segments.length; i++) {
+      console.log(`%cSegment ${i}`, 'font-weight: bold;');
+      const segment = this.segments[i];
+      const obj = Object.assign(
+        {
+          posDistance: distance(segment.pos, center),
+          targetDistance: distance(segment.target, center),
+        },
+        segment,
+      );
+      delete obj.tests;
+      console.log(JSON.stringify(obj, null, 2));
+      for (const test of this.segments[i].tests) {
+        const edge = test.edge.edge;
+        console.log(`Edge: ${edge.index} (cell ${edge.cell!.index})`);
+        for (const msg of test.messages) {
+          console.log(msg);
+        }
+      }
+    }
+  }
+}
+
+let logger = new Logger();
+
 /**
  * Resolve walking movement.
  * @param start The point where movement starts.
@@ -31,6 +126,15 @@ export function walk(
   start: Readonly<Vector>,
   movement: Readonly<Vector>,
 ): Readonly<Vector> {
+  start = {
+    x: -2.374630765411581,
+    y: 1.17366275527845,
+  };
+  movement = {
+    x: -0.08131255500000066,
+    y: 0.08131255500000066,
+  };
+  logger.startWalk(start, movement);
   movement = { x: -0.0857393699977547, y: 0.0857393699977547 };
   start = { x: -2.374630765411581, y: 1.17366275527845 };
   const travelDistanceSquared = lengthSquared(movement);
@@ -46,11 +150,6 @@ export function walk(
     madd(start, movement, 0.5),
     walkerRadius + length(movement) + 0.1,
   );
-  interface InsetEdge {
-    edge: Edge;
-    vertex0: Readonly<Vector>;
-    vertex1: Readonly<Vector>;
-  }
   let insetEdges: InsetEdge[] = [];
   for (const edge of rawEdges) {
     const { vertex0, vertex1 } = edge;
@@ -59,22 +158,21 @@ export function walk(
       edge,
       vertex0: madd(vertex0, norm, walkerRadius),
       vertex1: madd(vertex1, norm, walkerRadius),
+      sliding: false,
     });
   }
   // Fraction of the total movement remaining.
   let movementRemaining = 1;
-  // The current edge we are sliding against.
-  let slideEdge: InsetEdge | undefined;
+  // The current direction we are sliding.
   let slideFactor: number | undefined;
   // Maximum 9 collision test loops before we give up, just to avoid a potential
   // infinite loop if the logic is incorrect somewhere. In each loop, we start
   // with movement from 'pos' to 'target', and see if that movement is
   // interrupted by an obstacle. If it is interrupted, we create a new
   // trajectory that slides around the obstacle.
-  console.log('Params', { start, movement });
   let testNum: number;
   for (testNum = 0; testNum < 9 && movementRemaining > 0; testNum++) {
-    console.log(`testNum: ${testNum}`, { movementRemaining, pos, target });
+    logger.startSegment({ movementRemaining, slideFactor, pos, target });
     // The new trajectory after hitting an edge.
     let hitEdge: InsetEdge | undefined;
     let hitPos: Vector | undefined;
@@ -82,8 +180,10 @@ export function walk(
     let hitTarget: Vector | undefined;
     let hitFrac: number | undefined;
     for (const edge of insetEdges) {
-      if (edge == slideEdge) {
+      const test = logger.addTest(edge);
+      if (edge.sliding) {
         // We are already sliding along this edge.
+        test.write('A: Already sliding.');
         continue;
       }
       const { index } = edge.edge;
@@ -97,19 +197,19 @@ export function walk(
         // parallel to the edge. This should not register a collision, so we can
         // escape if we get stuck on the back side of an edge. This should
         // happen often due to rounding error.
-        flag && console.log('XA', index);
+        test.write('B: wrong direction');
         continue;
       }
       const num1 = wedgeSubtract(vertex0, pos, vertex1, vertex0);
       const num2 = wedgeSubtract(vertex0, pos, target, pos);
       if (denom <= num1) {
         // We don't reach the edge.
-        flag && console.log('XB', index);
+        test.write('C. Did not reach');
         continue;
       }
       if (num2 < 0 || denom < num2) {
         // We pass by the edge to the right (num2 < 0) or left (denom < num2).
-        flag && console.log('XC', index);
+        test.write('D. Miss left/right');
         continue;
       }
       // Check if we start in front of the edge. Instead of testing from pos, we
@@ -120,15 +220,15 @@ export function walk(
       const testFrac = 1 - num1 / denom;
       if ((num1 / denom) * distance(pos, target) < -walkerRadius) {
         // The edge is behind us.
-        flag && console.log('XD', index);
+        test.write('E. behind us');
         continue;
       }
       if (hitFrac != null && testFrac <= hitFrac) {
-        console.log(`EARLIER: ${testFrac} <= ${hitFrac}`);
         // A previous test collided sooner.
+        test.write('F. earlier collision exists');
         continue;
       }
-      flag && console.log('XE', index);
+      test.write('G. collided');
       edge.edge.debugColor = testNum + 1;
       // At this point, we have a positive collision.
       hitEdge = edge;
@@ -137,10 +237,15 @@ export function walk(
       hitPos = lerp(vertex0, vertex1, edgeFrac);
       // Factor to multiply movement by due to sliding.
       hitSlideFactor = dotSubtract(vertex1, vertex0, movement);
-      console.log(`Collision at ${num1 / denom}:`, {
+      test.write('collision info', {
         vertex0,
         vertex1,
-        index: edge.edge.index,
+        edgeFrac,
+        hitPos,
+        hitSlideFactor,
+        num1,
+        num2,
+        denom,
       });
       if (
         !hitSlideFactor ||
@@ -150,7 +255,7 @@ export function walk(
         // wedged in a corner (slideFactor changes sign).
         hitTarget = hitPos;
         hitFrac = 1;
-        console.log('A');
+        test.write('H. in a corner');
       } else {
         hitFrac = testFrac;
         // Sliding along edge will add <v1-v0,m>/||v1-v0||^2 to the position.
@@ -159,13 +264,13 @@ export function walk(
         let newEdgeFrac = edgeFrac + edgeDeltaFrac;
         if (newEdgeFrac <= 0) {
           hitTarget = vertex0;
-          console.log('B');
+          test.write('I. reaches vertex 0');
         } else if (newEdgeFrac >= 1) {
           hitTarget = vertex1;
-          console.log('C');
+          test.write('J. reaches vertex 1');
         } else {
           hitTarget = lerp(vertex0, vertex1, newEdgeFrac);
-          console.log('D', { edgeFrac, newEdgeFrac, testFrac });
+          test.write('K. in middle', { newEdgeFrac });
         }
       }
     }
@@ -182,7 +287,7 @@ export function walk(
     ) {
       throw new AssertionError('invalid collision test');
     }
-    slideEdge = hitEdge;
+    hitEdge.sliding = true;
     pos = hitPos;
     slideFactor = hitSlideFactor;
     target = hitTarget;
@@ -191,11 +296,16 @@ export function walk(
   const dist2 = distanceSquared(madd(start, movement, 0.5), target);
   const maxDist2 = lengthSquared(movement) * 0.5;
   if (dist2 > maxDist2 * 1.01) {
-    console.log({ start, movement, pos });
-    throw new Error(
+    logger.dump();
+    throw new AssertionError(
       `bad walk: distance ${Math.sqrt(dist2)} > ${Math.sqrt(maxDist2)})`,
     );
   }
-  throw new Error('ok');
+  const startCell = level.findCell(start);
+  for (const edge of rawEdges) {
+    if (edge.cell == startCell) {
+    }
+  }
+  // throw new Error('ok');
   return pos;
 }
