@@ -3,8 +3,8 @@
  */
 
 import { AssertionError, DebugColor, debugColors } from './debug';
-import { debugView } from './debug_controls';
-import { ctx } from './debug_global';
+import { debugView } from './debug.controls';
+import { ctx } from './debug.global';
 import { Cell, Edge } from './level';
 import { Vector } from './math';
 import { playerPos } from './player';
