@@ -138,7 +138,7 @@ export function walk(
   // Due to the way collisions are resolved, the player may be pushed off axis,
   // but will always stay within a circle whose opposite points are the starting
   // point and the target point.
-  const rawEdges = level.findEdges(
+  const rawEdges = level.findUnpassableEdges(
     madd(start, movement, 0.5),
     walkerRadius + length(movement) + 0.1,
   );

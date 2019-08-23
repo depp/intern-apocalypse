@@ -34,4 +34,5 @@ export let level: LevelBuilder;
     const cell = level.cells.get(i)!;
     cell.walkable = rand.range() < 0.8;
   }
+  level.updateProperties();
 })();

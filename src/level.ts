@@ -93,6 +93,12 @@ export interface Edge {
    */
   index: number;
 
+  /**
+   * True if the player can walk through the edge from front to back. This
+   * should not be set manually, it is set by updateProperties().
+   */
+  passable: boolean;
+
   /** The that this edge belongs to. */
   cell: Cell | null;
 
@@ -107,7 +113,6 @@ export interface Edge {
    * Reference to next (anticlockwise) edge. These form a circular linked list
    * for each cell, except the border cells.
    */
-
   next: Edge | null;
 
   /** Highlight color for this edge. */
@@ -180,7 +185,9 @@ export class LevelBuilder {
         center,
       );
       rootEdges.push(e1);
-      this.cells.set(-i - 1, new Cell(vertexes[i], -i - 1, e2));
+      const cell = new Cell(vertexes[i], -i - 1, e2);
+      cell.walkable = false;
+      this.cells.set(-i - 1, cell);
     }
     this.newCell(center, rootEdges);
     for (let i = 1; i < centers.length; i++) {
@@ -234,6 +241,7 @@ export class LevelBuilder {
       vertex1,
       center,
       index,
+      passable: true,
       cell: null,
       prev: null,
       next: null,
@@ -386,16 +394,17 @@ export class LevelBuilder {
   }
 
   /**
-   * List all edges within the given circle.
+   * List all edges within the given circle that cannot be walked thorugh.
    * @param center Center of the circle.
    * @param radius Radius of the circle.
    */
-  findEdges(center: Readonly<Vector>, radius: number): Edge[] {
+  findUnpassableEdges(center: Readonly<Vector>, radius: number): Edge[] {
     const result: Edge[] = [];
     for (const cell of this.cells.values()) {
       if (cell.index >= 0) {
         for (const edge of edges(cell.edge)) {
           if (
+            !edge.passable &&
             lineIntersectsCircle(
               edge.vertex0,
               edge.vertex1,
@@ -409,5 +418,21 @@ export class LevelBuilder {
       }
     }
     return result;
+  }
+
+  /**
+   * Update precomputed properties.
+   */
+  updateProperties() {
+    for (let i = 0; i < this.edgeCounter; i += 2) {
+      const edge0 = this.edges.get(i);
+      const edge1 = this.edges.get(i + 1);
+      if (edge0) {
+        edge0.passable = edge1 != null && edge1.cell!.walkable;
+      }
+      if (edge1) {
+        edge1.passable = edge0 != null && edge0.cell!.walkable;
+      }
+    }
   }
 }
