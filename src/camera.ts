@@ -7,7 +7,7 @@ import { canvas } from './global';
 import {
   matrixMultiply,
   Axis,
-  rotationMatrix,
+  rotationMatrixFromDirection,
   translationMatrix,
 } from './matrix';
 import { playerPos } from './player';
@@ -41,15 +41,16 @@ export function updateCamera(): void {
   cameraMatrix[11] = -1;
   cameraMatrix[14] = (2 * zNear * zFar) / (zNear - zFar);
 
+  const a = 1 / Math.hypot(elevation, 1);
   // Rotate.
-  rotationMatrix(componentMatrix, Axis.X, Math.PI * 0.5 - elevation);
+  rotationMatrixFromDirection(componentMatrix, Axis.X, elevation, 1);
   matrixMultiply(cameraMatrix, cameraMatrix, componentMatrix);
 
   // Transpose.
   translationMatrix(componentMatrix, [
     -playerPos.x,
-    distance * Math.cos(elevation) - playerPos.y,
-    -distance * Math.sin(elevation),
+    distance * a - playerPos.y,
+    -distance * a * elevation,
   ]);
   matrixMultiply(cameraMatrix, cameraMatrix, componentMatrix);
 }

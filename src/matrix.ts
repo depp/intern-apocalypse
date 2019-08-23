@@ -49,16 +49,37 @@ export const enum Axis {
 }
 
 /**
+ * Set an output to a rotation matrix using a direction rather than angles.
+ * @param out Output matrix.
+ * @param axis Axis to rotate around.
+ * @param u Second axis component (the axis after the main axis).
+ * @param v Third axis component (the axis before the main axis).
+ */
+export function rotationMatrixFromDirection(
+  out: Matrix,
+  axis: Axis,
+  u: number,
+  v: number,
+) {
+  const [c1, c2, s1, s2] = axis ? [0, 5, 1, 4] : [5, 10, 6, 9];
+  const a = 1 / Math.hypot(u, v);
+  identityMatrix(out);
+  out[c1] = out[c2] = a * u;
+  out[s1] = -(out[s2] = a * v);
+}
+
+/**
  * Set a matrix to a rotation matrix.
  * @param out Output matrix.
  * @param axis Axis to rotate around.
  * @param angle Angle to rotate.
  */
-export function rotationMatrix(out: Matrix, axis: Axis, angle: number) {
-  const [c1, c2, s1, s2] = axis ? [0, 5, 1, 4] : [5, 10, 6, 9];
-  identityMatrix(out);
-  out[c1] = out[c2] = Math.cos(angle);
-  out[s1] = -(out[s2] = Math.sin(angle));
+export function rotationMatrixFromAngle(
+  out: Matrix,
+  axis: Axis,
+  angle: number,
+) {
+  rotationMatrixFromDirection(out, axis, Math.cos(angle), Math.sin(angle));
 }
 
 /**

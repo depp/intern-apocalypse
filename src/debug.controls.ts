@@ -18,8 +18,8 @@ export const debugView = Object.assign({}, debugViewDefaults);
 const cameraDefaults = {
   /** Camera distance from player, in meters. */
   distance: 6,
-  /** Camera elevation, in radians. */
-  elevation: 0.8,
+  /** Camera elevation, as a slope. */
+  elevation: 1,
   /** Zoom. This is proportional to the lens focal length. */
   zoom: 2.6,
   /** Near Z clip plane distance. */
@@ -180,7 +180,7 @@ function startGUI(dat: typeof datTypes): void {
 
   folder('Camera', cameraSettings, cameraDefaults, (gui, data) => {
     gui.add(data, 'distance', 1, 10);
-    gui.add(data, 'elevation', 0, 1.5);
+    gui.add(data, 'elevation', 0.5, 2);
     gui.add(data, 'zoom', 1, 5);
     gui.add(data, 'zNear', 0.1, 5.0);
     gui.add(data, 'zFar', 10.0, 100.0);
