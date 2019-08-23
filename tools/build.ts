@@ -7,7 +7,7 @@ import * as program from 'commander';
 import chalk from 'chalk';
 
 import { BuildContext, Builder } from './action';
-import { BuildArgs } from './config';
+import { Config, BuildArgs } from './config';
 import { evalHTML } from './html';
 import { projectName, sizeTarget } from './info';
 import { rollupJS } from './rollup';
@@ -75,9 +75,25 @@ function parseIntArg(value: any, prev: any): number {
   return parseInt(value, 10);
 }
 
+/** Parse a build config command-line option. */
+function parseConfig(value: any, prev: any): Config {
+  const s = (value as string).toLowerCase();
+  for (const x in Config) {
+    if (typeof x == 'string' && x.toLowerCase() == s) {
+      return Config[x as keyof typeof Config];
+    }
+  }
+  throw new Error(`unknown config ${JSON.stringify(value)}`);
+}
+
 /** Main entry point for build script. */
 async function main(): Promise<void> {
   program
+    .option(
+      '--config <config>',
+      'set the build configuration (debug, release)',
+      parseConfig,
+    )
     .option('--serve', 'serve the project over HTTP')
     .option('--watch', 'rebuild project as inputs change')
     .option('--show-build-times', 'show how long it takes to build each step')
@@ -86,6 +102,7 @@ async function main(): Promise<void> {
   program.parse(process.argv);
   // This gives us the right types for TypeScript.
   const args: BuildArgs = {
+    config: program.serve ? Config.Debug : Config.Release,
     serve: false,
     watch: false,
     showBuildTimes: false,
@@ -94,7 +111,7 @@ async function main(): Promise<void> {
   };
   for (const arg of Object.keys(args)) {
     if (arg in program) {
-      // @ts-ignore: Hack
+      // @ts-ignore
       args[arg] = program[arg];
     }
   }

@@ -7,7 +7,9 @@ import * as path from 'path';
 
 import * as rollup from 'rollup';
 import * as terser from 'terser';
+
 import { BuildAction, BuildContext } from './action';
+import { BuildArgs, Config } from './config';
 
 /** An error for failure to resolve an imported module. */
 class ResolutionFailure extends Error {
@@ -153,7 +155,7 @@ class RollupJS implements BuildAction {
   }
 
   /** Build the bundled JavaScript code. */
-  async execute(): Promise<boolean> {
+  async execute(config: BuildArgs): Promise<boolean> {
     const { params } = this;
     const external: string[] = [];
     const globals: { [name: string]: string } = {};
@@ -163,9 +165,12 @@ class RollupJS implements BuildAction {
     }
     const inputOptions: rollup.InputOptions = {
       input: params.name,
-      plugins: [resolverPlugin, minifyPlugin()],
+      plugins: [resolverPlugin],
       external,
     };
+    if (config.config == Config.Release) {
+      inputOptions.plugins!.push(minifyPlugin());
+    }
     const bundle = await rollup.rollup(inputOptions);
     const outputOptions: rollup.OutputOptions = {
       format: 'iife',

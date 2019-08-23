@@ -13,6 +13,12 @@ import { recursive, listFilesWithExtensions, pathExt } from './util';
 
 export { recursive };
 
+/** A build configuration, either debug or release. */
+export enum Config {
+  Debug,
+  Release,
+}
+
 /**
  * A build action which can be run through a BuildContext.
  */
@@ -41,7 +47,7 @@ export interface BuildAction {
    *
    * @returns True if the action succeeded.
    */
-  execute(): Promise<boolean>;
+  execute(config: Readonly<BuildArgs>): Promise<boolean>;
 }
 
 /**
@@ -57,11 +63,17 @@ interface ListFileRequest {
  * A context for running build actions.
  */
 export class BuildContext {
+  readonly config: Readonly<BuildArgs>;
   /** List of all build, in the order they are added. */
   private readonly actions: BuildAction[];
   private readonly listFilesRequests: ListFileRequest[];
 
-  constructor(actions: BuildAction[], listFilesRequests: ListFileRequest[]) {
+  constructor(
+    config: Readonly<BuildArgs>,
+    actions: BuildAction[],
+    listFilesRequests: ListFileRequest[],
+  ) {
+    this.config = config;
     this.actions = actions;
     this.listFilesRequests = listFilesRequests;
   }
@@ -156,6 +168,8 @@ function formatHRTime(time: [number, number]): string {
  * Builder for running build steps when necessary.
  */
 export class Builder {
+  /** Build configuration options. */
+  private readonly config: Readonly<BuildArgs>;
   /** Function which returns a list of actions in the build. */
   private readonly createActions: ActionEmitter;
   /** List of paths to watch. */
@@ -183,9 +197,10 @@ export class Builder {
   constructor(
     createActions: ActionEmitter,
     watchPaths: string | string[],
-    options: BuildArgs,
+    options: Readonly<BuildArgs>,
   ) {
     const { showBuildTimes } = options;
+    this.config = options;
     this.createActions = createActions;
     this.watchPaths = watchPaths;
     this.showBuildTimes = showBuildTimes;
@@ -305,7 +320,9 @@ export class Builder {
     }
     const actions: BuildAction[] = [];
     const listFilesRequests: ListFileRequest[] = [];
-    this.createActions(new BuildContext(actions, listFilesRequests));
+    this.createActions(
+      new BuildContext(this.config, actions, listFilesRequests),
+    );
     // Remove cache entries from actions that don't exist any more.
     const actionSet = new Set(actions.map(action => action.name));
     for (const name of this.actionCache.keys()) {
@@ -348,7 +365,7 @@ export class Builder {
     this.actionCache.delete(name);
     let success: boolean;
     try {
-      success = await action.execute();
+      success = await action.execute(this.config);
     } catch (e) {
       console.error(e);
       success = false;
