@@ -35,8 +35,8 @@ export function updateCamera(): void {
   // [ 0, 0, -(far + near) / (far - near), -2 * far * near / (far - near) ]
   // [ 0, 0, -1, 0 ]
   cameraMatrix.fill(0);
-  cameraMatrix[0] = 0.5 * zoom;
-  cameraMatrix[5] = (0.5 * zoom * canvas.clientWidth) / canvas.clientHeight;
+  cameraMatrix[0] = zoom;
+  cameraMatrix[5] = (zoom * canvas.clientWidth) / canvas.clientHeight;
   cameraMatrix[10] = (zNear + zFar) / (zNear - zFar);
   cameraMatrix[11] = -1;
   cameraMatrix[14] = (2 * zNear * zFar) / (zNear - zFar);

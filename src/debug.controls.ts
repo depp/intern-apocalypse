@@ -17,11 +17,11 @@ export const debugView = Object.assign({}, debugViewDefaults);
 /** Default settings for the camera. */
 const cameraDefaults = {
   /** Camera distance from player, in meters. */
-  distance: 6,
+  distance: 10,
   /** Camera elevation, as a slope. */
   elevation: 1,
   /** Zoom. This is proportional to the lens focal length. */
-  zoom: 2.6,
+  zoom: 2,
   /** Near Z clip plane distance. */
   zNear: 0.1,
   /** Far Z clip plane distance. */
@@ -179,7 +179,7 @@ function startGUI(dat: typeof datTypes): void {
   });
 
   folder('Camera', cameraSettings, cameraDefaults, (gui, data) => {
-    gui.add(data, 'distance', 1, 10);
+    gui.add(data, 'distance', 1, 50);
     gui.add(data, 'elevation', 0.5, 2);
     gui.add(data, 'zoom', 1, 5);
     gui.add(data, 'zNear', 0.1, 5.0);
