@@ -62,7 +62,12 @@ export class Cell {
    * Iterate over all cell edges, exactly once each.
    */
   *edges(): IterableIterator<Edge> {
-    const { edge } = this;
+    let { edge } = this;
+    if (this.index < 0) {
+      while (edge.prev) {
+        edge = edge.prev;
+      }
+    }
     let cur: Edge | null = this.edge;
     do {
       yield cur;
