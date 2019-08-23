@@ -193,7 +193,7 @@ function drawEntity(pos: Vector): void {
  */
 export function drawLevel(): void {
   const { clientWidth, clientHeight } = ctx.canvas;
-  const scale = 20;
+  const scale = 40;
   ctx.save();
   ctx.translate(clientWidth / 2, clientHeight / 2);
   ctx.scale(scale, -scale);
