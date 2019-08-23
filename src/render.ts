@@ -47,5 +47,5 @@ export function render(): void {
   gl.useProgram(prog);
   gl.enableVertexAttribArray(0);
   gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-  gl.drawArrays(gl.TRIANGLES, 0, 3);
+  // gl.drawArrays(gl.TRIANGLES, 0, 3);
 }
