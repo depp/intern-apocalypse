@@ -12,7 +12,7 @@ import * as Handlebars from 'handlebars';
 import * as WebSocket from 'ws';
 
 import { BuildState, Builder } from './action';
-import { BuildArgs } from './config';
+import { Config, BuildArgs } from './config';
 import { projectName } from './info';
 
 /** Parameters for running the HTTP server. */
@@ -25,6 +25,7 @@ interface StaticFile {
   readonly url: string;
   readonly file: string;
   readonly sourceMap?: string;
+  readonly config?: Config;
 }
 
 /**
@@ -34,7 +35,7 @@ const baseFiles: readonly StaticFile[] = [
   { url: '/live.css', file: 'html/live.css' },
   { url: '/loader.js', file: 'build/loader.js', sourceMap: 'loader.js.map' },
   { url: '/loader.js.map', file: 'build/loader.js.map' },
-  { url: '/static', file: 'build/index.html' },
+  { url: '/static', file: 'build/index.html', config: Config.Release },
   { url: '/game.js', file: 'build/game.js', sourceMap: 'game.js.map' },
   { url: '/game.js.map', file: 'build/game.js.map' },
   { url: '/dat.gui.js', file: 'node_modules/dat.gui/build/dat.gui.min.js' },
@@ -115,7 +116,9 @@ export function serve(options: ServerParameters) {
 
   app.get('/', (res, req, next) => handleRoot(options, res, req, next));
   for (const file of baseFiles) {
-    app.get(file.url, staticHandler(file));
+    if (file.config == null || file.config == options.config) {
+      app.get(file.url, staticHandler(file));
+    }
   }
   wss.on('connection', ws => handleWebSocket(options, ws));
 

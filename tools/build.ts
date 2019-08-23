@@ -34,13 +34,13 @@ function emitActions(ctx: BuildContext) {
     global: 'Game',
     external: [{ name: 'dat.gui', global: 'dat' }],
   });
-  evalHTML(ctx, {
-    output: 'build/index.html',
-    template: 'html/static.html',
-    script: 'build/game.js',
-    title: projectName,
-  });
   if (ctx.config.config == Config.Release) {
+    evalHTML(ctx, {
+      output: 'build/index.html',
+      template: 'html/static.html',
+      script: 'build/game.js',
+      title: projectName,
+    });
     createZip(ctx, {
       output: 'build/InternApocalypse.zip',
       files: new Map([['index.html', 'build/index.html']]),

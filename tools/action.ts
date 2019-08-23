@@ -13,12 +13,6 @@ import { recursive, listFilesWithExtensions, pathExt } from './util';
 
 export { recursive };
 
-/** A build configuration, either debug or release. */
-export enum Config {
-  Debug,
-  Release,
-}
-
 /**
  * A build action which can be run through a BuildContext.
  */
