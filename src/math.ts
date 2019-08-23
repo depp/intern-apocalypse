@@ -2,6 +2,11 @@
  * Math types and functions.
  */
 
+/** 1D linear interpolation: compute u+a*(v-u). */
+export function lerp1D(u: number, v: number, a: number): number {
+  return u + a * (v - u);
+}
+
 /** 2D vector. */
 export interface Vector {
   x: number;
@@ -73,7 +78,7 @@ export function wedgeSubtract(
   u: Vector,
   v: Vector,
   a: Vector,
-  b: Vector,
+  b: Vector = zeroVector,
 ): number {
   return (u.x - v.x) * (a.y - b.y) - (u.y - v.y) * (a.x - b.x);
 }
@@ -194,4 +199,18 @@ export function lineLineIntersection(
     return -1;
   }
   return num1 / denom;
+}
+
+/**
+ * Project a point onto a circle.
+ */
+export function projectToCircle(
+  v: Readonly<Vector>,
+  center: Readonly<Vector>,
+  radius: number,
+): Vector {
+  const dx = v.x - center.x,
+    dy = v.y - center.y,
+    a = radius / Math.hypot(dx, dy);
+  return vector(center.x + dx * a, center.y + dy * a);
 }
