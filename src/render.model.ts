@@ -11,14 +11,15 @@ import { compileShader, compileProgram } from './shader';
 const vshader = compileShader(
   gl.VERTEX_SHADER,
   `
-attribute vec3 aVertexPos;
-attribute vec4 aVertexColor;
+attribute vec3 aPos;
+attribute vec4 aColor;
 varying vec4 Color;
 uniform mat4 ViewProjection;
 uniform mat4 Model;
 void main() {
-    Color = aVertexColor;
-    gl_Position = ViewProjection * Model * vec4(aVertexPos * 0.5, 1.0);
+    Color = aColor;
+    gl_Position = ViewProjection * Model
+      * vec4(aPos.xy * 0.5 - 0.25, aPos.z, 1.0);
 }
   `,
 );
@@ -34,7 +35,7 @@ void main() {
   `,
 );
 
-const prog = compileProgram(['Pos'], vshader, fshader);
+const prog = compileProgram(['aPos', 'aColor'], vshader, fshader);
 
 const indexBuf = gl.createBuffer()!; // FIXME: check?
 const posBuf = gl.createBuffer()!;
@@ -110,6 +111,7 @@ export function renderModels(): void {
 
   gl.useProgram(prog);
   gl.enable(gl.CULL_FACE);
+  gl.enable(gl.DEPTH_TEST);
   gl.enableVertexAttribArray(0);
   gl.enableVertexAttribArray(1);
   gl.uniformMatrix4fv(vp, false, cameraMatrix);

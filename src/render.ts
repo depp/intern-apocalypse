@@ -3,6 +3,7 @@
  */
 
 import { gl } from './global';
+import { renderLevel } from './render.level';
 import { renderModels } from './render.model';
 
 /**
@@ -13,4 +14,5 @@ export function render(): void {
   gl.clear(gl.COLOR_BUFFER_BIT);
 
   renderModels();
+  renderLevel();
 }
