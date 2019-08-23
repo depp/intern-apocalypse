@@ -58,6 +58,7 @@ export function openWebSocket(): void {
   ws.addEventListener('error', evt => {
     // FIXME: Retry.
     console.log('WebSocket Error:', evt);
+    setBuildStatus('Unknown');
   });
   ws.addEventListener('open', evt => {
     console.log('WebSocket Open');
@@ -65,6 +66,7 @@ export function openWebSocket(): void {
   ws.addEventListener('close', evt => {
     // FIXME: Reconnect.
     console.log('WebSocket Closed', evt.code);
+    setBuildStatus('Unknown');
   });
   ws.addEventListener('message', handleMessage);
 }
