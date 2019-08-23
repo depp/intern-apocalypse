@@ -31,10 +31,10 @@ export function updateCamera(): void {
   // [ 0, 1 / my, 0, 0 ]
   // [ 0, 0, -(far + near) / (far - near), -2 * far * near / (far - near) ]
   // [ 0, 0, -1, 0 ]
-  const zNear = 0.1,
-    zFar = 20;
-  const mx = 0.7,
-    my = (mx * canvas.clientHeight) / canvas.clientWidth;
+  const zNear = 0.1;
+  const zFar = 20;
+  const mx = 0.7;
+  const my = (mx * canvas.clientHeight) / canvas.clientWidth;
   cameraMatrix.fill(0);
   cameraMatrix[0] = 0.5 / mx;
   cameraMatrix[5] = 0.5 / my;
