@@ -104,9 +104,12 @@ function startGUI(dat: typeof datTypes): void {
   gui.add(view, 'player');
 }
 
-// This looks the way it does because we want to avoid importing dat at runtime,
-// which will fail for release builds. It is easier to never import than
-// conditionally import.
-if ('dat' in window) {
-  startGUI(window['dat']);
+/** Show the debug GUI. */
+export function startDebugGUI(): void {
+  // This looks the way it does because we want to avoid importing dat at runtime,
+  // which will fail for release builds. It is easier to never import than
+  // conditionally import.
+  if ('dat' in window) {
+    startGUI(window['dat']);
+  }
 }

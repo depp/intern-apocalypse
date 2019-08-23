@@ -25,12 +25,13 @@ function emitActions(ctx: BuildContext) {
     outDir: 'build/src',
     inputs: tsSources,
     config: 'src/tsconfig.json',
-    rootNames: ['src/main.ts'],
+    rootNames: ['src/main.debug.ts', 'src/main.release.ts'],
   });
   rollupJS(ctx, {
     output: 'build/game.js',
     inputs: tsSources.map(src => 'build/' + pathWithExt(src, '.js')),
-    name: 'src/main',
+    name:
+      ctx.config.config == Config.Debug ? 'src/main.debug' : 'src/main.release',
     global: 'Game',
     external: [],
   });
