@@ -29,6 +29,7 @@ export interface CollisionEdge {
   edge: Edge; // FIXME: not necessary in release?
   vertex0: Readonly<Vector>;
   vertex1: Readonly<Vector>;
+  hit?: Readonly<Vector>;
 }
 
 /** A corner for collision testing. */
@@ -36,6 +37,7 @@ interface CollisionCorner {
   center: Readonly<Vector>;
   edge0: CollisionEdge;
   edge1: CollisionEdge;
+  hit?: Readonly<Vector>;
 }
 
 /** A segment of a walking path. */
@@ -321,6 +323,8 @@ export function walk(
     startFraction: 1,
     endFraction: 0,
   };
+  // We ignore collisions if we haven't traveled at least this far.
+  const suppressionTresholdSquared = 0.01;
   for (
     let testNum = 0;
     testNum < 9 && currentSegment.startFraction > 0;
@@ -334,15 +338,27 @@ export function walk(
       endFraction: 0,
     };
     for (const edge of edges) {
-      const segment = testEdge(movement, currentSegment, edge);
-      if (segment && segment.startFraction >= nextSegment.startFraction) {
-        nextSegment = segment;
+      if (
+        !edge.hit ||
+        distanceSquared(currentSegment.start, edge.hit) >
+          suppressionTresholdSquared
+      ) {
+        const segment = testEdge(movement, currentSegment, edge);
+        if (segment && segment.startFraction >= nextSegment.startFraction) {
+          nextSegment = segment;
+        }
       }
     }
     for (const corner of corners) {
-      const segment = testCorner(movement, currentSegment, corner);
-      if (segment && segment.startFraction >= nextSegment.startFraction) {
-        nextSegment = segment;
+      if (
+        !corner.hit ||
+        distanceSquared(currentSegment.start, corner.hit) >
+          suppressionTresholdSquared
+      ) {
+        const segment = testCorner(movement, currentSegment, corner);
+        if (segment && segment.startFraction >= nextSegment.startFraction) {
+          nextSegment = segment;
+        }
       }
     }
     const isWedged =
@@ -350,6 +366,12 @@ export function walk(
     currentSegment = nextSegment;
     if (isWedged) {
       break;
+    }
+    if (currentSegment.edge) {
+      currentSegment.edge.hit = currentSegment.start;
+    }
+    if (currentSegment.corner) {
+      currentSegment.corner.hit = currentSegment.start;
     }
   }
   // This seems like it should be 'end', but 'start' is correct.
