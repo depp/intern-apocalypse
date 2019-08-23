@@ -2,6 +2,7 @@
  * The camere.
  */
 
+import { cameraSettings } from './debug.controls';
 import { canvas } from './global';
 import {
   matrixMultiply,
@@ -21,33 +22,34 @@ const componentMatrix = new Float32Array(16);
  * Update the camera.
  */
 export function updateCamera(): void {
+  const { distance, elevation, zoom, zNear, zFar } = cameraSettings;
   // Set up projection matrix.
   //
   // zNear: near Z clip plane
   // zFar: far Z clip plane
-  // mx: slope of X clip planes, mx = tan(fovX / 2)
-  // my: slope of Y clip planes, my = tan(fovY / 2)
+  // mx: slope of X clip planes, mx = 1 / tan(fovX / 2)
+  // my: slope of Y clip planes, my = 1 / tan(fovY / 2)
   //
-  // [ 1 / mx, 0, 0, 0 ]
-  // [ 0, 1 / my, 0, 0 ]
+  // [ mx, 0, 0, 0 ]
+  // [ 0, my, 0, 0 ]
   // [ 0, 0, -(far + near) / (far - near), -2 * far * near / (far - near) ]
   // [ 0, 0, -1, 0 ]
-  const zNear = 0.1;
-  const zFar = 20;
-  const mx = 0.7;
-  const my = (mx * canvas.clientHeight) / canvas.clientWidth;
   cameraMatrix.fill(0);
-  cameraMatrix[0] = 0.5 / mx;
-  cameraMatrix[5] = 0.5 / my;
+  cameraMatrix[0] = 0.5 * zoom;
+  cameraMatrix[5] = (0.5 * zoom * canvas.clientWidth) / canvas.clientHeight;
   cameraMatrix[10] = (zNear + zFar) / (zNear - zFar);
   cameraMatrix[11] = -1;
   cameraMatrix[14] = (2 * zNear * zFar) / (zNear - zFar);
 
   // Rotate.
-  rotationMatrix(componentMatrix, Axis.X, Math.PI * 0.25);
+  rotationMatrix(componentMatrix, Axis.X, Math.PI * 0.5 - elevation);
   matrixMultiply(cameraMatrix, cameraMatrix, componentMatrix);
 
   // Transpose.
-  translationMatrix(componentMatrix, [-playerPos.x, 2 - playerPos.y, -2]);
+  translationMatrix(componentMatrix, [
+    -playerPos.x,
+    distance * Math.cos(elevation) - playerPos.y,
+    -distance * Math.sin(elevation),
+  ]);
   matrixMultiply(cameraMatrix, cameraMatrix, componentMatrix);
 }

@@ -1,5 +1,9 @@
 import * as datTypes from 'dat.gui';
 
+// =============================================================================
+// Settings
+// =============================================================================
+
 /** Default settings for debug view. */
 const debugViewDefaults = {
   level: false,
@@ -7,28 +11,76 @@ const debugViewDefaults = {
   player: false,
 };
 
-type DebugSettings = typeof debugViewDefaults;
-
 /** Settings for debug view. */
 export const debugView = Object.assign({}, debugViewDefaults);
+
+/** Default settings for the camera. */
+const cameraDefaults = {
+  /** Camera distance from player, in meters. */
+  distance: 6,
+  /** Camera elevation, in radians. */
+  elevation: 0.8,
+  /** Zoom. This is proportional to the lens focal length. */
+  zoom: 2.6,
+  /** Near Z clip plane distance. */
+  zNear: 0.1,
+  /** Far Z clip plane distance. */
+  zFar: 20,
+};
+
+/** Settings for the camera. */
+export const cameraSettings = Object.assign({}, cameraDefaults);
+
+// =============================================================================
+// Load / Save / UI
+// =============================================================================
 
 /** Key for storing debug settings in local storage. */
 const localStorageKey = 'us.moria.intern-apocalypse';
 
+/** A settings section. */
+interface Section {
+  readonly name: string;
+  readonly currentValues: any & object;
+  readonly defaultValues: any & object;
+}
+
+/** Create a settings section. */
+function section<T extends object>(
+  name: string,
+  currentValues: T,
+  defaultValues: T,
+): Section {
+  return { name, currentValues, defaultValues };
+}
+
+/** List of all settings sections. */
+const categories: readonly Section[] = [
+  section('debugView', debugView, debugViewDefaults),
+  section('camera', cameraSettings, cameraDefaults),
+];
+
 /** Save debug settings to local storage. */
 function saveSettings(): void {
   const saved: any & object = {};
-  let hasData = false;
-  for (const keyValue of Object.keys(debugViewDefaults)) {
-    const key = keyValue as keyof DebugSettings;
-    const defaultValue = debugViewDefaults[key];
-    const value = debugView[key];
-    if (value != defaultValue) {
-      hasData = true;
-      saved[key] = value;
+  let savedHasData = false;
+  for (const { name, currentValues, defaultValues } of categories) {
+    const obj: any & object = {};
+    let objHasData = false;
+    for (const key of Object.keys(defaultValues)) {
+      const defaultValue = defaultValues[key];
+      const currentValue = currentValues[key];
+      if (currentValue != defaultValue) {
+        obj[key] = currentValue;
+        objHasData = true;
+      }
+    }
+    if (objHasData) {
+      saved[name] = obj;
+      savedHasData = true;
     }
   }
-  if (hasData) {
+  if (savedHasData) {
     localStorage.setItem(localStorageKey, JSON.stringify(saved));
   } else {
     localStorage.removeItem(localStorageKey);
@@ -51,12 +103,17 @@ function loadSettings(): void {
   if (typeof saved != 'object' || Array.isArray(saved)) {
     return;
   }
-  for (const key of Object.keys(debugViewDefaults)) {
-    if (Object.prototype.hasOwnProperty.call(saved, key)) {
-      const defaultValue = debugViewDefaults[key as keyof DebugSettings];
-      const value = saved[key];
-      if (typeof value == typeof defaultValue) {
-        debugView[key as keyof DebugSettings] = value;
+  for (const { name, currentValues, defaultValues } of categories) {
+    Object.assign(currentValues, defaultValues);
+    const obj = saved[name];
+    if (obj && typeof obj == 'object' && !Array.isArray(obj)) {
+      for (const key of Object.keys(obj)) {
+        if (Object.prototype.hasOwnProperty.call(defaultValues, key)) {
+          const value = obj[key];
+          if (typeof value == typeof defaultValues[key]) {
+            currentValues[key] = value;
+          }
+        }
       }
     }
   }
@@ -94,14 +151,40 @@ function createProxy<T extends object>(data: T): T {
 
 /** Show the dat.gui controls. */
 function startGUI(dat: typeof datTypes): void {
-  const gui = new dat.GUI({
-    name: 'Internship',
-  });
+  const gui = new dat.GUI();
+  function folder<T extends object>(
+    name: string,
+    data: T,
+    defaults: T,
+    func: (gui: datTypes.GUI, data: T) => void,
+  ): void {
+    const folder = gui.addFolder(name);
+    folder.add(
+      {
+        reset() {
+          Object.assign(data, defaults);
+          didChange();
+        },
+      },
+      'reset',
+    );
+    func(folder, createProxy(data));
+  }
   loadSettings();
-  const view = createProxy(debugView);
-  gui.add(view, 'level');
-  gui.add(view, 'centroids');
-  gui.add(view, 'player');
+
+  folder('Layers', debugView, debugViewDefaults, (gui, data) => {
+    gui.add(data, 'level');
+    gui.add(data, 'centroids');
+    gui.add(data, 'player');
+  });
+
+  folder('Camera', cameraSettings, cameraDefaults, (gui, data) => {
+    gui.add(data, 'distance', 1, 10);
+    gui.add(data, 'elevation', 0, 1.5);
+    gui.add(data, 'zoom', 1, 5);
+    gui.add(data, 'zNear', 0.1, 5.0);
+    gui.add(data, 'zFar', 10.0, 100.0);
+  });
 }
 
 /** Show the debug GUI. */
