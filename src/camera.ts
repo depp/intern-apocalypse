@@ -9,6 +9,7 @@ import {
   rotationMatrix,
   translationMatrix,
 } from './matrix';
+import { playerPos } from './player';
 
 /** The view projection matrix. */
 export const cameraMatrix = new Float32Array(16);
@@ -45,10 +46,8 @@ export function updateCamera(): void {
   // Rotate.
   rotationMatrix(componentMatrix, Axis.X, Math.PI * 0.25);
   matrixMultiply(cameraMatrix, cameraMatrix, componentMatrix);
-  rotationMatrix(componentMatrix, Axis.Z, Math.PI * 0.25);
-  matrixMultiply(cameraMatrix, cameraMatrix, componentMatrix);
 
   // Transpose.
-  translationMatrix(componentMatrix, [-2, 2, -2]);
+  translationMatrix(componentMatrix, [-playerPos.x, 2 - playerPos.y, -2]);
   matrixMultiply(cameraMatrix, cameraMatrix, componentMatrix);
 }
