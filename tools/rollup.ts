@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import * as rollup from 'rollup';
-import * as terser from 'terser';
+import * as terserTypes from 'terser'; // Only load if needed.
 
 import { BuildAction, BuildContext } from './action';
 import { BuildArgs, Config } from './config';
@@ -100,6 +100,7 @@ const resolverPlugin: rollup.Plugin = {
 
 /** Create a Rollup plugin for minifying code. */
 function minifyPlugin(): rollup.Plugin {
+  const terser = require('terser') as typeof terserTypes;
   return {
     name: 'Terser',
     renderChunk(input: string): { code: string; map?: rollup.SourceMapInput } {
