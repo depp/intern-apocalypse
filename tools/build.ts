@@ -125,7 +125,11 @@ async function main(): Promise<void> {
     await mkdir('build/tmp');
     const builder = new Builder(emitActions, 'src', args);
     if (args.serve) {
-      const loadBuilder = new Builder(emitLoaderActions, 'tools/loader', args);
+      const loadBuilder = new Builder(
+        emitLoaderActions,
+        'tools/loader',
+        Object.assign({}, args, { config: Config.Debug }),
+      );
       serve(Object.assign({ builder, loadBuilder }, args));
       loadBuilder.watch();
       builder.watch();
