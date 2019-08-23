@@ -5,8 +5,10 @@
 import * as fs from 'fs';
 
 import { BuildAction, BuildContext } from './action';
+import { BuildArgs, Config } from './config';
 
 import * as Handlebars from 'handlebars';
+import * as htmlMinifierTypes from 'html-minifier'; // Only load if needed.
 
 /** Escape JavaScript for embedding in script tag. */
 function inlineJavaScript(js: string): Handlebars.SafeString {
@@ -25,6 +27,23 @@ export interface EvalHTMLParams {
   readonly title: string;
   /** Output HTML path. */
   readonly output: string;
+}
+
+/** Minify an HTML document. */
+function minifyHTML(text: string): string {
+  const htmlMinifier = require('html-minifier') as typeof htmlMinifierTypes;
+  const result = htmlMinifier.minify(text, {
+    collapseBooleanAttributes: true,
+    collapseWhitespace: true,
+    decodeEntities: true,
+    ignoreCustomFragments: [/\{\{.*?\}\}/], // Close enough.
+    minifyCSS: true,
+    removeAttributeQuotes: true,
+    removeComments: true,
+    removeOptionalTags: true,
+    useShortDoctype: true,
+  });
+  return result;
 }
 
 /**
@@ -48,11 +67,14 @@ class EvalHTML implements BuildAction {
   }
 
   /** Evaluate the HTML template. */
-  async execute(): Promise<boolean> {
+  async execute(config: BuildArgs): Promise<boolean> {
     const { params } = this;
-    const templateSrc = fs.promises.readFile(params.template, 'utf8');
     const scriptSrc = fs.promises.readFile(params.script, 'utf8');
-    const templateFn = Handlebars.compile(await templateSrc);
+    let templateSrc = await fs.promises.readFile(params.template, 'utf8');
+    if (config.config == Config.Release) {
+      templateSrc = minifyHTML(templateSrc);
+    }
+    const templateFn = Handlebars.compile(templateSrc);
     const result = templateFn({
       title: params.title,
       script: inlineJavaScript(await scriptSrc),
