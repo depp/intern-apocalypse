@@ -107,6 +107,7 @@ function minifyPlugin(): rollup.Plugin {
         ecma: 9, // 2018
         compress: false,
         mangle: false,
+        sourceMap: true,
       });
       if (!code) {
         throw new Error('terser failed');
