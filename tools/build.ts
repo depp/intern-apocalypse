@@ -40,11 +40,13 @@ function emitActions(ctx: BuildContext) {
     script: 'build/game.js',
     title: projectName,
   });
-  createZip(ctx, {
-    output: 'build/InternApocalypse.zip',
-    files: new Map([['index.html', 'build/index.html']]),
-    sizeTarget,
-  });
+  if (ctx.config.config == Config.Release) {
+    createZip(ctx, {
+      output: 'build/InternApocalypse.zip',
+      files: new Map([['index.html', 'build/index.html']]),
+      sizeTarget,
+    });
+  }
 }
 
 /**
