@@ -6,6 +6,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 import * as rollup from 'rollup';
+import * as terser from 'terser';
 import { BuildAction, BuildContext } from './action';
 
 /** An error for failure to resolve an imported module. */
@@ -95,6 +96,24 @@ const resolverPlugin: rollup.Plugin = {
   },
 };
 
+/** Create a Rollup plugin for minifying code. */
+function minifyPlugin(): rollup.Plugin {
+  return {
+    name: 'Terser',
+    renderChunk(input: string): { code: string; map?: rollup.SourceMapInput } {
+      const { code, map } = terser.minify(input, {
+        ecma: 9, // 2018
+        compress: false,
+        mangle: false,
+      });
+      if (!code) {
+        throw new Error('terser failed');
+      }
+      return { code, map };
+    },
+  };
+}
+
 /** Information about a JavaScript module. */
 export interface Module {
   /** The JavaScript module name. */
@@ -144,7 +163,7 @@ class RollupJS implements BuildAction {
     }
     const inputOptions: rollup.InputOptions = {
       input: params.name,
-      plugins: [resolverPlugin],
+      plugins: [resolverPlugin, minifyPlugin()],
       external,
     };
     const bundle = await rollup.rollup(inputOptions);
