@@ -100,6 +100,7 @@ export function renderModels(): void {
   const mvp = gl.getUniformLocation(prog, 'ModelViewProjection');
 
   gl.useProgram(prog);
+  gl.enable(gl.CULL_FACE);
   gl.enableVertexAttribArray(0);
   gl.enableVertexAttribArray(1);
   gl.uniformMatrix4fv(mvp, false, cameraMatrix);
