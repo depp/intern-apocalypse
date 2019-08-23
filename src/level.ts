@@ -11,15 +11,6 @@ import {
   lineIntersectsCircle,
 } from './math';
 
-/** Iterate over the edges in an edge loop, once. */
-function* edges(firstEdge: Edge): IterableIterator<Edge> {
-  let edge: Edge | null = firstEdge;
-  do {
-    yield edge;
-    edge = edge.next;
-  } while (edge && edge != firstEdge);
-}
-
 /**
  * The smallest area in a level.
  *
@@ -58,13 +49,25 @@ export class Cell {
     let area = 0,
       xarea = 0,
       yarea = 0;
-    for (const { vertex0, vertex1 } of edges(this.edge)) {
+    for (const { vertex0, vertex1 } of this.edges()) {
       const a = vertex0.x * vertex1.y - vertex1.x * vertex0.y;
       area += a / 2;
       xarea += ((vertex0.x + vertex1.x) * a) / 6;
       yarea += ((vertex0.y + vertex1.y) * a) / 6;
     }
     return { x: xarea / area, y: yarea / area };
+  }
+
+  /**
+   * Iterate over all cell edges, exactly once each.
+   */
+  *edges(): IterableIterator<Edge> {
+    const { edge } = this;
+    let cur: Edge | null = this.edge;
+    do {
+      yield cur;
+      cur = cur.next;
+    } while (cur && cur != edge);
   }
 }
 
@@ -402,7 +405,7 @@ export class LevelBuilder {
     const result: Edge[] = [];
     for (const cell of this.cells.values()) {
       if (cell.index >= 0) {
-        for (const edge of edges(cell.edge)) {
+        for (const edge of cell.edges()) {
           if (
             !edge.passable &&
             lineIntersectsCircle(
