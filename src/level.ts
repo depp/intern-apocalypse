@@ -427,11 +427,11 @@ export class LevelBuilder {
     for (let i = 0; i < this.edgeCounter; i += 2) {
       const edge0 = this.edges.get(i);
       const edge1 = this.edges.get(i + 1);
-      if (edge0) {
-        edge0.passable = edge1 != null && edge1.cell!.walkable;
-      }
-      if (edge1) {
-        edge1.passable = edge0 != null && edge0.cell!.walkable;
+      if (edge0 && edge1) {
+        const w0 = edge0.cell!.walkable;
+        const w1 = edge1.cell!.walkable;
+        edge0.passable = w1 || !w0;
+        edge1.passable = w0 || !w1;
       }
     }
   }
