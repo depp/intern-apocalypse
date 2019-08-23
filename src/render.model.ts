@@ -2,18 +2,20 @@
  * Model renderer.
  */
 
+import { cameraMatrix } from './camera';
 import { gl } from './global';
 import { compileShader, compileProgram } from './shader';
 
 const vshader = compileShader(
   gl.VERTEX_SHADER,
   `
-attribute vec3 Pos;
-attribute vec4 Color;
-varying vec4 vColor;
+attribute vec3 aVertexPos;
+attribute vec4 aVertexColor;
+varying vec4 Color;
+uniform mat4 ModelViewProjection;
 void main() {
-    vColor = Color;
-    gl_Position = vec4(Pos * 0.5, 1.0);
+    Color = aVertexColor;
+    gl_Position = ModelViewProjection * vec4(aVertexPos * 0.5, 1.0);
 }
   `,
 );
@@ -22,9 +24,9 @@ const fshader = compileShader(
   gl.FRAGMENT_SHADER,
   `
 precision lowp float;
-varying vec4 vColor;
+varying vec4 Color;
 void main() {
-    gl_FragColor = vColor;
+    gl_FragColor = Color;
 }
   `,
 );
@@ -95,8 +97,11 @@ export function renderModels(): void {
   gl.bindBuffer(gl.ARRAY_BUFFER, colorBuf);
   gl.vertexAttribPointer(1, 4, gl.UNSIGNED_BYTE, true, 0, 0);
 
+  const mvp = gl.getUniformLocation(prog, 'ModelViewProjection');
+
   gl.useProgram(prog);
   gl.enableVertexAttribArray(0);
   gl.enableVertexAttribArray(1);
+  gl.uniformMatrix4fv(mvp, false, cameraMatrix);
   gl.drawElements(gl.TRIANGLES, 6 * 6, gl.UNSIGNED_SHORT, 0);
 }

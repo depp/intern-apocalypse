@@ -2,6 +2,7 @@
  * Main game loop and initialization.
  */
 
+import { updateCamera } from './camera';
 import { startInput, endFrameInput } from './input';
 import { updatePlayer } from './player';
 import { render } from './render';
@@ -22,6 +23,7 @@ export function initialize(): void {
 export function main(curTimeMS: DOMHighResTimeStamp): void {
   updateTime(curTimeMS);
   updatePlayer();
+  updateCamera();
   endFrameInput();
   render();
 }
