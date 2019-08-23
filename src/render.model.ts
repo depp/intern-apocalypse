@@ -4,6 +4,8 @@
 
 import { cameraMatrix } from './camera';
 import { gl } from './global';
+import { identityMatrix, translationMatrix } from './matrix';
+import { playerPos } from './player';
 import { compileShader, compileProgram } from './shader';
 
 const vshader = compileShader(
@@ -12,10 +14,11 @@ const vshader = compileShader(
 attribute vec3 aVertexPos;
 attribute vec4 aVertexColor;
 varying vec4 Color;
-uniform mat4 ModelViewProjection;
+uniform mat4 ViewProjection;
+uniform mat4 Model;
 void main() {
     Color = aVertexColor;
-    gl_Position = ModelViewProjection * vec4(aVertexPos * 0.5, 1.0);
+    gl_Position = ViewProjection * Model * vec4(aVertexPos * 0.5, 1.0);
 }
   `,
 );
@@ -87,6 +90,9 @@ function createCube() {
 
 createCube();
 
+/** The model transformation matrix. */
+const modelMatrix = new Float32Array(16);
+
 /**
  * Render all models in the level.
  */
@@ -97,12 +103,16 @@ export function renderModels(): void {
   gl.bindBuffer(gl.ARRAY_BUFFER, colorBuf);
   gl.vertexAttribPointer(1, 4, gl.UNSIGNED_BYTE, true, 0, 0);
 
-  const mvp = gl.getUniformLocation(prog, 'ModelViewProjection');
+  const vp = gl.getUniformLocation(prog, 'ViewProjection');
+  const m = gl.getUniformLocation(prog, 'Model');
+
+  translationMatrix(modelMatrix, [playerPos.x, playerPos.y]);
 
   gl.useProgram(prog);
   gl.enable(gl.CULL_FACE);
   gl.enableVertexAttribArray(0);
   gl.enableVertexAttribArray(1);
-  gl.uniformMatrix4fv(mvp, false, cameraMatrix);
+  gl.uniformMatrix4fv(vp, false, cameraMatrix);
+  gl.uniformMatrix4fv(m, false, modelMatrix);
   gl.drawElements(gl.TRIANGLES, 6 * 6, gl.UNSIGNED_SHORT, 0);
 }
