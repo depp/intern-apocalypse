@@ -39,7 +39,7 @@ export const debugColors: { [c in DebugColor]: string } = {
   [DebugColor.Green]: '#0f0',
   [DebugColor.Blue]: '#00f',
   [DebugColor.Cyan]: '#0ff',
-  [DebugColor.Magenta]: '#ff0',
+  [DebugColor.Magenta]: '#f0f',
   [DebugColor.Yellow]: '#ff0',
   [DebugColor.Black]: '#000',
   [DebugColor.Gray]: '#555',
