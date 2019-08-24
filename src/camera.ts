@@ -41,6 +41,18 @@ export function updateCamera(): void {
   cameraMatrix[11] = -1;
   cameraMatrix[14] = (2 * zNear * zFar) / (zNear - zFar);
 
+  // Adjust the camera location to show an equal amount of space in front of and
+  // behind the player. Without this adjustment, the player can't see as far
+  // in front, and traveling in that direction is more difficult (monsters would
+  // sneak up on you from that direction).
+  //
+  // Math notes: Solved with law of sines, then rewritten to remove
+  // trigonometry. The 'max' puts a limit on the adjustment, which otherwise
+  // diverges as the camera angle is adjusted towards the horizon.
+  const mf = zoom * elevation;
+  const num = Math.hypot(elevation, 1) * mf;
+  const adjust = num / Math.max(mf ** 2 - 1, num);
+
   const a = 1 / Math.hypot(elevation, 1);
   // Rotate.
   rotationMatrixFromDirection(componentMatrix, Axis.X, elevation, 1);
@@ -49,8 +61,8 @@ export function updateCamera(): void {
   // Transpose.
   translationMatrix(componentMatrix, [
     -playerPos.x,
-    distance * a - playerPos.y,
-    -distance * a * elevation,
+    distance * a - playerPos.y + adjust,
+    -distance * a * elevation - 0.5,
   ]);
   matrixMultiply(cameraMatrix, cameraMatrix, componentMatrix);
 }
