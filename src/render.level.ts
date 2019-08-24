@@ -61,7 +61,6 @@ function concatArrays<T extends TypedArray>(
     r.set(arr, i);
     i += arr.length;
   }
-  console.log('length:', i);
   return r;
 }
 
