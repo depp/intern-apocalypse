@@ -1,5 +1,5 @@
 import { AssertionError } from './debug';
-import { SourceError } from './sourcepos';
+import { SourceError, SourceSpan } from './sourcepos';
 
 /** Lexical token types. */
 export enum TokenType {
@@ -74,20 +74,14 @@ export function tokenize(source: string): Token[] {
 /** S-expression node type. */
 export type SExprType = 'list' | 'symbol';
 
-/** S-expression node base. */
-export interface SExprBase {
-  readonly sourceStart: number;
-  readonly sourceEnd: number;
-}
-
 /** S-expression symbol. */
-export interface SymbolExpr extends SExprBase {
+export interface SymbolExpr extends SourceSpan {
   readonly type: 'symbol';
   readonly name: string;
 }
 
 /** S-expression list. */
-export interface ListExpr extends SExprBase {
+export interface ListExpr extends SourceSpan {
   readonly type: 'list';
   readonly items: readonly SExpr[];
 }
