@@ -1,4 +1,5 @@
 import { AssertionError } from './debug';
+import { SourceSpan } from './sourcepos';
 
 /** Lexical token types. */
 export enum TokenType {
@@ -48,7 +49,9 @@ export function tokenize(source: string): Token[] {
   const tokens: Token[] = [];
   const matchToken = /[-!$%&*+./:<=>?@^_~0-9a-zA-Z]+|[()]|[ \n\r\t]+|;.*?$/my;
   let match: RegExpExecArray | null;
+  let pos = 0;
   while ((match = matchToken.exec(source)) != null) {
+    pos = matchToken.lastIndex;
     const text = match[0];
     const type = tokenTypes[text.codePointAt(0)!] || TokenType.Error;
     switch (type) {
@@ -59,6 +62,10 @@ export function tokenize(source: string): Token[] {
         tokens.push({ type, text, sourcePos: match.index });
         break;
     }
+  }
+  if (pos != source.length) {
+    const text = String.fromCodePoint(source.codePointAt(pos)!);
+    tokens.push({ type: TokenType.Error, text, sourcePos: pos });
   }
   tokens.push({ type: TokenType.End, text: '', sourcePos: source.length });
   return tokens;
@@ -89,12 +96,25 @@ export interface ListExpr extends SExprBase {
 export type SExpr = SymbolExpr | ListExpr;
 
 /** An error parsing an S-expression. */
-export class SyntaxError extends Error {
-  sourcePos: number;
-  constructor(message: string, sourcePos: number) {
+export class SExprSyntaxError extends Error implements SourceSpan {
+  sourceStart: number;
+  sourceEnd: number;
+  constructor(tok: Token, message: string) {
     super(message);
-    this.sourcePos = sourcePos;
+    this.sourceStart = tok.sourcePos;
+    this.sourceEnd = tok.sourcePos + tok.text.length;
   }
+}
+
+/** Throw an error when encountering an unexpected token while parsing. */
+function unexpectedToken(tok: Token): never {
+  if (tok.type == TokenType.Error) {
+    throw new SExprSyntaxError(
+      tok,
+      `unexpected character ${JSON.stringify(tok.text)}`,
+    );
+  }
+  throw new SExprSyntaxError(tok, 'unexpected token');
 }
 
 /** Parse a string into a list of top-level S-expressions. */
@@ -118,14 +138,21 @@ export function parseSExpr(source: string): SExpr[] {
         const items: SExpr[] = [];
         while (parseNode(items)) {}
         const end = tokens[tokenPos];
-        if (end.type != TokenType.CloseParen) {
-          throw new SyntaxError('unclosed "("', start.sourcePos);
+        switch (end.type) {
+          case TokenType.CloseParen:
+            // Expected.
+            break;
+          case TokenType.End:
+            throw new SExprSyntaxError(start, 'unbalanced "("');
+          default:
+            unexpectedToken(end);
+            break;
         }
         tokenPos++;
         list.push({
           type: 'list',
           sourceStart: start.sourcePos,
-          sourceEnd: end.sourcePos,
+          sourceEnd: end.sourcePos + end.text.length,
           items,
         } as ListExpr);
         return true;
@@ -137,7 +164,7 @@ export function parseSExpr(source: string): SExpr[] {
   while (parseNode(toplevel)) {}
   const tok = tokens[tokenPos];
   if (tok.type != TokenType.End) {
-    throw new SyntaxError('unexpected token', tok.sourcePos);
+    unexpectedToken(tok);
   }
   return toplevel;
 }
@@ -151,6 +178,6 @@ export function printSExpr(expr: SExpr): string {
       return `(${expr.items.map(printSExpr).join(' ')})`;
     default:
       const node: never = expr;
-      return '';
+      throw new AssertionError('invalid S-expression type');
   }
 }

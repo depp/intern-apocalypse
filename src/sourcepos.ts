@@ -1,3 +1,14 @@
+/** An object which records a span of text in source code. */
+export interface SourceSpan {
+  /** Start of the span, offset from beginning of file. */
+  sourceStart: number;
+  /**
+   * End of the span, offset from beginning of file. Equal to the start offset
+   * plus the length of the span.
+   */
+  sourceEnd: number;
+}
+
 /** Line and column in a file. */
 export interface SourcePos {
   lineno: number;
@@ -8,10 +19,12 @@ export interface SourcePos {
  * Translator between offset source positions and lines/columns.
  */
 export class SourceText {
+  readonly name: string;
   readonly lines: readonly string[];
   private readonly linePos: readonly number[];
 
-  constructor(text: string) {
+  constructor(name: string, text: string) {
+    this.name = name;
     const nl = /\n\r?|\r/g;
     const lines: string[] = [];
     const linePos: number[] = [0];
