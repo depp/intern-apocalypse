@@ -47,7 +47,7 @@ test('parse', () => {
   const text = 'abc (def ghi) (jkl (() 1 2 3))';
   const nodes = parseSExpr(text);
   const root: ListExpr = {
-    type: SExprType.List,
+    type: 'list',
     sourceStart: 0,
     sourceEnd: text.length,
     items: nodes,
@@ -55,29 +55,27 @@ test('parse', () => {
   const expect: any = ['abc', ['def', 'ghi'], ['jkl', [[], '1', '2', '3']]];
   function compare(x: SExpr, y: any): void {
     switch (x.type) {
-      case SExprType.Symbol:
-        const sym = x as SymbolExpr;
+      case 'symbol':
         if (typeof y != 'string') {
           throw new Error(
             `invalid type: got ${printSExpr(x)}, expected ${JSON.stringify(y)}`,
           );
         }
-        if (sym.name != y) {
+        if (x.name != y) {
           throw new Error(
             `incorrect name: got ${JSON.stringify(
-              sym.name,
+              x.name,
             )}, expected ${JSON.stringify(y)}`,
           );
         }
         break;
-      case SExprType.List:
-        const list = x as ListExpr;
+      case 'list':
         if (typeof y != 'object') {
           throw new Error(
             `invalid type: got ${printSExpr(x)}, expected ${JSON.stringify(y)}`,
           );
         }
-        if (list.items.length != y.length) {
+        if (x.items.length != y.length) {
           throw new Error(
             `invalid list length: got ${printSExpr(
               x,
@@ -85,11 +83,12 @@ test('parse', () => {
           );
         }
         for (let i = 0; i < y.length; i++) {
-          compare(list.items[i], y[i]);
+          compare(x.items[i], y[i]);
         }
         break;
       default:
-        throw new Error(`unknown type ${x.type}`);
+        const node: never = x;
+        break;
     }
   }
   compare(root, expect);

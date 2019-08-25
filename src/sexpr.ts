@@ -65,27 +65,28 @@ export function tokenize(source: string): Token[] {
 }
 
 /** S-expression node type. */
-export enum SExprType {
-  Symbol,
-  List,
-}
+export type SExprType = 'list' | 'symbol';
 
 /** S-expression node base. */
-export interface SExpr {
-  readonly type: SExprType;
+export interface SExprBase {
   readonly sourceStart: number;
   readonly sourceEnd: number;
 }
 
 /** S-expression symbol. */
-export interface SymbolExpr extends SExpr {
+export interface SymbolExpr extends SExprBase {
+  readonly type: 'symbol';
   readonly name: string;
 }
 
 /** S-expression list. */
-export interface ListExpr extends SExpr {
+export interface ListExpr extends SExprBase {
+  readonly type: 'list';
   readonly items: readonly SExpr[];
 }
+
+/** S-expression node. */
+export type SExpr = SymbolExpr | ListExpr;
 
 /** An error parsing an S-expression. */
 export class SyntaxError extends Error {
@@ -106,7 +107,7 @@ export function parseSExpr(source: string): SExpr[] {
       case TokenType.Symbol:
         tokenPos++;
         list.push({
-          type: SExprType.Symbol,
+          type: 'symbol',
           sourceStart: start.sourcePos,
           sourceEnd: start.sourcePos + start.text.length,
           name: start.text,
@@ -122,7 +123,7 @@ export function parseSExpr(source: string): SExpr[] {
         }
         tokenPos++;
         list.push({
-          type: SExprType.List,
+          type: 'list',
           sourceStart: start.sourcePos,
           sourceEnd: end.sourcePos,
           items,
@@ -144,13 +145,12 @@ export function parseSExpr(source: string): SExpr[] {
 /** Print an S-expression as a string. */
 export function printSExpr(expr: SExpr): string {
   switch (expr.type) {
-    case SExprType.Symbol:
-      const sym = expr as SymbolExpr;
-      return sym.name;
-    case SExprType.List:
-      const list = expr as ListExpr;
-      return `(${list.items.map(printSExpr).join(' ')})`;
+    case 'symbol':
+      return expr.name;
+    case 'list':
+      return `(${expr.items.map(printSExpr).join(' ')})`;
     default:
-      throw new AssertionError('unknown expr type');
+      const node: never = expr;
+      return '';
   }
 }
