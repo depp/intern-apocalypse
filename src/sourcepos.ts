@@ -15,6 +15,17 @@ export interface SourcePos {
   colno: number;
 }
 
+/** An error corresponding to a location in source code. */
+export class SourceError extends Error implements SourceSpan {
+  sourceStart: number;
+  sourceEnd: number;
+  constructor(start: number, end: number, message: string) {
+    super(message);
+    this.sourceStart = start;
+    this.sourceEnd = end;
+  }
+}
+
 /**
  * Translator between offset source positions and lines/columns.
  */

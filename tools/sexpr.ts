@@ -10,8 +10,8 @@ import chalk from 'chalk';
 
 import { readStream } from './stream';
 
-import { SExprSyntaxError, SExpr, parseSExpr, printSExpr } from '../src/sexpr';
-import { SourceSpan, SourceText } from '../src/sourcepos';
+import { SExpr, parseSExpr, printSExpr } from '../src/sexpr';
+import { SourceSpan, SourceText, SourceError } from '../src/sourcepos';
 
 const colorFilename: (s: string) => string = chalk.cyan;
 const colorLoc: (s: string) => string = chalk.yellow;
@@ -59,7 +59,7 @@ function processInput(name: string, source: string): boolean {
   try {
     exprs = parseSExpr(source);
   } catch (e) {
-    if (e instanceof SExprSyntaxError) {
+    if (e instanceof SourceError) {
       const text = new SourceText(name, source);
       showError(text, e);
       return false;

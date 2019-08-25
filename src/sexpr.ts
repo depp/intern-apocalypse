@@ -1,5 +1,5 @@
 import { AssertionError } from './debug';
-import { SourceSpan } from './sourcepos';
+import { SourceError } from './sourcepos';
 
 /** Lexical token types. */
 export enum TokenType {
@@ -96,13 +96,9 @@ export interface ListExpr extends SExprBase {
 export type SExpr = SymbolExpr | ListExpr;
 
 /** An error parsing an S-expression. */
-export class SExprSyntaxError extends Error implements SourceSpan {
-  sourceStart: number;
-  sourceEnd: number;
+export class SExprSyntaxError extends SourceError {
   constructor(tok: Token, message: string) {
-    super(message);
-    this.sourceStart = tok.sourcePos;
-    this.sourceEnd = tok.sourcePos + tok.text.length;
+    super(tok.sourcePos, tok.sourcePos + tok.text.length, message);
   }
 }
 
