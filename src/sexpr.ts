@@ -8,6 +8,7 @@ export enum TokenType {
   Whitespace,
   Comment,
   Symbol,
+  Number,
   OpenParen,
   CloseParen,
 }
@@ -27,7 +28,7 @@ const tokenTypes: readonly TokenType[] = (() => {
     result[97 + i] = TokenType.Symbol;
   }
   for (let i = 0; i < 10; i++) {
-    result[48 + i] = TokenType.Symbol;
+    result[48 + i] = TokenType.Number;
   }
   const map: [TokenType, string][] = [
     [TokenType.Symbol, '-!$%&*+./:<=>?@^_~'],
@@ -53,7 +54,15 @@ export function tokenize(source: string): Token[] {
   while ((match = matchToken.exec(source)) != null) {
     pos = matchToken.lastIndex;
     const text = match[0];
-    const type = tokenTypes[text.codePointAt(0)!] || TokenType.Error;
+    let type = tokenTypes[text.codePointAt(0)!] || TokenType.Error;
+    if (
+      text.startsWith('.') &&
+      text.length >= 2 &&
+      '0' <= text[0] &&
+      text[0] <= '9'
+    ) {
+      type = TokenType.Number;
+    }
     switch (type) {
       case TokenType.Whitespace:
       case TokenType.Comment:
@@ -72,12 +81,18 @@ export function tokenize(source: string): Token[] {
 }
 
 /** S-expression node type. */
-export type SExprType = 'list' | 'symbol';
+export type SExprType = 'list' | 'symbol' | 'number';
 
 /** S-expression symbol. */
 export interface SymbolExpr extends SourceSpan {
   readonly type: 'symbol';
   readonly name: string;
+}
+
+/** S-expression literal number. */
+export interface NumberExpr extends SourceSpan {
+  readonly type: 'number';
+  readonly value: string;
 }
 
 /** S-expression list. */
@@ -87,7 +102,7 @@ export interface ListExpr extends SourceSpan {
 }
 
 /** S-expression node. */
-export type SExpr = SymbolExpr | ListExpr;
+export type SExpr = SymbolExpr | NumberExpr | ListExpr;
 
 /** An error parsing an S-expression. */
 export class SExprSyntaxError extends SourceError {
@@ -107,6 +122,9 @@ function unexpectedToken(tok: Token): never {
   throw new SExprSyntaxError(tok, 'unexpected token');
 }
 
+/** Regular expression which matches Lisp numeric literals. */
+const matchNumber = /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/;
+
 /** Parse a string into a list of top-level S-expressions. */
 export function parseSExpr(source: string): SExpr[] {
   const tokens = tokenize(source);
@@ -121,7 +139,19 @@ export function parseSExpr(source: string): SExpr[] {
           sourceStart: start.sourcePos,
           sourceEnd: start.sourcePos + start.text.length,
           name: start.text,
-        } as SymbolExpr);
+        });
+        return true;
+      case TokenType.Number:
+        if (!start.text.match(matchNumber)) {
+          throw new SExprSyntaxError(start, 'invalid numeric literal');
+        }
+        tokenPos++;
+        list.push({
+          type: 'number',
+          sourceStart: start.sourcePos,
+          sourceEnd: start.sourcePos + start.text.length,
+          value: start.text,
+        });
         return true;
       case TokenType.OpenParen:
         tokenPos++;
@@ -144,7 +174,7 @@ export function parseSExpr(source: string): SExpr[] {
           sourceStart: start.sourcePos,
           sourceEnd: end.sourcePos + end.text.length,
           items,
-        } as ListExpr);
+        });
         return true;
       default:
         return false;
@@ -164,6 +194,8 @@ export function printSExpr(expr: SExpr): string {
   switch (expr.type) {
     case 'symbol':
       return expr.name;
+    case 'number':
+      return expr.value;
     case 'list':
       return `(${expr.items.map(printSExpr).join(' ')})`;
     default:
