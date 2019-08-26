@@ -7,8 +7,8 @@
 export const canvas = document.getElementById('g') as HTMLCanvasElement;
 /** WebGL rendering context. */
 export const gl = canvas.getContext('webgl', {
-  alpha: false,
-  antialias: false,
+  'alpha': false,
+  'antialias': false,
 })!;
 
 if (!gl) {

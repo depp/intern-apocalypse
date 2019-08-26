@@ -113,12 +113,17 @@ function minifyPlugin(): rollup.Plugin {
           defaults: true,
           drop_console: true,
           module: true,
+          passes: 4,
           pure_getters: true,
           toplevel: true,
           unsafe: true,
           unsafe_arrows: true,
         },
-        mangle: {},
+        mangle: {
+          properties: {
+            keep_quoted: true,
+          },
+        },
         sourceMap: true,
       });
       if (!code) {

@@ -34,16 +34,16 @@ export const enum Button {
  */
 const buttonBindings: Record<string, Button> = {
   // WASD
-  KeyW: Button.Forward,
-  KeyA: Button.Left,
-  KeyS: Button.Backward,
-  KeyD: Button.Right,
+  'KeyW': Button.Forward,
+  'KeyA': Button.Left,
+  'KeyS': Button.Backward,
+  'KeyD': Button.Right,
 
   // Arrow keys
-  ArrowUp: Button.Forward,
-  ArrowLeft: Button.Left,
-  ArrowDown: Button.Backward,
-  ArrowRight: Button.Right,
+  'ArrowUp': Button.Forward,
+  'ArrowLeft': Button.Left,
+  'ArrowDown': Button.Backward,
+  'ArrowRight': Button.Right,
 };
 
 /**
