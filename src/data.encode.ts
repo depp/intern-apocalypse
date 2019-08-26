@@ -1,7 +1,8 @@
 /**
  * Compact binary data encoding system.
  *
- * The system encodes numeric arrays containing values from 0-91.
+ * The system encodes numeric arrays containing values from 0-91. It uses
+ * printable ASCII characters, but no spaces.
  */
 
 import { AssertionError } from './debug';
@@ -15,7 +16,7 @@ export function decode(s: string): Uint8Array {
   return new Uint8Array(s.length).map(
     (_, i) =>
       s.charCodeAt(i) -
-      32 -
+      33 -
       (((s.charCodeAt(i) > 39) as unknown) as number) -
       (((s.charCodeAt(i) > 92) as unknown) as number),
   );
@@ -33,7 +34,7 @@ export function encode(a: Uint8Array): string {
     ...a.map(
       x =>
         x +
-        32 +
+        33 +
         (((x > 6) as unknown) as number) +
         (((x > 58) as unknown) as number),
     ),

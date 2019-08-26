@@ -18,4 +18,5 @@ describe('encode', () => {
       }
     });
   }
+  expect(encode(new Uint8Array([91, 0]))).toBe('~!');
 });
