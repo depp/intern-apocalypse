@@ -2,6 +2,7 @@
  * Main game loop and initialization.
  */
 
+import { startAudio } from './audio';
 import { updateCamera } from './camera';
 import { startInput, endFrameInput } from './input';
 import { updatePlayer } from './player';
@@ -12,7 +13,9 @@ import { updateTime } from './time';
  * Initialize game.
  */
 export function initialize(): void {
+  console.log('start');
   startInput();
+  startAudio();
 }
 
 /**
