@@ -133,6 +133,26 @@ function removeAssertions(): ts.TransformerFactory<ts.SourceFile> {
 }
 
 /**
+ * Convert all const variables to let.
+ */
+function constToLet(): ts.TransformerFactory<ts.SourceFile> {
+  return ctx => {
+    const visit: ts.Visitor = node => {
+      if (ts.isVariableDeclarationList(node)) {
+        if ((node.flags & ts.NodeFlags.Const) != 0) {
+          node = ts.createVariableDeclarationList(
+            node.declarations,
+            (node.flags & ~ts.NodeFlags.Const) | ts.NodeFlags.Let,
+          );
+        }
+      }
+      return ts.visitEachChild(node, visit, ctx);
+    };
+    return node => ts.visitNode(node, visit);
+  };
+}
+
+/**
  * Build action which compiles TypeScript to JavaScript.
  */
 class CompileTS implements BuildAction {
@@ -213,7 +233,7 @@ class CompileTS implements BuildAction {
       return {};
     }
     return {
-      before: [setIsDebugFalse(), removeAssertions()],
+      before: [setIsDebugFalse(), removeAssertions(), constToLet()],
     };
   }
 }
