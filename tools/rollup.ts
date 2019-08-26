@@ -109,6 +109,12 @@ function minifyPlugin(): rollup.Plugin {
         module: true,
         compress: {
           defaults: true,
+          drop_console: true,
+          module: true,
+          pure_getters: true,
+          toplevel: true,
+          unsafe: true,
+          unsafe_arrows: true,
         },
         mangle: {},
         sourceMap: true,
