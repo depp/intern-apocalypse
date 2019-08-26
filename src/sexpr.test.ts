@@ -52,44 +52,45 @@ test('parse', () => {
     sourceEnd: text.length,
     items: nodes,
   };
-  const expect: any = ['abc', ['def', 'ghi'], ['jkl', [[], '1', '2', '3']]];
-  function compare(x: SExpr, y: any): void {
+  function list(...items: SExpr[]): SExpr {
+    return { type: 'list', sourceStart: 0, sourceEnd: 0, items };
+  }
+  function sym(name: string): SExpr {
+    return { type: 'symbol', sourceStart: 0, sourceEnd: 0, name };
+  }
+  function num(value: string): SExpr {
+    return { type: 'number', sourceStart: 0, sourceEnd: 0, value };
+  }
+  const expect: SExpr = list(
+    sym('abc'),
+    list(sym('def'), sym('ghi')),
+    list(sym('jkl'), list(list(), num('1'), num('2'), num('3'))),
+  );
+  function compare(x: SExpr, y: SExpr): void {
     switch (x.type) {
       case 'symbol':
-        if (typeof y != 'string') {
-          throw new Error(
-            `invalid type: got ${printSExpr(x)}, expected ${JSON.stringify(y)}`,
-          );
+        if (y.type == 'symbol' && x.name == y.name) {
+          return;
         }
-        if (x.name != y) {
-          throw new Error(
-            `incorrect name: got ${JSON.stringify(
-              x.name,
-            )}, expected ${JSON.stringify(y)}`,
-          );
+        break;
+      case 'number':
+        if (y.type == 'number' && x.value == y.value) {
+          return;
         }
         break;
       case 'list':
-        if (typeof y != 'object') {
-          throw new Error(
-            `invalid type: got ${printSExpr(x)}, expected ${JSON.stringify(y)}`,
-          );
-        }
-        if (x.items.length != y.length) {
-          throw new Error(
-            `invalid list length: got ${printSExpr(
-              x,
-            )}, expected ${JSON.stringify(y)}`,
-          );
-        }
-        for (let i = 0; i < y.length; i++) {
-          compare(x.items[i], y[i]);
+        if (y.type == 'list' && x.items.length == y.items.length) {
+          for (let i = 0; i < x.items.length; i++) {
+            compare(x.items[i], y.items[i]);
+            return;
+          }
         }
         break;
       default:
-        const node: never = x;
+        const dummy: never = x;
         break;
     }
+    throw new Error(`got: ${printSExpr(x)}, expected: ${printSExpr(y)}`);
   }
   compare(root, expect);
 });
