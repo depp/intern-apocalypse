@@ -108,6 +108,8 @@ function minifyPlugin(): rollup.Plugin {
         ecma: 9, // 2018
         module: true,
         compress: {
+          // @ts-ignore: missing from @types
+          booleans_as_integers: true,
           defaults: true,
           drop_console: true,
           module: true,
