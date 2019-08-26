@@ -65,6 +65,74 @@ function setIsDebugFalse(): ts.TransformerFactory<ts.SourceFile> {
 }
 
 /**
+ * Return true if the statement throws an AssertionError and does nothing else.
+ */
+function isThrowAssertionError(node: ts.Statement): boolean {
+  let sthrow: ts.ThrowStatement;
+  if (ts.isBlock(node)) {
+    if (node.statements.length != 1) {
+      return false;
+    }
+    const child = node.statements[0];
+    if (!ts.isThrowStatement(child)) {
+      return false;
+    }
+    sthrow = child;
+  } else if (ts.isThrowStatement(node)) {
+    sthrow = node;
+  } else {
+    return false;
+  }
+  const oexpr = sthrow.expression;
+  if (oexpr == null || !ts.isNewExpression(oexpr)) {
+    return false;
+  }
+  const cexpr = oexpr.expression;
+  return (
+    cexpr != null &&
+    ts.isIdentifier(cexpr) &&
+    cexpr.getText() == 'AssertionError'
+  );
+}
+
+/**
+ * Transform by removing statements that 'throw AssertionError'.
+ *
+ * This looks for any if statement. If one of the branches of the if statement
+ * throws AssertionError and does nothing else, then the if statement is
+ * rewritten so that the other branch is taken. The if statement expression must
+ * not have side effects.
+ *
+ * Example input:
+ *
+ *     if (x > 4) { throw new AssertionError('x > 4'); }
+ *
+ * Example output:
+ *
+ *     if (false) { throw new AssertionError('x > 4'); }
+ */
+function removeAssertions(): ts.TransformerFactory<ts.SourceFile> {
+  return ctx => {
+    const visit: ts.Visitor = node => {
+      if (ts.isIfStatement(node)) {
+        if (isThrowAssertionError(node.thenStatement)) {
+          node.expression = ts.createFalse();
+          return node;
+        } else if (
+          node.elseStatement &&
+          isThrowAssertionError(node.elseStatement)
+        ) {
+          node.expression = ts.createTrue();
+          return node;
+        }
+      }
+      return ts.visitEachChild(node, visit, ctx);
+    };
+    return node => ts.visitNode(node, visit);
+  };
+}
+
+/**
  * Build action which compiles TypeScript to JavaScript.
  */
 class CompileTS implements BuildAction {
@@ -145,7 +213,7 @@ class CompileTS implements BuildAction {
       return {};
     }
     return {
-      before: [setIsDebugFalse()],
+      before: [setIsDebugFalse(), removeAssertions()],
     };
   }
 }
