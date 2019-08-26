@@ -8,12 +8,39 @@ import { setBuildStatus } from './status';
 class BadMessage extends Error {}
 
 /** Handle a build status message. */
-function handleStatusMessage(obj: any) {
+function handleStatusMessage(obj: any): void {
   const { status } = obj;
   if (typeof status != 'string') {
     throw new BadMessage('Missing build status');
   }
   setBuildStatus(status);
+}
+
+/** Handle a file contents message. */
+function handleFilesMessage(obj: any): void {
+  const { files } = obj;
+  if (
+    typeof files != 'object' ||
+    !Array.isArray(files) ||
+    (files.length & 1) != 0
+  ) {
+    throw new BadMessage('invalid files array');
+  }
+  const count = files.length / 2;
+  for (let i = 0; i < count; i++) {
+    const name = files[i + 0];
+    if (typeof name != 'string') {
+      throw new BadMessage('invalid file name');
+    }
+    const data = files[i * 2 + 1];
+    if (typeof data == 'string') {
+      console.log('got data:', name);
+    } else if (data === null) {
+      console.log('null:', name);
+    } else {
+      throw new BadMessage('invalid file data');
+    }
+  }
 }
 
 /** Handle a WebSocket message event. */
@@ -35,6 +62,9 @@ function handleMessage(evt: MessageEvent): void {
     switch (type) {
       case 'status':
         handleStatusMessage(obj);
+        break;
+      case 'files':
+        handleFilesMessage(obj);
         break;
       default:
         throw new BadMessage('Unknown message type');

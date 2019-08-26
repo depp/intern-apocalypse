@@ -5,6 +5,7 @@
 import * as fs from 'fs';
 import * as http from 'http';
 
+import * as chokidar from 'chokidar';
 import * as express from 'express';
 import { Request, Response, NextFunction } from 'express';
 import * as send from 'send';
@@ -75,12 +76,11 @@ function staticHandler(file: StaticFile): express.RequestHandler {
   };
 }
 
-/** Handle WebSocket connections. */
-function handleWebSocket(options: ServerParameters, ws: WebSocket): void {
-  const { builder } = options;
-
-  // Send the current build state to the client.
-  const stateChanged = (state: BuildState) => {
+/**
+ * Send the current build state to the client.
+ */
+function sendBuildState(ws: WebSocket, builder: Builder): void {
+  function stateChanged(state: BuildState): void {
     setImmediate(() => {
       ws.send(
         JSON.stringify({
@@ -89,22 +89,116 @@ function handleWebSocket(options: ServerParameters, ws: WebSocket): void {
         }),
       );
     });
-  };
+  }
+  ws.on('close', () => builder.stateChanged.detach(stateChanged));
   stateChanged(builder.state);
   builder.stateChanged.attach(stateChanged);
+}
 
-  // Ping the client.
+/**
+ * Send data files to the client.
+ */
+function sendDataFiles(ws: WebSocket): void {
+  // Delay between when we get FS changes and when we send the data, in
+  // milliseconds.
+  const delay = 100;
+  const changes = new Set<string>();
+  const watcher = chokidar.watch(['shader/*.vert', 'shader/*.frag'], {
+    ignored: '.*',
+  });
+  let timeout: NodeJS.Timeout | null = null;
+  let executing = false;
+  let closing = false;
+  let ready = false;
+  function sendData(): void {
+    if (!ready || timeout != null || executing) {
+      return;
+    }
+    timeout = setTimeout(async () => {
+      timeout = null;
+      try {
+        executing = true;
+        const files = new Map<string, string | null>();
+        while (changes.size) {
+          const names = Array.from(changes);
+          changes.clear();
+          for (const name of names) {
+            if (closing) {
+              return;
+            }
+            let text: string | null;
+            try {
+              text = await fs.promises.readFile(name, 'utf8');
+            } catch (e) {
+              if (e.code == 'ENOENT') {
+                text = null;
+              } else {
+                throw e;
+              }
+            }
+            files.set(name, text);
+          }
+        }
+        executing = false;
+        if (closing) {
+          return;
+        }
+        const list: any = [];
+        for (const [key, value] of files.entries()) {
+          list.push(key, value);
+        }
+        ws.send(
+          JSON.stringify({
+            type: 'files',
+            files: list,
+          }),
+        );
+      } catch (e) {
+        console.error(e);
+        process.exit(1);
+      }
+    }, delay);
+  }
+  function onChange(filename: string): void {
+    console.log('filename', filename);
+    changes.add(filename);
+    sendData();
+  }
+  function onReady(): void {
+    ready = true;
+    sendData();
+  }
+  ws.on('close', () => {
+    closing = true;
+    watcher.close();
+    if (timeout != null) {
+      clearTimeout(timeout);
+    }
+  });
+  watcher.on('add', onChange);
+  watcher.on('unlink', onChange);
+  watcher.on('change', onChange);
+  watcher.on('ready', onReady);
+}
+
+/**
+ * Ping the client regularly.
+ */
+function sendPings(ws: WebSocket): void {
   let counter = 0;
   const interval = setInterval(() => {
     counter++;
     ws.ping(counter.toString());
   }, 1000);
+  ws.on('close', () => clearInterval(interval));
+}
 
-  // Clean up on close.
-  ws.on('close', (code: number, reason: string) => {
-    builder.stateChanged.detach(stateChanged);
-    clearInterval(interval);
-  });
+/** Handle WebSocket connections. */
+function handleWebSocket(options: ServerParameters, ws: WebSocket): void {
+  const { builder } = options;
+  sendBuildState(ws, builder);
+  sendDataFiles(ws);
+  sendPings(ws);
 }
 
 /** Serve build products over HTTP. */
