@@ -2,7 +2,7 @@ import { SourceText, SourcePos } from './sourcepos';
 
 test('sourcepos', () => {
   const text = 'abc\n\nd';
-  const src = new SourceText(text);
+  const src = new SourceText('<test>', text);
   const locs: SourcePos[] = [
     { lineno: 1, colno: 1 },
     { lineno: 1, colno: 2 },
