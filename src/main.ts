@@ -13,7 +13,6 @@ import { updateTime } from './time';
  * Initialize game.
  */
 export function initialize(): void {
-  console.log('start');
   startInput();
   startAudio();
 }

@@ -7,8 +7,9 @@ import * as fs from 'fs';
 
 import * as ts from 'typescript';
 
-import { BuildContext, recursive, BuildAction } from './action';
+import { BuildContext, BuildAction } from './action';
 import { projectRoot, pathWithExt } from './util';
+import { Config, BuildArgs } from './config';
 
 /** Print TypeScript diagnostic messages. */
 function logTSDiagnostics(diagnostics: readonly ts.Diagnostic[]): void {
@@ -83,7 +84,7 @@ class CompileTS implements BuildAction {
   }
 
   /** Compile the TypeScript code to JavaScript. */
-  execute(): Promise<boolean> {
+  execute(config: Readonly<BuildArgs>): Promise<boolean> {
     const { params } = this;
     const options = this.readTSConfig();
     if (options == null) {
@@ -92,6 +93,9 @@ class CompileTS implements BuildAction {
     const host = ts.createCompilerHost(options);
     // Fixme: use old program.
     const program = ts.createProgram(params.rootNames, options, host);
+    if (config.config == Config.Release) {
+      this.transformRelease(program);
+    }
     const emitResult = program.emit();
     const diagnostics = ts
       .getPreEmitDiagnostics(program)
@@ -101,6 +105,23 @@ class CompileTS implements BuildAction {
       return Promise.resolve(false);
     }
     return Promise.resolve(true);
+  }
+
+  /** Transform code for the release build. */
+  transformRelease(program: ts.Program): void {
+    // Change 'const isDebug = false'
+    const source = program.getSourceFile('src/debug.ts');
+    if (source) {
+      ts.forEachChild(source!, node => {
+        if (ts.isVariableStatement(node)) {
+          for (const decl of node.declarationList.declarations) {
+            if (decl.name.getText(source) == 'isDebug') {
+              decl.initializer = ts.createFalse();
+            }
+          }
+        }
+      });
+    }
   }
 }
 

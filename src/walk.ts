@@ -2,7 +2,7 @@
  * Walking movement.
  */
 
-import { DebugColor } from './debug';
+import { isDebug, DebugColor } from './debug';
 import { Edge } from './level';
 import {
   Vector,
@@ -132,10 +132,12 @@ function testEdge(
   }
   // At this point, we have a collision. It just may not be the first collision
   // in the path.
-  if (!edge.edge.debugColor) {
-    edge.edge.debugColor = segment.corner
-      ? DebugColor.Magenta
-      : DebugColor.Yellow;
+  if (isDebug) {
+    if (!edge.edge.debugColor) {
+      edge.edge.debugColor = segment.corner
+        ? DebugColor.Magenta
+        : DebugColor.Yellow;
+    }
   }
   let newEnd: Readonly<Vector>;
   // Factor to multiply movement by due to sliding.
@@ -246,11 +248,13 @@ function testCorner(
     endFraction = 0;
     color = DebugColor.Magenta;
   }
-  if (!corner.edge0.edge.debugColor) {
-    corner.edge0.edge.debugColor = color;
-  }
-  if (!corner.edge1.edge.debugColor) {
-    corner.edge1.edge.debugColor = color;
+  if (isDebug) {
+    if (!corner.edge0.edge.debugColor) {
+      corner.edge0.edge.debugColor = color;
+    }
+    if (!corner.edge1.edge.debugColor) {
+      corner.edge1.edge.debugColor = color;
+    }
   }
   return {
     start: newStart,

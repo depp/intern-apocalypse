@@ -3,6 +3,11 @@
  */
 
 /**
+ * True if this is the debug build.
+ */
+export const isDebug: boolean = true;
+
+/**
  * Error sublcass for assertion failures.
  */
 export class AssertionError extends Error {
@@ -19,7 +24,7 @@ export class AssertionError extends Error {
 }
 
 /** Colors to use for highlighting objects on the debug map. */
-export enum DebugColor {
+export const enum DebugColor {
   None,
   Red,
   Green,
