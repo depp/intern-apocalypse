@@ -107,8 +107,10 @@ function minifyPlugin(): rollup.Plugin {
       const { code, map } = terser.minify(input, {
         ecma: 9, // 2018
         module: true,
-        compress: false,
-        mangle: false,
+        compress: {
+          defaults: true,
+        },
+        mangle: {},
         sourceMap: true,
       });
       if (!code) {
