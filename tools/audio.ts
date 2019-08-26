@@ -9,6 +9,7 @@ import * as program from 'commander';
 import { compileProgram } from '../src/audio.synth.compile';
 import { disassembleProgram } from '../src/audio.synth.opcode';
 import { sampleRate, runProgram } from '../src/audio.synth';
+import { encode } from '../src/data.encode';
 import { SourceError, SourceText } from '../src/sourcepos';
 import { waveData, floatTo16 } from './audio.wave';
 import { readStream } from './stream';
@@ -58,6 +59,7 @@ async function main(): Promise<void> {
       inputName = args.input;
       inputText = await fs.promises.readFile(inputName, 'utf8');
     }
+
     let code: Uint8Array;
     try {
       code = compileProgram(inputText);
@@ -69,12 +71,32 @@ async function main(): Promise<void> {
       }
       throw e;
     }
+
     if (args.disassemble) {
+      process.stdout.write('Assembly:\n');
       const disassembly = disassembleProgram(code);
       for (const line of disassembly) {
-        process.stdout.write(line + '\n');
+        process.stdout.write('  ' + line + '\n');
       }
+      process.stdout.write('\n');
     }
+
+    process.stdout.write('Code:\n');
+    for (let i = 0; i < code.length; i += 16) {
+      process.stdout.write(
+        '  ' +
+          Array.from(code.slice(i, i + 16))
+            .map(x => x.toString().padStart(2, ' '))
+            .join(' ') +
+          '\n',
+      );
+    }
+    process.stdout.write('\n');
+
+    process.stdout.write('Encoded:\n');
+    process.stdout.write('  ' + encode(code) + '\n');
+    process.stdout.write('\n');
+
     if (args.output != '') {
       const audio = runProgram(code);
       const data = waveData({
