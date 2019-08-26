@@ -42,16 +42,16 @@ export interface CompileTSParameters {
 function setIsDebugFalse(): ts.TransformerFactory<ts.SourceFile> {
   const debugTS = path.join(projectRoot, 'src/debug.ts');
   return ctx => {
-    return source => {
-      if (source.fileName != debugTS) {
-        return source;
+    return node => {
+      if (node.fileName != debugTS) {
+        return node;
       }
       return ts.visitEachChild(
-        source,
+        node,
         node => {
           if (ts.isVariableStatement(node)) {
             for (const decl of node.declarationList.declarations) {
-              if (decl.name.getText(source) == 'isDebug') {
+              if (decl.name.getText() == 'isDebug') {
                 decl.initializer = ts.createFalse();
               }
             }
