@@ -35,8 +35,8 @@ export function encode(a: Uint8Array): string {
       x =>
         x +
         33 +
-        (((x > 6) as unknown) as number) +
-        (((x > 58) as unknown) as number),
+        (((x > 5) as unknown) as number) +
+        (((x > 57) as unknown) as number),
     ),
   );
 }

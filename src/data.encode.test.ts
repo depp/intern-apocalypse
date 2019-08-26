@@ -12,8 +12,14 @@ describe('encode', () => {
       const decoded = decode(encoded);
       expect(decoded.length).toBe(data.length);
       for (let j = 0; j < data.length; j++) {
-        if (data[j] != decoded[j]) {
-          throw new Error('failed');
+        const x = data[j];
+        const y = encoded.charAt(j);
+        const z = decoded[j];
+        if (y == "'" || y == '\\') {
+          throw new Error(`failed: ${x} => ${JSON.stringify(y)}`);
+        }
+        if (x != z) {
+          throw new Error(`failed: ${x} => ${JSON.stringify(y)} => ${z}`);
         }
       }
     });
