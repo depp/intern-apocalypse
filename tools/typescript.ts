@@ -4,6 +4,7 @@
  */
 
 import * as fs from 'fs';
+import * as path from 'path';
 
 import * as ts from 'typescript';
 
@@ -35,11 +36,17 @@ export interface CompileTSParameters {
   readonly rootNames: readonly string[];
 }
 
-/** Transform by changing any top-level isDebug declarations to false. */
+/**
+ * Transform by changing isDebug in src/debug.ts to false.
+ */
 function setIsDebugFalse(): ts.TransformerFactory<ts.SourceFile> {
+  const debugTS = path.join(projectRoot, 'src/debug.ts');
   return ctx => {
-    return source =>
-      ts.visitEachChild(
+    return source => {
+      if (source.fileName != debugTS) {
+        return source;
+      }
+      return ts.visitEachChild(
         source,
         node => {
           if (ts.isVariableStatement(node)) {
@@ -53,6 +60,7 @@ function setIsDebugFalse(): ts.TransformerFactory<ts.SourceFile> {
         },
         ctx,
       );
+    };
   };
 }
 
