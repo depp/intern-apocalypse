@@ -106,6 +106,7 @@ function minifyPlugin(): rollup.Plugin {
     renderChunk(input: string): { code: string; map?: rollup.SourceMapInput } {
       const { code, map } = terser.minify(input, {
         ecma: 9, // 2018
+        module: true,
         compress: false,
         mangle: false,
         sourceMap: true,
@@ -175,7 +176,7 @@ class RollupJS implements BuildAction {
     }
     const bundle = await rollup.rollup(inputOptions);
     const outputOptions: rollup.OutputOptions = {
-      format: 'iife',
+      format: 'module',
       name: params.global,
       sourcemap: true,
       globals: globals,
