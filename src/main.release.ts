@@ -9,7 +9,7 @@ import { initialize, main } from './main';
  *
  * @param curTimeMS Current time in milliseconds.
  */
-export function mainRelease(curTimeMS: DOMHighResTimeStamp): void {
+function mainRelease(curTimeMS: DOMHighResTimeStamp): void {
   main(curTimeMS);
   requestAnimationFrame(mainRelease);
 }

@@ -11,7 +11,7 @@ import { initialize, main } from './main';
  *
  * @param curTimeMS Current time in milliseconds.
  */
-export function mainDebug(curTimeMS: DOMHighResTimeStamp): void {
+function mainDebug(curTimeMS: DOMHighResTimeStamp): void {
   let failed = false;
   try {
     main(curTimeMS);
