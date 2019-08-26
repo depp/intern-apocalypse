@@ -35,6 +35,27 @@ export interface CompileTSParameters {
   readonly rootNames: readonly string[];
 }
 
+/** Transform by changing any top-level isDebug declarations to false. */
+function setIsDebugFalse(): ts.TransformerFactory<ts.SourceFile> {
+  return ctx => {
+    return source =>
+      ts.visitEachChild(
+        source,
+        node => {
+          if (ts.isVariableStatement(node)) {
+            for (const decl of node.declarationList.declarations) {
+              if (decl.name.getText(source) == 'isDebug') {
+                decl.initializer = ts.createFalse();
+              }
+            }
+          }
+          return node;
+        },
+        ctx,
+      );
+  };
+}
+
 /**
  * Build action which compiles TypeScript to JavaScript.
  */
@@ -93,10 +114,13 @@ class CompileTS implements BuildAction {
     const host = ts.createCompilerHost(options);
     // Fixme: use old program.
     const program = ts.createProgram(params.rootNames, options, host);
-    if (config.config == Config.Release) {
-      this.transformRelease(program);
-    }
-    const emitResult = program.emit();
+    const emitResult = program.emit(
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      this.transformers(config),
+    );
     const diagnostics = ts
       .getPreEmitDiagnostics(program)
       .concat(emitResult.diagnostics);
@@ -107,21 +131,14 @@ class CompileTS implements BuildAction {
     return Promise.resolve(true);
   }
 
-  /** Transform code for the release build. */
-  transformRelease(program: ts.Program): void {
-    // Change 'const isDebug = false'
-    const source = program.getSourceFile('src/debug.ts');
-    if (source) {
-      ts.forEachChild(source!, node => {
-        if (ts.isVariableStatement(node)) {
-          for (const decl of node.declarationList.declarations) {
-            if (decl.name.getText(source) == 'isDebug') {
-              decl.initializer = ts.createFalse();
-            }
-          }
-        }
-      });
+  /** Get the TypeScript transformers for this build configuration. */
+  private transformers(config: Readonly<BuildArgs>): ts.CustomTransformers {
+    if (config.config == Config.Debug) {
+      return {};
     }
+    return {
+      before: [setIsDebugFalse()],
+    };
   }
 }
 
