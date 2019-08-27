@@ -1,0 +1,8 @@
+[
+  {
+    "name": "level",
+    "vertex": "level.vert",
+    "fragment": "level.frag",
+    "attributes": ["aPos", "aColor"]
+  }
+]
