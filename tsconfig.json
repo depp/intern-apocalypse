@@ -4,7 +4,8 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "strict": true,
-    "target": "es2019"
+    "target": "es2019",
+    "typeRoots": ["./node_modules/@types", "./typings"]
   },
-  "include": ["tools/*.ts"]
+  "files": ["tools/shader.ts"]
 }
