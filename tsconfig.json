@@ -7,5 +7,5 @@
     "target": "es2019",
     "typeRoots": ["./node_modules/@types", "./typings"]
   },
-  "files": ["tools/shader.ts"]
+  "include": ["tools/*.ts"]
 }
