@@ -4,5 +4,11 @@
     "vertex": "level.vert",
     "fragment": "level.frag",
     "attributes": ["aPos", "aColor"]
+  },
+  {
+    "name": "model",
+    "vertex": "model.vert",
+    "fragment": "model.frag",
+    "attributes": ["aPos", "aColor"]
   }
 ]

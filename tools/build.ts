@@ -12,6 +12,7 @@ import { evalHTML } from './html';
 import { projectName, sizeTarget } from './info';
 import { rollupJS } from './rollup';
 import { serve } from './server';
+import { packShaders } from './shader';
 import { compileTS } from './typescript';
 import { pathWithExt, projectRoot, mkdir, removeAll } from './util';
 import { createZip } from './zip';
@@ -19,7 +20,15 @@ import { createZip } from './zip';
 /**
  * Create the build actions.
  */
+
 function emitActions(ctx: BuildContext) {
+  const shaderSources = ctx.listFilesWithExtensions('shader', [
+    '.frag',
+    '.vert',
+  ]);
+  packShaders(ctx, {
+    inputs: ['shader/programs.json', ...shaderSources],
+  });
   const tsSources = ctx.listFilesWithExtensions('src', ['.ts']);
   compileTS(ctx, {
     outDir: 'build/src',
@@ -68,6 +77,7 @@ function parseConfig(value: any, prev: any): Config {
 
 /** Main entry point for build script. */
 async function main(): Promise<void> {
+  console.log(require('./shader'));
   program
     .option(
       '--config <config>',

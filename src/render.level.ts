@@ -4,39 +4,11 @@
 
 import { cameraMatrix } from './camera';
 import { gl } from './global';
-import { Vector } from './math';
 import { level } from './world';
 import { Random } from './random';
 import { clamp } from './util';
-import { compileShader, compileProgram } from './shader';
+import { level as levelShader } from './shaders';
 import { Edge } from './level';
-
-const vshader = compileShader(
-  gl.VERTEX_SHADER,
-  `
-attribute vec3 aPos;
-attribute vec4 aColor;
-varying vec4 Color;
-uniform mat4 ModelViewProjection;
-void main() {
-    Color = aColor;
-    gl_Position = ModelViewProjection * vec4(aPos, 1.0);
-}
-  `,
-);
-
-const fshader = compileShader(
-  gl.FRAGMENT_SHADER,
-  `
-precision lowp float;
-varying vec4 Color;
-void main() {
-    gl_FragColor = Color;
-}
-  `,
-);
-
-const prog = compileProgram(['aPos', 'aColor'], vshader, fshader);
 
 const indexBuf = gl.createBuffer()!; // FIXME: check?
 const posBuf = gl.createBuffer()!;
@@ -172,7 +144,8 @@ createGeometry();
  * Render the level geometry.
  */
 export function renderLevel(): void {
-  if (!elementCount) {
+  const p = levelShader;
+  if (!p.program || !elementCount) {
     return;
   }
 
@@ -182,13 +155,11 @@ export function renderLevel(): void {
   gl.bindBuffer(gl.ARRAY_BUFFER, colorBuf);
   gl.vertexAttribPointer(1, 4, gl.UNSIGNED_BYTE, true, 0, 0);
 
-  const mvp = gl.getUniformLocation(prog, 'ModelViewProjection');
-
-  gl.useProgram(prog);
+  gl.useProgram(p.program);
   gl.enable(gl.CULL_FACE);
   gl.enable(gl.DEPTH_TEST);
   gl.enableVertexAttribArray(0);
   gl.enableVertexAttribArray(1);
-  gl.uniformMatrix4fv(mvp, false, cameraMatrix);
+  gl.uniformMatrix4fv(p.ModelViewProjection, false, cameraMatrix);
   gl.drawElements(gl.TRIANGLES, elementCount, gl.UNSIGNED_SHORT, 0);
 }

@@ -35,7 +35,8 @@ function programLoader(
     stub += `  ${name}: WebGLUniformLocation | null;\n`;
   }
   stub += '}\n';
-  stub += `export const ${program.name} = compileProgram() as ${tname};\n`;
+  stub += `export const ${program.name} = `;
+  stub += `compileShader(${JSON.stringify(uniforms)}) as ${tname};\n`;
 
   let loader = '{\n';
   loader += `  name: ${JSON.stringify(program.name)},\n`;
