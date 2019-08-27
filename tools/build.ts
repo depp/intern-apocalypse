@@ -50,29 +50,6 @@ function emitActions(ctx: BuildContext) {
   }
 }
 
-/**
- * Create the build actions for the loader.
- */
-function emitLoaderActions(ctx: BuildContext) {
-  const tsSources = ctx.listFilesWithExtensions('tools/loader', [
-    '.ts',
-    '.tsx',
-  ]);
-  compileTS(ctx, {
-    outDir: 'build/tools/loader',
-    inputs: tsSources,
-    config: 'tools/loader/tsconfig.json',
-    rootNames: ['tools/loader/loader.ts'],
-  });
-  rollupJS(ctx, {
-    output: 'build/loader.js',
-    inputs: tsSources.map(src => 'build/' + pathWithExt(src, '.js')),
-    name: 'tools/loader/loader',
-    global: 'Loader',
-    external: [],
-  });
-}
-
 /** Parse an integer command-line option. */
 function parseIntArg(value: any, prev: any): number {
   return parseInt(value, 10);
@@ -126,13 +103,7 @@ async function main(): Promise<void> {
     await mkdir('build/tmp');
     const builder = new Builder(emitActions, 'src', args);
     if (args.serve) {
-      const loadBuilder = new Builder(
-        emitLoaderActions,
-        'tools/loader',
-        Object.assign({}, args, { config: Config.Debug }),
-      );
-      serve(Object.assign({ builder, loadBuilder }, args));
-      loadBuilder.watch();
+      serve(Object.assign({ builder }, args));
       builder.watch();
     } else if (args.watch) {
       builder.watch();

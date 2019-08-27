@@ -2,7 +2,7 @@
  * Loader WebSocket code.
  */
 
-import { setBuildStatus } from './status';
+import { setBuildStatus } from './debug.status';
 
 /** An error when encountering a bad WebSocket message. */
 class BadMessage extends Error {}

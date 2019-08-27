@@ -19,7 +19,6 @@ import { projectName } from './info';
 /** Parameters for running the HTTP server. */
 export interface ServerParameters extends BuildArgs {
   builder: Builder;
-  loadBuilder: Builder;
 }
 
 interface StaticFile {
@@ -34,8 +33,6 @@ interface StaticFile {
  */
 const baseFiles: readonly StaticFile[] = [
   { url: '/live.css', file: 'html/live.css' },
-  { url: '/loader.js', file: 'build/loader.js', sourceMap: 'loader.js.map' },
-  { url: '/loader.js.map', file: 'build/loader.js.map' },
   { url: '/static', file: 'build/index.html', config: Config.Release },
   { url: '/game.js', file: 'build/game.js', sourceMap: 'game.js.map' },
   { url: '/game.js.map', file: 'build/game.js.map' },

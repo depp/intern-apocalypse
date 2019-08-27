@@ -1,6 +1,12 @@
 /**
  * Entry point for debug builds.
  */
+
+import { openWebSocket } from './debug.socket';
+
+// Do this first, before any other modules get initialized (they might throw).
+openWebSocket();
+
 import { startDebugGUI } from './debug.controls';
 import { renderDebug } from './debug.render';
 import { gl } from './global';
