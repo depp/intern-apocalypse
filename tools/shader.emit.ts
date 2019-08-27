@@ -286,8 +286,12 @@ export function emitReleaseData(
       }
       return id;
     });
-    shaders += `export let ${program.name} = `;
-    shaders += `compileShader(${encodeStrings(uniforms)}, `;
+    const bindings = program.attributes.map((_, i) => attrMap[i]);
+    shaders += `export let ${program.name} = compileShader(`;
+    shaders += encodeStrings(uniforms);
+    shaders += ', ';
+    shaders += encodeStrings(bindings);
+    shaders += ', ';
     shaders += JSON.stringify(minCode.get(program.vertex));
     shaders += ', ';
     shaders += JSON.stringify(minCode.get(program.fragment));

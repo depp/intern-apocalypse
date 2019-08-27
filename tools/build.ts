@@ -77,7 +77,6 @@ function parseConfig(value: any, prev: any): Config {
 
 /** Main entry point for build script. */
 async function main(): Promise<void> {
-  console.log(require('./shader'));
   program
     .option(
       '--config <config>',

@@ -153,6 +153,44 @@ function constToLet(): ts.TransformerFactory<ts.SourceFile> {
 }
 
 /**
+ * Fix uniform references like 'levelShader.Model' => 'levelShader["x"]'.
+ */
+function fixUniforms(
+  identMap: Map<string, string>,
+  checker: ts.TypeChecker,
+): ts.TransformerFactory<ts.SourceFile> {
+  return ctx => {
+    const visit: ts.Visitor = node => {
+      if (ts.isPropertyAccessExpression(node)) {
+        const text = node.name.getText();
+        const subst = identMap.get(text);
+        if (subst != null) {
+          const lhs = node.expression;
+          return ts.createElementAccess(lhs, ts.createStringLiteral(subst));
+          // const symbol = checker.getSymbolAtLocation(lhs);
+          // checker.getTypeOfSymbolAtLocation(symbol, lhs);
+        }
+      }
+      return ts.visitEachChild(node, visit, ctx);
+    };
+    return node => ts.visitNode(node, visit);
+  };
+}
+
+/**
+ * Read the map that fixes uniform names.
+ */
+async function readUniformMap(): Promise<Map<string, string>> {
+  const text = await fs.promises.readFile('build/uniforms.json', 'utf8');
+  const data = JSON.parse(text);
+  const map = new Map<string, string>();
+  for (const key of Object.keys(data)) {
+    map.set(key, data[key]);
+  }
+  return map;
+}
+
+/**
  * Build action which compiles TypeScript to JavaScript.
  */
 class CompileTS implements BuildAction {
@@ -201,7 +239,7 @@ class CompileTS implements BuildAction {
   }
 
   /** Compile the TypeScript code to JavaScript. */
-  execute(config: Readonly<BuildArgs>): Promise<boolean> {
+  async execute(config: Readonly<BuildArgs>): Promise<boolean> {
     const { params } = this;
     const options = this.readTSConfig();
     if (options == null) {
@@ -210,12 +248,13 @@ class CompileTS implements BuildAction {
     const host = ts.createCompilerHost(options);
     // Fixme: use old program.
     const program = ts.createProgram(params.rootNames, options, host);
+    const checker = program.getTypeChecker();
     const emitResult = program.emit(
       undefined,
       undefined,
       undefined,
       undefined,
-      this.transformers(config),
+      await this.transformers(config, checker),
     );
     const diagnostics = ts
       .getPreEmitDiagnostics(program)
@@ -224,16 +263,29 @@ class CompileTS implements BuildAction {
       logTSDiagnostics(diagnostics);
       return Promise.resolve(false);
     }
+    if (config.config == Config.Release) {
+      const shaders = await fs.promises.readFile('build/shaders.js', 'utf8');
+      await fs.promises.writeFile('build/src/shaders.js', shaders, 'utf8');
+    }
     return Promise.resolve(true);
   }
 
   /** Get the TypeScript transformers for this build configuration. */
-  private transformers(config: Readonly<BuildArgs>): ts.CustomTransformers {
+  private async transformers(
+    config: Readonly<BuildArgs>,
+    checker: ts.TypeChecker,
+  ): Promise<ts.CustomTransformers> {
     if (config.config == Config.Debug) {
       return {};
     }
+    const uniformMap = await readUniformMap();
     return {
-      before: [setIsDebugFalse(), removeAssertions(), constToLet()],
+      before: [
+        setIsDebugFalse(),
+        removeAssertions(),
+        constToLet(),
+        fixUniforms(uniformMap, checker),
+      ],
     };
   }
 }
