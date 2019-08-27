@@ -2,6 +2,7 @@
  * Loader WebSocket code.
  */
 
+import { DataFile, updateFiles } from './debug.files';
 import { setBuildStatus } from './debug.status';
 
 /** An error when encountering a bad WebSocket message. */
@@ -27,20 +28,19 @@ function handleFilesMessage(obj: any): void {
     throw new BadMessage('invalid files array');
   }
   const count = files.length / 2;
+  const updates: DataFile[] = [];
   for (let i = 0; i < count; i++) {
-    const name = files[i + 0];
+    const name = files[i * 2];
     if (typeof name != 'string') {
       throw new BadMessage('invalid file name');
     }
     const data = files[i * 2 + 1];
-    if (typeof data == 'string') {
-      console.log('got data:', name);
-    } else if (data === null) {
-      console.log('null:', name);
-    } else {
+    if (typeof data != 'string' && data !== null) {
       throw new BadMessage('invalid file data');
     }
+    updates.push({ name, data, version: 0 });
   }
+  updateFiles(updates);
 }
 
 /** Handle a WebSocket message event. */

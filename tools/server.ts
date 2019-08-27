@@ -157,7 +157,6 @@ function sendDataFiles(ws: WebSocket): void {
     }, delay);
   }
   function onChange(filename: string): void {
-    console.log('filename', filename);
     changes.add(filename);
     sendData();
   }
