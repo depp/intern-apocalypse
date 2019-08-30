@@ -92,7 +92,12 @@ export interface SymbolExpr extends SourceSpan {
 /** S-expression literal number. */
 export interface NumberExpr extends SourceSpan {
   readonly type: 'number';
+  /** The value, as a string. */
   readonly value: string;
+  /** Unit scale prefix, e.g. k = 1000. */
+  readonly prefix: string;
+  /** Units, e.g. 'Hz'. */
+  readonly units: string;
 }
 
 /** S-expression list. */
@@ -123,7 +128,13 @@ function unexpectedToken(tok: Token): never {
 }
 
 /** Regular expression which matches Lisp numeric literals. */
-const matchNumber = /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/;
+const matchNumber = /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:_?([a-zA-Z]+))?$/;
+
+/** SI prefixes. */
+export const prefixes: ReadonlyMap<string, number> = new Map<string, number>([
+  ['m', 0.001],
+  ['k', 1000],
+]);
 
 /** Parse a string into a list of top-level S-expressions. */
 export function parseSExpr(source: string): SExpr[] {
@@ -142,15 +153,25 @@ export function parseSExpr(source: string): SExpr[] {
         });
         return true;
       case TokenType.Number:
-        if (!start.text.match(matchNumber)) {
+        const match = start.text.match(matchNumber);
+        if (!match) {
           throw new SExprSyntaxError(start, 'invalid numeric literal');
         }
         tokenPos++;
+        const value = match[0];
+        let units = match[1];
+        let prefix = '';
+        if (units && prefixes.has(units.charAt(0))) {
+          prefix = units.charAt(0);
+          units = units.substring(1);
+        }
         list.push({
           type: 'number',
           sourceStart: start.sourcePos,
           sourceEnd: start.sourcePos + start.text.length,
-          value: start.text,
+          value,
+          prefix,
+          units,
         });
         return true;
       case TokenType.OpenParen:
@@ -195,6 +216,9 @@ export function printSExpr(expr: SExpr): string {
     case 'symbol':
       return expr.name;
     case 'number':
+      if (expr.units != '') {
+        return `${expr.value}_${expr.prefix}${expr.units}`;
+      }
       return expr.value;
     case 'list':
       return `(${expr.items.map(printSExpr).join(' ')})`;

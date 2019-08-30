@@ -44,7 +44,7 @@ test('tokenize', () => {
 });
 
 test('parse', () => {
-  const text = 'abc (def ghi) (jkl (() 1 2 3))';
+  const text = 'abc (def ghi) (jkl (() 1 2kHz 3_s))';
   const nodes = parseSExpr(text);
   const root: ListExpr = {
     type: 'list',
@@ -58,13 +58,23 @@ test('parse', () => {
   function sym(name: string): SExpr {
     return { type: 'symbol', sourceStart: 0, sourceEnd: 0, name };
   }
-  function num(value: string): SExpr {
-    return { type: 'number', sourceStart: 0, sourceEnd: 0, value };
+  function num(value: string, prefix: string = '', units: string = ''): SExpr {
+    return {
+      type: 'number',
+      sourceStart: 0,
+      sourceEnd: 0,
+      value,
+      prefix,
+      units,
+    };
   }
   const expect: SExpr = list(
     sym('abc'),
     list(sym('def'), sym('ghi')),
-    list(sym('jkl'), list(list(), num('1'), num('2'), num('3'))),
+    list(
+      sym('jkl'),
+      list(list(), num('1'), num('2', 'k', 'Hz'), num('3', '', 's')),
+    ),
   );
   function compare(x: SExpr, y: SExpr): void {
     switch (x.type) {
