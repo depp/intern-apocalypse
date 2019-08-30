@@ -159,9 +159,9 @@ export function parseSExpr(source: string): SExpr[] {
         }
         tokenPos++;
         const value = match[0];
-        let units = match[1];
+        let units = match[1] || '';
         let prefix = '';
-        if (units && prefixes.has(units.charAt(0))) {
+        if (units.length > 0 && prefixes.has(units.charAt(0))) {
           prefix = units.charAt(0);
           units = units.substring(1);
         }
