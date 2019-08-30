@@ -6,29 +6,34 @@ import * as fs from 'fs';
 
 import * as program from 'commander';
 
-import { compileProgram } from '../src/audio.synth.compile';
-import { disassembleProgram } from '../src/audio.synth.opcode';
-import { sampleRate, runProgram } from '../src/audio.synth';
+import { evaluateProgram } from '../src/synth/evaluate';
+import { disassembleProgram } from '../src/synth/opcode';
+import { sampleRate, runProgram } from '../src/synth/engine';
 import { encode } from '../src/data.encode';
 import { SourceError, SourceText } from '../src/sourcepos';
 import { waveData, floatTo16 } from './audio.wave';
 import { readStream } from './stream';
 import { printError } from './source';
+import { parseSExpr } from '../src/sexpr';
+import { emitCode } from '../src/synth/node';
 
 interface AudioArgs {
   output: string;
   input: string;
   disassemble: boolean;
+  verbose: false;
 }
 
 function parseArgs() {
   program.option('--output <file>', 'path to output WAVE file');
   program.option('--disassemble', 'show program disassembly');
+  program.option('-v --verbose', 'verbose logging');
   program.parse(process.argv);
   const args: AudioArgs = {
     output: '',
     input: '-',
     disassemble: false,
+    verbose: false,
   };
   for (const arg of Object.keys(args)) {
     if (arg != 'input' && arg in program) {
@@ -62,7 +67,18 @@ async function main(): Promise<void> {
 
     let code: Uint8Array;
     try {
-      code = compileProgram(inputText);
+      if (args.verbose) {
+        console.log('Parsing...');
+      }
+      const exprs = parseSExpr(inputText);
+      if (args.verbose) {
+        console.log('Evaluating...');
+      }
+      const node = evaluateProgram(exprs);
+      if (args.verbose) {
+        console.log('Emitting code...');
+      }
+      code = emitCode(node);
     } catch (e) {
       if (e instanceof SourceError) {
         const text = new SourceText(inputName, inputText);
@@ -98,6 +114,9 @@ async function main(): Promise<void> {
     process.stdout.write('\n');
 
     if (args.output != '') {
+      if (args.verbose) {
+        console.log('Running...');
+      }
       const audio = runProgram(code);
       const data = waveData({
         sampleRate,

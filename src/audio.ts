@@ -2,12 +2,12 @@
  * Game audio subsystem.
  */
 
-import { runProgram, sampleRate } from './audio.synth';
+import { runProgram, sampleRate } from './synth/engine';
 import { decode } from './data.encode';
 
 let audioCtx: AudioContext | undefined;
 
-const code = '!R(*"#!!(!~(!}!X!O%"+$!O!E!}!X!}!E!O%$&';
+const code = '#I+%&#~$Z#!)"(!O$A!}$W!}$A!O)$*';
 
 function startContext(): void {
   if (!audioCtx) {

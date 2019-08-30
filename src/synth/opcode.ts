@@ -2,8 +2,8 @@
  * Opcode definitions for audio programs.
  */
 
-import * as synth from './audio.synth';
-import { AssertionError } from './debug';
+import { AssertionError } from '../debug';
+import { operators } from './engine';
 
 /** Definition of an opcode. */
 export interface Opcode<N> {
@@ -17,7 +17,7 @@ function checkName(name: string): void {
   if (name == '') {
     throw new Error('empty operator name');
   }
-  if (!name.match(/^[A-Za-z0-9]+$/)) {
+  if (!name.match(/^[_A-Za-z0-9]+$/)) {
     throw new Error(`invalid operator name ${JSON.stringify(name)}`);
   }
 }
@@ -25,8 +25,8 @@ function checkName(name: string): void {
 /** Map from opcode name to opcodes, only used for defining opcodes. */
 const nameToValue: ReadonlyMap<string, number> = (() => {
   const r = new Map<string, number>();
-  for (let i = 0; i < synth.operators.length; i++) {
-    const name = synth.operators[i].name;
+  for (let i = 0; i < operators.length; i++) {
+    const name = operators[i].name;
     checkName(name);
     if (r.has(name)) {
       throw new Error(`duplicate operator name ${JSON.stringify(name)}`);
@@ -62,6 +62,7 @@ export class CodeEmitter {
   /** Emit an instruction and its operands. */
   emit(opcode: Opcode<0>): void;
   emit(opcode: Opcode<1>, param1: number): void;
+  emit(opcode: Opcode<number>, ...params: number[]): void;
   emit(opcode: Opcode<number>, ...params: number[]): void {
     this.code.push(opcode.value);
     for (const param of params) {
@@ -114,19 +115,25 @@ export function disassembleProgram(code: Uint8Array): string[] {
 // Opcode definitions
 // =============================================================================
 
-// Those correspond directly to functions in audio.synth.ts.
+// Those correspond directly to functions in synth.ts.
 
-export const number = opcode('number', 1);
+// Data encodings.
+export const num_lin = opcode('num_lin', 1);
+export const num_expo = opcode('num_expo', 1);
+export const num_note = opcode('num_note', 1);
+export const num_time = opcode('num_time', 1);
+
+// Simple operators.
 export const oscillator = opcode('oscillator', 0);
 export const sawtooth = opcode('sawtooth', 0);
 export const lowPass2 = opcode('lowPass2', 0);
-export const envelope = opcode('envelope', 1);
 export const multiply = opcode('multiply', 0);
-export const frequency = opcode('frequency', 0);
-export const gain = opcode('gain', 0);
 export const constant = opcode('constant', 0);
-export const expscale = opcode('expscale', 0);
 
+// More complicated operators.
+export const envelope = opcode('envelope', 1);
+
+// Check that all opcodes have definitions.
 for (const name of nameToValue.keys()) {
   if (!byName.has(name)) {
     throw new Error(`opcode ${JSON.stringify(name)} not defined`);

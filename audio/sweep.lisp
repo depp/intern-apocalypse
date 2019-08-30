@@ -1,6 +1,5 @@
 ;; Simple filter sweep.
-(multiply
- (lowPass2
-  (sawtooth (oscillator (constant (frequency 48))))
-  (expscale (frequency 0) (frequency 91) (envelope 90 54 45)))
- (envelope 45 35 90 54 90 35 45))
+(* (lowPass2
+    (sawtooth 256Hz)
+    (envelope 5.2kHz 1s 28Hz))
+   (envelope 0 100ms 1 800ms 1 100ms 0))

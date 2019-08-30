@@ -7,5 +7,5 @@
     "target": "es2017",
     "types": ["jest"]
   },
-  "include": ["*.ts"]
+  "include": ["**/*.ts"]
 }
