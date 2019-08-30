@@ -25,6 +25,7 @@
     "rollup": "^1.19.4",
     "send": "^0.17.1",
     "terser": "^4.2.0",
+    "tmp-promise": "^2.0.2",
     "ts-events": "^3.3.1",
     "ts-jest": "^24.0.2",
     "ts-node": "^8.3.0",

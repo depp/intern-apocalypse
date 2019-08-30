@@ -3,8 +3,10 @@
  */
 
 import * as fs from 'fs';
+import * as child_process from 'child_process';
 
 import * as program from 'commander';
+import { file } from 'tmp-promise';
 
 import { evaluateProgram } from '../src/synth/evaluate';
 import { disassembleProgram } from '../src/synth/opcode';
@@ -20,18 +22,21 @@ import { emitCode } from '../src/synth/node';
 interface AudioArgs {
   output: string;
   input: string;
+  play: false;
   disassemble: boolean;
   verbose: false;
 }
 
 function parseArgs() {
   program.option('--output <file>', 'path to output WAVE file');
+  program.option('--play', 'play the audio file');
   program.option('--disassemble', 'show program disassembly');
   program.option('-v --verbose', 'verbose logging');
   program.parse(process.argv);
   const args: AudioArgs = {
     output: '',
     input: '-',
+    play: false,
     disassemble: false,
     verbose: false,
   };
@@ -51,8 +56,36 @@ function parseArgs() {
   return args;
 }
 
+function playAudio(path: string): Promise<void> {
+  let prog: string;
+  switch (process.platform) {
+    case 'darwin':
+      prog = 'afplay';
+      break;
+    case 'linux':
+      prog = 'aplay';
+      break;
+    default:
+      throw new Error(
+        `cannot play audio on platform ${JSON.stringify(process.platform)}`,
+      );
+  }
+  return new Promise((resolve, reject) => {
+    child_process.execFile(prog, [path], (err, stdout, stderr) => {
+      process.stderr.write(stderr);
+      if (err) {
+        reject(err);
+      } else {
+        resolve();
+      }
+    });
+  });
+}
+
 async function main(): Promise<void> {
   const args = parseArgs();
+  const cleanup: (() => Promise<void>)[] = [];
+  let status = 0;
 
   try {
     let inputName: string;
@@ -113,7 +146,8 @@ async function main(): Promise<void> {
     process.stdout.write('  ' + encode(code) + '\n');
     process.stdout.write('\n');
 
-    if (args.output != '') {
+    let wavpath: string | undefined;
+    if (args.output != '' || args.play) {
       if (args.verbose) {
         console.log('Running...');
       }
@@ -123,12 +157,40 @@ async function main(): Promise<void> {
         channelCount: 1,
         audio: floatTo16(audio),
       });
-      await fs.promises.writeFile(args.output, data);
+      if (args.output != '') {
+        await fs.promises.writeFile(args.output, data);
+        wavpath = args.output;
+      } else {
+        const r = await file({ postfix: '.wav' });
+        cleanup.push(r.cleanup);
+        wavpath = r.path;
+        await new Promise((resolve, reject) =>
+          fs.write(r.fd, data, err => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
+            }
+          }),
+        );
+      }
+    }
+
+    if (args.play) {
+      if (wavpath == null) {
+        throw new Error('null wavpath');
+      }
+      await playAudio(wavpath);
     }
   } catch (e) {
     console.error(e);
-    process.exit(1);
+    status = 1;
   }
+  for (const func of cleanup) {
+    await func();
+  }
+
+  process.exit(status);
 }
 
 main();
