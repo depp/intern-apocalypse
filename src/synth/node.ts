@@ -184,6 +184,12 @@ export const frequency = opSimple(
   [Type.Buffer],
 );
 export const saturate = opSimple(opcode.saturate, [Type.Buffer], [Type.Buffer]);
+export const mix = opSimple(
+  opcode.mix,
+  [Type.Buffer, Type.Buffer],
+  [Type.Buffer],
+);
+export const zero = opSimple(opcode.zero, [], [Type.Buffer]);
 
 export const env_start = opSimple(opcode.env_start, [], []);
 export const env_end = opSimple(opcode.env_end, [], [Type.Buffer]);

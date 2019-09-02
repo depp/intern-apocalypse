@@ -12,6 +12,8 @@ export enum Units {
   Second,
   /** Oscillator phase, where a full cycle has a value of 1. */
   Phase,
+  /** Alternate units for unitless ratios. */
+  Decibel,
 }
 
 /** Fundamental components of units, as multiplied base units with exponents. */

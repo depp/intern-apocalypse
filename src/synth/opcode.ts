@@ -130,6 +130,8 @@ export const multiply = opcode('multiply', 0);
 export const constant = opcode('constant', 0);
 export const frequency = opcode('frequency', 0);
 export const saturate = opcode('saturate', 0);
+export const mix = opcode('mix', 1);
+export const zero = opcode('zero', 0);
 
 // Envelopes.
 export const env_start = opcode('env_start', 0);

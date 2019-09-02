@@ -227,6 +227,25 @@ export const operators: (() => void)[] = [
     }
     stack.push(out);
   },
+
+  /** Multiply a buffer by a scalar, adding the result to a second buffer. */
+  function mix(): void {
+    const [out, input] = getArgs(2);
+    const p = readParam();
+    const level = decodeExponential(p);
+    if (!(out instanceof Float32Array) || !(input instanceof Float32Array)) {
+      throw new AssertionError('type error');
+    }
+    for (let i = 0; i < bufferSize; i++) {
+      out[i] += level * input[i];
+    }
+    stack.push(out);
+  },
+
+  /** Push a buffer filled with zeroes. */
+  function zero(): void {
+    pushBuffer();
+  },
 ];
 
 // =============================================================================
