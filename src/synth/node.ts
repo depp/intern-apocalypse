@@ -178,23 +178,15 @@ export const multiply = opSimple(
   [Type.Buffer],
 );
 export const constant = opSimple(opcode.constant, [Type.Scalar], [Type.Buffer]);
-
-export const envelope: Operator = {
-  name: 'envelope',
-  paramCount: 1,
-  inputs([size]) {
-    const inputs = [Type.Scalar];
-    for (let i = 0; i < size; i++) {
-      inputs.push(Type.Scalar, Type.Scalar);
-    }
-    return inputs;
-  },
-  outputs() {
-    return [Type.Buffer];
-  },
-  emit(ctx, [size]) {
-    ctx.emit(opcode.envelope, size);
-  },
-};
-
+export const frequency = opSimple(
+  opcode.frequency,
+  [Type.Buffer],
+  [Type.Buffer],
+);
 export const saturate = opSimple(opcode.saturate, [Type.Buffer], [Type.Buffer]);
+
+export const env_start = opSimple(opcode.env_start, [], []);
+export const env_end = opSimple(opcode.env_end, [], [Type.Buffer]);
+export const env_set = opSimple(opcode.env_set, [], []);
+export const env_lin = opSimple(opcode.env_lin, [], []);
+export const env_delay = opSimple(opcode.env_delay, [], []);

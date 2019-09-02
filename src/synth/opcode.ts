@@ -128,10 +128,15 @@ export const sawtooth = opcode('sawtooth', 0);
 export const lowPass2 = opcode('lowPass2', 1);
 export const multiply = opcode('multiply', 0);
 export const constant = opcode('constant', 0);
+export const frequency = opcode('frequency', 0);
 export const saturate = opcode('saturate', 0);
 
-// More complicated operators.
-export const envelope = opcode('envelope', 1);
+// Envelopes.
+export const env_start = opcode('env_start', 0);
+export const env_end = opcode('env_end', 0);
+export const env_set = opcode('env_set', 1);
+export const env_lin = opcode('env_lin', 2);
+export const env_delay = opcode('env_delay', 1);
 
 // Check that all opcodes have definitions.
 for (const name of nameToValue.keys()) {

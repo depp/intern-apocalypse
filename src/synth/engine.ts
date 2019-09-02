@@ -57,6 +57,26 @@ function readParam(): number {
 // Operator definitions
 // =============================================================================
 
+let envValue!: number;
+let envPos!: number;
+let envBuf: Float32Array | undefined;
+
+function envWrite(pos: number, value: number): void {
+  if (envBuf == null) {
+    throw new AssertionError('null envBuf');
+  }
+  pos = pos | 0;
+  const targetPos = Math.min(bufferSize, pos);
+  if (pos > envPos) {
+    const delta = (value - envValue) / (pos - envPos);
+    while (envPos < targetPos) {
+      envBuf[envPos++] = envValue += delta;
+    }
+  }
+  envValue = value;
+  envPos = targetPos;
+}
+
 /**
  * Array of main operators.
  */
@@ -137,31 +157,35 @@ export const operators: (() => void)[] = [
     }
   },
 
-  /** Create an envelope. */
-  function envelope(): void {
-    const size = readParam();
-    const inputs = getArgs(size * 2 + 1) as number[];
-    if (!inputs.every(x => typeof x == 'number')) {
-      throw new AssertionError('type error');
-    }
-    const out = pushBuffer();
-    let value = inputs[0];
-    let pos = 0;
-    for (let i = 0; i < size; i++) {
-      const time = (sampleRate * inputs[i * 2 + 1]) | 0;
-      const target = inputs[i * 2 + 2];
-      if (time) {
-        const delta = (target - value) / time;
-        const targetTime = Math.min(pos + time, bufferSize);
-        while (pos < targetTime) {
-          out[pos++] = value += delta;
-        }
-      }
-      value = target;
-    }
-    while (pos < bufferSize) {
-      out[pos++] = value;
-    }
+  /** Start a new envelope. */
+  function env_start(): void {
+    envValue = 0;
+    envPos = 0;
+    envBuf = new Float32Array(bufferSize);
+  },
+
+  /** Finish an envelope, push it on the stack. */
+  function env_end(): void {
+    envWrite(bufferSize, envValue);
+    stack.push(envBuf!);
+  },
+
+  /** Envelope: set value. */
+  function env_set(): void {
+    envValue = decodeLinear(readParam());
+  },
+
+  /** Envelope: linear segment. */
+  function env_lin(): void {
+    envWrite(
+      envPos + decodeExponential(readParam()) * sampleRate,
+      decodeLinear(readParam()),
+    );
+  },
+
+  /** Envelope: hold value. */
+  function env_delay(): void {
+    envWrite(envPos + decodeExponential(readParam()) * sampleRate, envValue);
   },
 
   /** Multiply two buffers. */
@@ -183,6 +207,18 @@ export const operators: (() => void)[] = [
       throw new AssertionError('type error');
     }
     pushBuffer().fill(value);
+  },
+
+  /** Convert envelope to frequency data. */
+  function frequency(): void {
+    const [out] = getArgs(1);
+    if (!(out instanceof Float32Array)) {
+      throw new AssertionError('type error');
+    }
+    for (let i = 0; i < bufferSize; i++) {
+      out[i] = 630 * 32 ** out[i];
+    }
+    stack.push(out);
   },
 ];
 

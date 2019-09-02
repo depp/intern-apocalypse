@@ -485,23 +485,109 @@ defun('constant', (expr, args) => {
   };
 });
 
-defun('envelope', (expr, args) => {
-  if ((args.length & 1) != 1) {
-    throw new EvaluationError(
+defun('frequency', (expr, args) => {
+  const [input] = getExactArgs(expr, args, 1);
+  return {
+    units: Units.Hertz,
+    type: Type.Buffer,
+    node: createNode(
       expr,
-      `envelope got ${args.length} arguments, ` + 'requires an odd number',
+      node.frequency,
+      [],
+      [getBuffer('input', input, Units.None)],
+    ),
+  };
+});
+
+// =============================================================================
+// Envelope
+// =============================================================================
+
+type EnvelopeSegment = (expr: ListExpr, args: Value[]) => Node;
+
+const envelopeOperators = new Map<string, EnvelopeSegment>();
+
+function defenv(name: string, evaluateFunction: EnvelopeSegment): void {
+  envelopeOperators.set(name, evaluateFunction);
+}
+
+function evaluateEnv(expr: SExpr): Node {
+  if (expr.type != 'list') {
+    throw new EvaluationError(expr, 'envelope segment must be a list');
+  }
+  if (!expr.items.length) {
+    throw new EvaluationError(expr, 'cannot evaluate empty list');
+  }
+  const opexpr = expr.items[0];
+  let opname: string;
+  switch (opexpr.type) {
+    case 'list':
+      throw new EvaluationError(expr, 'cannot use expression as function');
+    case 'symbol':
+      opname = opexpr.name;
+      break;
+    case 'number':
+      throw new EvaluationError(expr, 'cannot use number as function');
+    default:
+      const dummy: never = opexpr;
+      throw new Error('invalid S-expression type');
+  }
+  const evaluateFunction = envelopeOperators.get(opname);
+  if (evaluateFunction == null) {
+    throw new EvaluationError(
+      opexpr,
+      `no such envelope operator ${JSON.stringify(opname)}`,
     );
   }
-  const size = (args.length - 1) / 2;
-  const units = args[0].units;
-  const inputs: Node[] = [getAnyScalar('v0', args[0])];
-  for (let i = 1; i < size + 1; i++) {
-    inputs.push(getScalar('t' + i, args[i * 2 - 1], Units.Second));
-    inputs.push(getScalar('v' + i, args[i * 2], units));
+  const args: Value[] = [];
+  for (let i = 1; i < expr.items.length; i++) {
+    args.push(evaluate(expr.items[i]));
+  }
+  try {
+    return evaluateFunction(expr, args);
+  } catch (e) {
+    if (e instanceof EvaluationError) {
+      e.message = `in call to function ${JSON.stringify(opname)}: ${e.message}`;
+    }
+    throw e;
+  }
+}
+
+define('envelope', expr => {
+  const nodes: Node[] = [createNode(expr, node.env_start, [], [])];
+  for (let i = 1; i < expr.items.length; i++) {
+    nodes.push(evaluateEnv(expr.items[i]));
   }
   return {
-    units,
+    units: Units.None,
     type: Type.Buffer,
-    node: createNode(expr, node.envelope, [size], inputs),
+    node: createNode(expr, node.env_end, [], nodes),
   };
+});
+
+defenv('set', (expr, args) => {
+  let [valueValue] = getExactArgs(expr, args, 1);
+  const valueParam = toData(
+    data.encodeLinear(getConstant('value', valueValue, Units.None)),
+  );
+  return createNode(expr, node.env_set, [valueParam], []);
+});
+
+defenv('lin', (expr, args) => {
+  let [timeValue, valueValue] = getExactArgs(expr, args, 2);
+  const timeParam = toData(
+    data.encodeExponential(getConstant('time', timeValue, Units.Second)),
+  );
+  const valueParam = toData(
+    data.encodeLinear(getConstant('value', valueValue, Units.None)),
+  );
+  return createNode(expr, node.env_lin, [timeParam, valueParam], []);
+});
+
+defenv('delay', (expr, args) => {
+  let [timeValue] = getExactArgs(expr, args, 1);
+  const timeParam = toData(
+    data.encodeExponential(getConstant('time', timeValue, Units.Second)),
+  );
+  return createNode(expr, node.env_delay, [timeParam], []);
 });
