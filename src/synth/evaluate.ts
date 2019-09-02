@@ -109,9 +109,9 @@ const encodings: Encoding[] = [
   {
     decodedUnits: Units.Second,
     encodedUnits: Units.Second,
-    operator: node.num_time,
-    encode: data.encodeTime,
-    decode: data.decodeTime,
+    operator: node.num_expo,
+    encode: data.encodeExponential,
+    decode: data.decodeExponential,
   },
 ];
 

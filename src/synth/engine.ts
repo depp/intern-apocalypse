@@ -3,12 +3,7 @@
  */
 
 import { AssertionError } from '../debug';
-import {
-  decodeLinear,
-  decodeExponential,
-  decodeNote,
-  decodeTime,
-} from './data';
+import { decodeLinear, decodeExponential, decodeNote } from './data';
 
 // =============================================================================
 // Definitions and auxiliary pure functions
@@ -79,11 +74,6 @@ export const operators: (() => void)[] = [
   /** Numeric literal, musical note frequency encoding. */
   function num_note(): void {
     stack.push(decodeNote(readParam()));
-  },
-
-  /** Numeric literal, duration encoding. */
-  function num_time(): void {
-    stack.push(decodeTime(readParam()));
   },
 
   /** Generate oscillator phase from pitch. */

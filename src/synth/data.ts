@@ -47,17 +47,3 @@ export function encodeNote(x: number): number {
   }
   return 12 * Math.log2(x / 27.5);
 }
-
-/** Decode a time value from the data stream. */
-export function decodeTime(x: number): number {
-  // This gives us a range of 5ms to 29s.
-  return 1.1 ** x / 200;
-}
-
-/** Encode a time value in the data stream. */
-export function encodeTime(x: number): number {
-  if (x <= 0) {
-    return -1;
-  }
-  return Math.log(x * 200) / Math.log(1.1);
-}

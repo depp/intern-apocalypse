@@ -160,7 +160,6 @@ function opConstant(op: Opcode<1>): Operator {
 export const num_lin = opConstant(opcode.num_lin);
 export const num_expo = opConstant(opcode.num_expo);
 export const num_note = opConstant(opcode.num_note);
-export const num_time = opConstant(opcode.num_time);
 
 export const oscillator = opSimple(
   opcode.oscillator,
