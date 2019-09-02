@@ -126,6 +126,17 @@ export const operators: (() => void)[] = [
     stack.push(out);
   },
 
+  /** Apply saturation distortion to a buffer. */
+  function saturate(): void {
+    const top = stack[stack.length - 1];
+    if (!(top instanceof Float32Array)) {
+      throw new AssertionError('type error');
+    }
+    for (let i = 0; i < bufferSize; i++) {
+      top[i] = Math.tanh(top[i]);
+    }
+  },
+
   /** Create an envelope. */
   function envelope(): void {
     const size = readParam();

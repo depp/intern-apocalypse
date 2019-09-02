@@ -419,6 +419,20 @@ defun('lowPass2', (expr, args) => {
   };
 });
 
+defun('saturate', (expr, args) => {
+  const [input] = getExactArgs(expr, args, 1);
+  return {
+    units: Units.Volt,
+    type: Type.Buffer,
+    node: createNode(
+      expr,
+      node.saturate,
+      [],
+      [getBuffer('input', input, Units.Volt)],
+    ),
+  };
+});
+
 defun('*', (expr, args) => {
   if (args.length < 2) {
     throw new EvaluationError(

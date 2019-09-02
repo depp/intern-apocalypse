@@ -196,3 +196,5 @@ export const envelope: Operator = {
     ctx.emit(opcode.envelope, size);
   },
 };
+
+export const saturate = opSimple(opcode.saturate, [Type.Buffer], [Type.Buffer]);

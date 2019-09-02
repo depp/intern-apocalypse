@@ -128,6 +128,7 @@ export const sawtooth = opcode('sawtooth', 0);
 export const lowPass2 = opcode('lowPass2', 1);
 export const multiply = opcode('multiply', 0);
 export const constant = opcode('constant', 0);
+export const saturate = opcode('saturate', 0);
 
 // More complicated operators.
 export const envelope = opcode('envelope', 1);
