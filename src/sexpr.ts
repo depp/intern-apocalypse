@@ -55,12 +55,7 @@ export function tokenize(source: string): Token[] {
     pos = matchToken.lastIndex;
     const text = match[0];
     let type = tokenTypes[text.codePointAt(0)!] || TokenType.Error;
-    if (
-      text.startsWith('.') &&
-      text.length >= 2 &&
-      '0' <= text[0] &&
-      text[0] <= '9'
-    ) {
+    if (text.match(/^[-+]?\.?[0-9]/)) {
       type = TokenType.Number;
     }
     switch (type) {
@@ -128,7 +123,7 @@ function unexpectedToken(tok: Token): never {
 }
 
 /** Regular expression which matches Lisp numeric literals. */
-const matchNumber = /^[-+]?(?:\d+(?:\.\d*)?|\.\d+)(?:_?([a-zA-Z]+))?$/;
+const matchNumber = /^([-+]?(?:\d+(?:\.\d*)?|\.\d+))(?:_?([a-zA-Z]+))?$/;
 
 /** SI prefixes. */
 export const prefixes: ReadonlyMap<string, number> = new Map<string, number>([
@@ -158,8 +153,8 @@ export function parseSExpr(source: string): SExpr[] {
           throw new SExprSyntaxError(start, 'invalid numeric literal');
         }
         tokenPos++;
-        const value = match[0];
-        let units = match[1] || '';
+        const value = match[1];
+        let units = match[2] || '';
         let prefix = '';
         if (units.length > 0 && prefixes.has(units.charAt(0))) {
           prefix = units.charAt(0);

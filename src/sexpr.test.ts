@@ -3,10 +3,7 @@ import {
   Token,
   tokenize,
   parseSExpr,
-  SExprType,
   SExpr,
-  SymbolExpr,
-  printSExpr,
   ListExpr,
 } from './sexpr';
 
@@ -44,7 +41,7 @@ test('tokenize', () => {
 });
 
 test('parse', () => {
-  const text = 'abc (def ghi) (jkl (() 1 2kHz 3_s))';
+  const text = 'abc (def ghi) (jkl2 (() 1 2kHz 3_s +.4 -5))';
   const nodes = parseSExpr(text);
   const root: ListExpr = {
     type: 'list',
@@ -72,10 +69,32 @@ test('parse', () => {
     sym('abc'),
     list(sym('def'), sym('ghi')),
     list(
-      sym('jkl'),
-      list(list(), num('1'), num('2', 'k', 'Hz'), num('3', '', 's')),
+      sym('jkl2'),
+      list(
+        list(),
+        num('1'),
+        num('2', 'k', 'Hz'),
+        num('3', '', 's'),
+        num('+.4'),
+        num('-5'),
+      ),
     ),
   );
+  function print(x: SExpr): string {
+    switch (x.type) {
+      case 'symbol':
+        return `symbol(${JSON.stringify(x.name)})`;
+      case 'number':
+        return `number(${JSON.stringify(x.value)}, ${JSON.stringify(
+          x.prefix,
+        )}, ${JSON.stringify(x.units)})`;
+      case 'list':
+        return `[${x.items.map(print).join(' ')}]`;
+      default:
+        const dummy: never = x;
+        return '';
+    }
+  }
   function compare(x: SExpr, y: SExpr): void {
     switch (x.type) {
       case 'symbol':
@@ -84,7 +103,12 @@ test('parse', () => {
         }
         break;
       case 'number':
-        if (y.type == 'number' && x.value == y.value) {
+        if (
+          y.type == 'number' &&
+          x.value == y.value &&
+          x.prefix == y.prefix &&
+          x.units == y.units
+        ) {
           return;
         }
         break;
@@ -92,15 +116,15 @@ test('parse', () => {
         if (y.type == 'list' && x.items.length == y.items.length) {
           for (let i = 0; i < x.items.length; i++) {
             compare(x.items[i], y.items[i]);
-            return;
           }
+          return;
         }
         break;
       default:
         const dummy: never = x;
         break;
     }
-    throw new Error(`got: ${printSExpr(x)}, expected: ${printSExpr(y)}`);
+    throw new Error(`got: ${print(x)}, expected: ${print(y)}`);
   }
   compare(root, expect);
 });
