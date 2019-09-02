@@ -27,29 +27,21 @@ let bufferSize = sampleRate * 2;
 /** Synthesizer numeric execution stack. */
 const stack: (number | Float32Array)[] = [];
 
-/** Pop a number off the stack. */
-function popNumber(): number {
-  const value = stack.pop();
-  if (typeof value != 'number') {
-    throw new AssertionError('top of stack is not a number');
-  }
-  return value;
-}
-
-/** Pop a buffer off the stack and return it. */
-function popBuffer(): Float32Array {
-  const value = stack.pop();
-  if (!(value instanceof Float32Array)) {
-    throw new AssertionError('top of stack is not a buffer');
-  }
-  return value;
-}
-
 /** Get an unused buffer, push it onto the stack, and return it. */
 function pushBuffer(): Float32Array {
   const result = new Float32Array(bufferSize);
   stack.push(result);
   return result;
+}
+
+/**
+ * Read oporator arguments from the top of the stack, popping them.
+ */
+function getArgs(argCount: number): (Float32Array | number)[] {
+  if (stack.length < argCount) {
+    throw new AssertionError('stack underflow');
+  }
+  return stack.splice(stack.length - argCount);
 }
 
 /** Array of instructions being processed. */
@@ -64,14 +56,6 @@ function readParam(): number {
     throw new AssertionError('missing instruction parameters');
   }
   return instructions[instructionPos++];
-}
-
-/** Read operator parameters from the instruction stream. */
-function readParams(n: number): ArrayLike<number> {
-  if (n < 0 || instructions.length - instructionPos < n) {
-    throw new AssertionError('missing instruction parameters');
-  }
-  return instructions.slice(instructionPos, (instructionPos += n));
 }
 
 // =============================================================================
@@ -104,50 +88,62 @@ export const operators: (() => void)[] = [
 
   /** Generate oscillator phase from pitch. */
   function oscillator(): void {
-    const pitch = popBuffer();
-    const out = pushBuffer();
+    const [out] = getArgs(1);
     let phase = 0;
-    for (let i = 0; i < bufferSize; i++) {
-      out[i] = phase = (phase + (1 / sampleRate) * pitch[i]) % 1;
+    if (!(out instanceof Float32Array)) {
+      throw new AssertionError('type error');
     }
+    for (let i = 0; i < bufferSize; i++) {
+      out[i] = phase = (phase + (1 / sampleRate) * out[i]) % 1;
+    }
+    stack.push(out);
   },
 
   /** Generate sawtooth waveform from phase. */
   function sawtooth(): void {
-    const phase = popBuffer();
-    const out = pushBuffer();
+    const [out] = getArgs(1);
+    if (!(out instanceof Float32Array)) {
+      throw new AssertionError('type error');
+    }
     for (let i = 0; i < bufferSize; i++) {
-      let x = phase[i] % 1;
+      let x = out[i] % 1;
       if (x < 0) {
         x += 1;
       }
       out[i] = x * 2 - 1;
     }
+    stack.push(out);
   },
 
   /** Apply a two-pole low pass filter. Only works up to about 8 kHz. */
   function lowPass2(): void {
-    const frequency = popBuffer();
-    const input = popBuffer();
-    const out = pushBuffer();
+    const [out, frequency] = getArgs(2);
     let a = 0;
     let b = 0;
     let q = 0.2; // Actually 1 / q.
+    if (
+      !(out instanceof Float32Array) ||
+      !(frequency instanceof Float32Array)
+    ) {
+      throw new AssertionError('type error');
+    }
     for (let i = 0; i < bufferSize; i++) {
       let f = ((2 * Math.PI) / sampleRate) * frequency[i];
-      out[i] = b += f * a;
-      a += f * (input[i] - b - q * a);
+      b += f * a;
+      a += f * (out[i] - b - q * a);
+      out[i] = b;
     }
+    stack.push(out);
   },
 
   /** Create an envelope. */
   function envelope(): void {
     const size = readParam();
-    const inputs = Array(size * 2 + 1)
-      .fill(0)
-      .map(popNumber);
+    const inputs = getArgs(size * 2 + 1) as number[];
+    if (!inputs.every(x => typeof x == 'number')) {
+      throw new AssertionError('type error');
+    }
     const out = pushBuffer();
-    inputs.reverse();
     let value = inputs[0];
     let pos = 0;
     for (let i = 0; i < size; i++) {
@@ -169,17 +165,22 @@ export const operators: (() => void)[] = [
 
   /** Multiply two buffers. */
   function multiply(): void {
-    const in1 = popBuffer();
-    const in2 = popBuffer();
-    const out = pushBuffer();
-    for (let i = 0; i < bufferSize; i++) {
-      out[i] = in1[i] * in2[i];
+    const [out, input] = getArgs(2);
+    if (!(out instanceof Float32Array) || !(input instanceof Float32Array)) {
+      throw new AssertionError('type error');
     }
+    for (let i = 0; i < bufferSize; i++) {
+      out[i] *= input[i];
+    }
+    stack.push(out);
   },
 
   /** Create a constant envelope from a value. */
   function constant(): void {
-    const value = popNumber();
+    const [value] = getArgs(1);
+    if (typeof value != 'number') {
+      throw new AssertionError('type error');
+    }
     pushBuffer().fill(value);
   },
 ];
@@ -203,5 +204,12 @@ export function runProgram(code: Uint8Array): Float32Array {
     }
     func();
   }
-  return popBuffer();
+  if (stack.length != 1) {
+    throw new AssertionError('type error');
+  }
+  const result = stack.pop();
+  if (!(result instanceof Float32Array)) {
+    throw new AssertionError('type error');
+  }
+  return result;
 }
