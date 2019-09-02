@@ -125,7 +125,7 @@ export const operators: (() => void)[] = [
     stack.push(out);
   },
 
-  /** Apply a two-pole low pass filter. Only works up to about 8 kHz. */
+  /** Apply a two-pole low pass filter. */
   function lowPass2(): void {
     const [out, frequency] = getArgs(2);
     let a = 0;
@@ -138,7 +138,14 @@ export const operators: (() => void)[] = [
       throw new AssertionError('type error');
     }
     for (let i = 0; i < bufferSize; i++) {
-      let f = ((2 * Math.PI) / sampleRate) * frequency[i];
+      // We oversample the filter, running it twice with a corner frequency
+      // scaled by 1/2. Without oversampling, the filter stops working well at
+      // high frequencies.
+      let f = Math.sin(
+        ((2 * Math.PI) / sampleRate) * Math.min(frequency[i] / 2, 2e4),
+      );
+      b += f * a;
+      a += f * (out[i] - b - invq * a);
       b += f * a;
       a += f * (out[i] - b - invq * a);
       out[i] = b;
