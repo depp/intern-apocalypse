@@ -7,7 +7,7 @@ import { decode } from './data.encode';
 
 let audioCtx: AudioContext | undefined | false;
 
-const code = '#I+%&#~$Z#!)"(!O$A!}$W!}$A!O)$*';
+const code = '#I+%&#~$Z#!)"(X"!$A"h$W"h$A"!)$*';
 
 function startContext(): void {
   if (audioCtx == null) {

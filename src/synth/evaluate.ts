@@ -4,7 +4,7 @@
 
 import * as data from './data';
 import { AssertionError } from '../debug';
-import { SExpr, ListExpr, parseSExpr, NumberExpr, prefixes } from '../sexpr';
+import { SExpr, ListExpr, NumberExpr, prefixes } from '../sexpr';
 import { SourceError, SourceSpan } from '../sourcepos';
 import { Operator, Node, createNode, Type } from './node';
 import * as node from './node';
@@ -18,7 +18,10 @@ interface ValueType {
 
 /** A value, the result of evaluating an expression. */
 interface Value extends ValueType {
+  /** Run-time graph. */
   node: Node;
+  /** Compile-time constant. */
+  value?: number;
 }
 
 /** An error during evaluation of a synthesizer program. */
@@ -92,9 +95,9 @@ const encodings: Encoding[] = [
   {
     decodedUnits: Units.None,
     encodedUnits: Units.None,
-    operator: node.num_lin,
-    encode: data.encodeLinear,
-    decode: data.decodeLinear,
+    operator: node.num_expo,
+    encode: data.encodeExponential,
+    decode: data.decodeExponential,
   },
   {
     decodedUnits: Units.Hertz,
@@ -112,21 +115,33 @@ const encodings: Encoding[] = [
   },
 ];
 
+/** Quantize and clamp a number for inclusion in the data stream. */
+function toData(x: number): number {
+  const y = Math.round(x);
+  if (y < 0) {
+    return 0;
+  } else if (y > data.dataMax) {
+    return data.dataMax;
+  } else {
+    return y;
+  }
+}
+
 /** Emit a compile-time numeric constant. */
 function evaluateNumber(expr: SExpr, num: Number): Value {
   const { value, units } = num;
   for (const einfo of encodings) {
     if (einfo.decodedUnits == units) {
-      let encoded = Math.round(einfo.encode(value));
-      if (encoded < 0) {
-        encoded = 0;
-      } else if (encoded > data.dataMax) {
-        encoded = data.dataMax;
-      }
       return {
-        node: createNode(expr, einfo.operator, [encoded], []),
+        node: createNode(
+          expr,
+          einfo.operator,
+          [toData(einfo.encode(value))],
+          [],
+        ),
         units: einfo.encodedUnits,
         type: Type.Scalar,
+        value: value,
       };
     }
   }
@@ -230,6 +245,20 @@ function badArgType(
       `type is ${printType(value)}, ` +
       `expected ${expected}`,
   );
+}
+
+/** Get a scalar compile-time constant. */
+function getConstant(name: string, value: Value, units: Units): number {
+  if (value.units != units || value.type != Type.Scalar) {
+    throw badArgType(name, value, printType({ units, type: Type.Scalar }));
+  }
+  if (value.value == null) {
+    throw new EvaluationError(
+      value.node,
+      `argument ${JSON.stringify(name)} ` + 'must be a compile-time constant',
+    );
+  }
+  return value.value;
 }
 
 /** Accept exactly one type. */
@@ -370,14 +399,18 @@ defun('sawtooth', (expr, args) => {
 });
 
 defun('lowPass2', (expr, args) => {
-  const [input, frequency] = getExactArgs(expr, args, 2);
+  const [input, frequency, q] = getExactArgs(expr, args, 3);
+  const qval = getConstant('q', q, Units.None);
+  if (qval < 0.7) {
+    throw new EvaluationError(q.node, `q is ${qval}, must be >= 0.7`);
+  }
   return {
     units: input.units,
     type: Type.Buffer,
     node: createNode(
       expr,
       node.lowPass2,
-      [],
+      [toData(data.encodeExponential(1 / qval))],
       [
         getAnyBuffer('input', input),
         castToBuffer('frequency', frequency, Units.Hertz),

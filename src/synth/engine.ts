@@ -120,7 +120,7 @@ export const operators: (() => void)[] = [
     const [out, frequency] = getArgs(2);
     let a = 0;
     let b = 0;
-    let q = 0.2; // Actually 1 / q.
+    const invq = decodeExponential(readParam());
     if (
       !(out instanceof Float32Array) ||
       !(frequency instanceof Float32Array)
@@ -130,7 +130,7 @@ export const operators: (() => void)[] = [
     for (let i = 0; i < bufferSize; i++) {
       let f = ((2 * Math.PI) / sampleRate) * frequency[i];
       b += f * a;
-      a += f * (out[i] - b - q * a);
+      a += f * (out[i] - b - invq * a);
       out[i] = b;
     }
     stack.push(out);

@@ -126,7 +126,7 @@ export const num_time = opcode('num_time', 1);
 // Simple operators.
 export const oscillator = opcode('oscillator', 0);
 export const sawtooth = opcode('sawtooth', 0);
-export const lowPass2 = opcode('lowPass2', 0);
+export const lowPass2 = opcode('lowPass2', 1);
 export const multiply = opcode('multiply', 0);
 export const constant = opcode('constant', 0);
 
