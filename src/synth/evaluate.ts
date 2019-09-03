@@ -329,28 +329,39 @@ function castToBuffer(name: string, value: Value, units: Units): Node {
  * buffer.
  */
 function castToPhase(name: string, value: Value): Node {
-  if (value.kind == ValueKind.Node) {
-    switch (value.units) {
-      case Units.Phase:
-        if (value.type == Type.Buffer) {
-          return value.node;
-        }
-        break;
-      case Units.Hertz:
-        switch (value.type) {
-          case Type.Scalar:
-            const frequency = wrapNode(value.node, node.constant);
-            return wrapNode(frequency, node.oscillator);
-          case Type.Buffer:
-            return wrapNode(value.node, node.oscillator);
-        }
-        break;
-    }
+  switch (value.kind) {
+    case ValueKind.Constant:
+      const vnode = createNode(
+        value,
+        node.num_freq,
+        [toData(data.encodeFrequency(value.value))],
+        [],
+      );
+      const frequency = wrapNode(vnode, node.constant);
+      return wrapNode(frequency, node.oscillator);
+    case ValueKind.Node:
+      switch (value.units) {
+        case Units.Phase:
+          if (value.type == Type.Buffer) {
+            return value.node;
+          }
+          break;
+        case Units.Hertz:
+          switch (value.type) {
+            case Type.Scalar:
+              const frequency = wrapNode(value.node, node.constant);
+              return wrapNode(frequency, node.oscillator);
+            case Type.Buffer:
+              return wrapNode(value.node, node.oscillator);
+          }
+          break;
+      }
+      break;
   }
   throw badArgType(
     name,
     value,
-    'Buffer(Volt), Scalar(Hertz), or Buffer(Hertz)',
+    'Buffer(Volt), Constant(Hertz), Scalar(Hertz), or Buffer(Hertz)',
   );
 }
 
@@ -424,6 +435,15 @@ defun('sawtooth', (expr, args) => {
   const [phase] = getExactArgs(expr, args, 1);
   return nodeValue(
     createNode(expr, node.sawtooth, [], [castToPhase('phase', phase)]),
+    Units.Volt,
+    Type.Buffer,
+  );
+});
+
+defun('sine', (expr, args) => {
+  const [phase] = getExactArgs(expr, args, 1);
+  return nodeValue(
+    createNode(expr, node.sine, [], [castToPhase('phase', phase)]),
     Units.Volt,
     Type.Buffer,
   );
@@ -535,7 +555,6 @@ defun('mix', (expr, args) => {
   let output = createNode(expr, node.zero, [], []);
   for (let i = 0; i < count; i++) {
     const gain = getGain(`gain${i}`, args[i * 2]);
-    console.log(`gainXX: ${gain}`);
     output = createNode(
       expr,
       node.mix,
@@ -544,6 +563,28 @@ defun('mix', (expr, args) => {
     );
   }
   return nodeValue(output, Units.Volt, Type.Buffer);
+});
+
+defun('phase-mod', (expr, args) => {
+  if ((args.length & 1) != 1) {
+    throw new EvaluationError(
+      expr,
+      `phase-mod got ${args.length} arguments, requires an odd number`,
+    );
+  }
+  let output = castToPhase('phase', args[0]);
+  const count = (args.length - 1) / 2;
+  for (let i = 0; i < count; i++) {
+    const amount = getGain(`amount${i}`, args[i * 2 + 1]);
+    const mod = getBuffer(`mod${i}`, args[i * 2 + 2], Units.Volt);
+    output = createNode(
+      expr,
+      node.mix,
+      [toData(data.encodeExponential(amount))],
+      [output, mod],
+    );
+  }
+  return nodeValue(output, Units.Phase, Type.Buffer);
 });
 
 // =============================================================================

@@ -3,7 +3,12 @@
  */
 
 import { AssertionError } from '../debug';
-import { decodeLinear, decodeExponential, decodeNote } from './data';
+import {
+  decodeLinear,
+  decodeExponential,
+  decodeNote,
+  decodeFrequency,
+} from './data';
 
 // =============================================================================
 // Definitions and auxiliary pure functions
@@ -96,6 +101,11 @@ export const operators: (() => void)[] = [
     stack.push(decodeNote(readParam()));
   },
 
+  /** Numeric literal, general frequency encoding. */
+  function num_freq(): void {
+    stack.push(decodeFrequency(readParam()));
+  },
+
   /** Generate oscillator phase from pitch. */
   function oscillator(): void {
     const [out] = getArgs(1);
@@ -121,6 +131,17 @@ export const operators: (() => void)[] = [
         x += 1;
       }
       out[i] = x * 2 - 1;
+    }
+    stack.push(out);
+  },
+
+  function sine(): void {
+    const [out] = getArgs(1);
+    if (!(out instanceof Float32Array)) {
+      throw new AssertionError('type error');
+    }
+    for (let i = 0; i < bufferSize; i++) {
+      out[i] = Math.sin(2 * Math.PI * out[i]);
     }
     stack.push(out);
   },

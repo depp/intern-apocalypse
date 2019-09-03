@@ -121,10 +121,12 @@ export function disassembleProgram(code: Uint8Array): string[] {
 export const num_lin = opcode('num_lin', 1);
 export const num_expo = opcode('num_expo', 1);
 export const num_note = opcode('num_note', 1);
+export const num_freq = opcode('num_freq', 1);
 
 // Simple operators.
 export const oscillator = opcode('oscillator', 0);
 export const sawtooth = opcode('sawtooth', 0);
+export const sine = opcode('sine', 0);
 export const lowPass2 = opcode('lowPass2', 1);
 export const multiply = opcode('multiply', 0);
 export const constant = opcode('constant', 0);

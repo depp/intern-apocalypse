@@ -160,6 +160,7 @@ function opConstant(op: Opcode<1>): Operator {
 export const num_lin = opConstant(opcode.num_lin);
 export const num_expo = opConstant(opcode.num_expo);
 export const num_note = opConstant(opcode.num_note);
+export const num_freq = opConstant(opcode.num_freq);
 
 export const oscillator = opSimple(
   opcode.oscillator,
@@ -167,6 +168,7 @@ export const oscillator = opSimple(
   [Type.Buffer],
 );
 export const sawtooth = opSimple(opcode.sawtooth, [Type.Buffer], [Type.Buffer]);
+export const sine = opSimple(opcode.sine, [Type.Buffer], [Type.Buffer]);
 export const lowPass2 = opSimple(
   opcode.lowPass2,
   [Type.Buffer, Type.Buffer],

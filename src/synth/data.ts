@@ -47,3 +47,13 @@ export function encodeNote(x: number): number {
   }
   return 12 * Math.log2(x / 27.5);
 }
+
+/** Decode a general frequency. */
+export function decodeFrequency(x: number): number {
+  return 20 * 1.08 ** x;
+}
+
+/** Encode a general frequency. */
+export function encodeFrequency(x: number): number {
+  return Math.log(x / 20) / Math.log(1.08);
+}
