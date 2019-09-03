@@ -2,14 +2,14 @@
  * The camere.
  */
 
-import { cameraSettings } from './debug.controls';
-import { canvas } from './global';
+import { cameraSettings } from '../debug/controls';
+import { canvas } from '../lib/global';
 import {
   matrixMultiply,
   Axis,
   rotationMatrixFromDirection,
   translationMatrix,
-} from './matrix';
+} from '../lib/matrix';
 import { playerPos } from './player';
 
 /** The view projection matrix. */

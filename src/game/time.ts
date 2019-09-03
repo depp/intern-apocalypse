@@ -1,4 +1,4 @@
-import { clamp } from './util';
+import { clamp } from '../lib/util';
 
 /**
  * Information about time.

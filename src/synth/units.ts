@@ -1,4 +1,4 @@
-import { AssertionError } from '../debug';
+import { AssertionError } from '../debug/debug';
 
 /** Units that expressions can have. */
 export enum Units {

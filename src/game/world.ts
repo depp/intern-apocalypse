@@ -3,8 +3,8 @@
  */
 
 import { LevelBuilder } from './level';
-import { Vector } from './math';
-import { Random } from './random';
+import { Vector } from '../lib/math';
+import { Random } from '../lib/random';
 
 /** Level data for the current level. */
 export let level: LevelBuilder;

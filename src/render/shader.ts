@@ -2,8 +2,8 @@
  * Helper functions for WebGL shader programs.
  */
 
-import { gl } from './global';
-import { isDebug, AssertionError } from './debug';
+import { gl } from '../lib/global';
+import { isDebug, AssertionError } from '../debug/debug';
 
 /**
  * Base interface for shader programs.

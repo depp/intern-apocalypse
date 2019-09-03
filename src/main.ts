@@ -2,12 +2,12 @@
  * Main game loop and initialization.
  */
 
-import { startAudio } from './audio';
-import { updateCamera } from './camera';
-import { startInput, endFrameInput } from './input';
-import { updatePlayer } from './player';
-import { render } from './render';
-import { updateTime } from './time';
+import { startAudio } from './lib/audio';
+import { updateCamera } from './game/camera';
+import { startInput, endFrameInput } from './lib/input';
+import { updatePlayer } from './game/player';
+import { render } from './render/render';
+import { updateTime } from './game/time';
 
 /**
  * Initialize game.

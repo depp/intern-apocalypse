@@ -1,7 +1,7 @@
 /**
  * Entry point for release builds.
  */
-import { gl } from './global';
+import { gl } from './lib/global';
 import { initialize, main } from './main';
 
 /**

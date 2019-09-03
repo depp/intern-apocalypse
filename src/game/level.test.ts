@@ -1,5 +1,5 @@
 import { Cell, Edge, LevelBuilder } from './level';
-import { Vector } from './math';
+import { Vector } from '../lib/math';
 
 class Failure extends Error {}
 

@@ -2,10 +2,10 @@
  * Debug renderer. Draws the game using simple 2D graphics.
  */
 
-import { debugView } from './debug.controls';
-import { ctx, initContext } from './debug.global';
-import { resetLevelDebug, drawLevel } from './debug.level';
-import { frameDT } from './time';
+import { debugView } from './controls';
+import { ctx, initContext } from './global';
+import { resetLevelDebug, drawLevel } from './level';
+import { frameDT } from '../game/time';
 
 /**
  * Draw the timing stats.

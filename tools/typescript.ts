@@ -265,7 +265,11 @@ class CompileTS implements BuildAction {
     }
     if (config.config == Config.Release) {
       const shaders = await fs.promises.readFile('build/shaders.js', 'utf8');
-      await fs.promises.writeFile('build/src/shaders.js', shaders, 'utf8');
+      await fs.promises.writeFile(
+        'build/src/render/shaders.js',
+        shaders,
+        'utf8',
+      );
     }
     return Promise.resolve(true);
   }

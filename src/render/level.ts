@@ -2,13 +2,13 @@
  * Level geometry renderer.
  */
 
-import { cameraMatrix } from './camera';
-import { gl } from './global';
-import { level } from './world';
-import { Random } from './random';
-import { clamp } from './util';
+import { cameraMatrix } from '../game/camera';
+import { gl } from '../lib/global';
+import { level } from '../game/world';
+import { Random } from '../lib/random';
+import { clamp } from '../lib/util';
 import { level as levelShader } from './shaders';
-import { Edge } from './level';
+import { Edge } from '../game/level';
 
 const indexBuf = gl.createBuffer()!; // FIXME: check?
 const posBuf = gl.createBuffer()!;

@@ -2,9 +2,9 @@
  * Game renderer.
  */
 
-import { gl } from './global';
-import { renderLevel } from './render.level';
-import { renderModels } from './render.model';
+import { gl } from '../lib/global';
+import { renderLevel } from './level';
+import { renderModels } from './model';
 
 /**
  * Render the game.

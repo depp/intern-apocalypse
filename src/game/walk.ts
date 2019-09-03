@@ -2,7 +2,7 @@
  * Walking movement.
  */
 
-import { isDebug, DebugColor } from './debug';
+import { isDebug, DebugColor } from '../debug/debug';
 import { Edge } from './level';
 import {
   Vector,
@@ -18,7 +18,7 @@ import {
   projectToCircle,
   vector,
   lerp1D,
-} from './math';
+} from '../lib/math';
 import { level } from './world';
 
 /** The collision radius of walking entities. */

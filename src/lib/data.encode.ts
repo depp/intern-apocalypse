@@ -5,7 +5,7 @@
  * printable ASCII characters, but no spaces.
  */
 
-import { AssertionError } from './debug';
+import { AssertionError } from '../debug/debug';
 
 // Character 39 <'> and 92 <\> are excluded.
 

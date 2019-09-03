@@ -26,7 +26,7 @@ async function generateLoader(config: Config): Promise<void> {
     singleQuote: true,
     trailingComma: 'all',
   });
-  let out1 = fs.promises.writeFile('src/shaders.ts', prettyOut, 'utf8');
+  let out1 = fs.promises.writeFile('src/render/shaders.ts', prettyOut, 'utf8');
   if (config == Config.Release) {
     const { shaders, uniforms } = emitReleaseData(programs, code);
     const out2 = fs.promises.writeFile('build/shaders.js', shaders, 'utf8');
@@ -54,7 +54,7 @@ class PackShaders implements BuildAction {
     return this.params.inputs;
   }
   get outputs(): readonly string[] {
-    const outputs = ['src/shaders.ts'];
+    const outputs = ['src/render/shaders.ts'];
     if (this.config == Config.Release) {
       outputs.push('build/shaders.js', 'build/uniforms.json');
     }

@@ -2,8 +2,8 @@
  * Player control.
  */
 
-import { Button, buttonAxis } from './input';
-import { Vector } from './math';
+import { Button, buttonAxis } from '../lib/input';
+import { Vector } from '../lib/math';
 import { frameDT } from './time';
 import { walk } from './walk';
 

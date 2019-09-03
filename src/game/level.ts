@@ -2,14 +2,14 @@
  * Levels, the static geometry where the game takes place.
  */
 
-import { AssertionError, DebugColor } from './debug';
+import { AssertionError, DebugColor } from '../debug/debug';
 import {
   Vector,
   distanceSquared,
   findLineSplit,
   lerp,
   lineIntersectsCircle,
-} from './math';
+} from '../lib/math';
 
 /**
  * The smallest area in a level.

@@ -4,7 +4,7 @@
 
 import { CodeEmitter, Opcode } from './opcode';
 import * as opcode from './opcode';
-import { SourceSpan } from '../sourcepos';
+import { SourceSpan } from '../lib/sourcepos';
 
 /** The type of an input or output to a processing node. */
 export enum Type {

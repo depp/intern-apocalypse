@@ -3,9 +3,9 @@
  */
 
 import * as data from './data';
-import { AssertionError } from '../debug';
-import { SExpr, ListExpr, NumberExpr, prefixes } from '../sexpr';
-import { SourceError, SourceSpan } from '../sourcepos';
+import { AssertionError } from '../debug/debug';
+import { SExpr, ListExpr, NumberExpr, prefixes } from '../lib/sexpr';
+import { SourceError, SourceSpan } from '../lib/sourcepos';
 import { Operator, Node, createNode, Type } from './node';
 import * as node from './node';
 import { Units, UnitError, multiplyUnits } from './units';

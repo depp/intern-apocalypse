@@ -2,7 +2,7 @@
  * Opcode definitions for audio programs.
  */
 
-import { AssertionError } from '../debug';
+import { AssertionError } from '../debug/debug';
 import { operators } from './engine';
 
 /** Definition of an opcode. */

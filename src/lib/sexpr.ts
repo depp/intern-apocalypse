@@ -1,4 +1,4 @@
-import { AssertionError } from './debug';
+import { AssertionError } from '../debug/debug';
 import { SourceError, SourceSpan } from './sourcepos';
 
 /** Lexical token types. */

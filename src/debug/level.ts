@@ -3,13 +3,13 @@
  */
 
 import { AssertionError, DebugColor, debugColors } from './debug';
-import { debugView } from './debug.controls';
-import { ctx } from './debug.global';
-import { Cell, Edge } from './level';
-import { Vector } from './math';
-import { playerPos } from './player';
-import { walkerRadius } from './walk';
-import { level } from './world';
+import { debugView } from './controls';
+import { ctx } from './global';
+import { Cell, Edge } from '../game/level';
+import { Vector } from '../lib/math';
+import { playerPos } from '../game/player';
+import { walkerRadius } from '../game/walk';
+import { level } from '../game/world';
 
 const edgeInset = 2;
 

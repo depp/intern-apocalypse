@@ -1,7 +1,7 @@
-import { getFile, watchFiles } from './debug.files';
-import { ShaderError, compileShader, ShaderSpec } from './shader';
-import { getShaderSpecs } from './shaders';
-import { gl } from './global';
+import { getFile, watchFiles } from './files';
+import { ShaderError, compileShader, ShaderSpec } from '../render/shader';
+import { getShaderSpecs } from '../render/shaders';
+import { gl } from '../lib/global';
 
 enum State {
   Empty,

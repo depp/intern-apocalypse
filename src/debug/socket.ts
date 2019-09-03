@@ -2,8 +2,8 @@
  * Loader WebSocket code.
  */
 
-import { DataFile, updateFiles } from './debug.files';
-import { setBuildStatus } from './debug.status';
+import { DataFile, updateFiles } from './files';
+import { setBuildStatus } from './status';
 
 /** An error when encountering a bad WebSocket message. */
 class BadMessage extends Error {}

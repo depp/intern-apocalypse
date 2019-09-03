@@ -2,10 +2,10 @@
  * Model renderer.
  */
 
-import { cameraMatrix } from './camera';
-import { gl } from './global';
-import { translationMatrix } from './matrix';
-import { playerPos } from './player';
+import { cameraMatrix } from '../game/camera';
+import { gl } from '../lib/global';
+import { translationMatrix } from '../lib/matrix';
+import { playerPos } from '../game/player';
 import { model as modelShader } from './shaders';
 
 const indexBuf = gl.createBuffer()!; // FIXME: check?

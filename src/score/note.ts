@@ -1,4 +1,4 @@
-import { AssertionError } from '../debug';
+import { AssertionError } from '../debug/debug';
 
 const middleC = 60;
 

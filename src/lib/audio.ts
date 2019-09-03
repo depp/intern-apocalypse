@@ -2,7 +2,7 @@
  * Game audio subsystem.
  */
 
-import { runProgram, sampleRate } from './synth/engine';
+import { runProgram, sampleRate } from '../synth/engine';
 import { decode } from './data.encode';
 
 let audioCtx: AudioContext | undefined | false;

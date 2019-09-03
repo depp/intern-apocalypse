@@ -2,7 +2,7 @@
  * Audio synthesizer execution engine.
  */
 
-import { AssertionError } from '../debug';
+import { AssertionError } from '../debug/debug';
 import {
   decodeLinear,
   decodeExponential,
