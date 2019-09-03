@@ -7,17 +7,17 @@ import * as child_process from 'child_process';
 
 import * as chokidar from 'chokidar';
 import * as program from 'commander';
-import { FileResult, file, setGracefulCleanup } from 'tmp-promise';
+import { file, setGracefulCleanup } from 'tmp-promise';
 
 import { evaluateProgram } from '../src/synth/evaluate';
 import { disassembleProgram } from '../src/synth/opcode';
 import { sampleRate, runProgram } from '../src/synth/engine';
-import { encode } from '../src/data.encode';
-import { SourceError, SourceText } from '../src/sourcepos';
+import { encode } from '../src/lib/data.encode';
+import { SourceError, SourceText } from '../src/lib/sourcepos';
 import { waveData, floatTo16 } from './audio.wave';
 import { readStream } from './stream';
 import { printError } from './source';
-import { parseSExpr } from '../src/sexpr';
+import { parseSExpr } from '../src/lib/sexpr';
 import { emitCode } from '../src/synth/node';
 
 setGracefulCleanup();

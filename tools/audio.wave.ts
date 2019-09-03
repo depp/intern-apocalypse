@@ -1,7 +1,7 @@
 /**
  * WAVE file support.
  */
-import { Random } from '../src/random';
+import { Random } from '../src/lib/random';
 
 /** Data to write in a WAVE file. */
 export interface WaveData {
