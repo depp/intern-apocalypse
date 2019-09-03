@@ -9,6 +9,17 @@ export interface SourceSpan {
   sourceEnd: number;
 }
 
+/** An object which records a piece of text in source code. */
+export interface SourceToken {
+  /** Start of the text, offset from beginning of file. */
+  sourcePos: number;
+  /** The text, as it appears in the source file. */
+  text: string;
+}
+
+/** An object which records a span of text. */
+export type HasSourceLoc = SourceSpan | SourceToken;
+
 /** Line and column in a file. */
 export interface SourcePos {
   lineno: number;
@@ -19,10 +30,15 @@ export interface SourcePos {
 export class SourceError extends Error implements SourceSpan {
   sourceStart: number;
   sourceEnd: number;
-  constructor(start: number, end: number, message: string) {
+  constructor(loc: HasSourceLoc, message: string) {
     super(message);
-    this.sourceStart = start;
-    this.sourceEnd = end;
+    if ('sourceStart' in loc) {
+      this.sourceStart = loc.sourceStart;
+      this.sourceEnd = loc.sourceEnd;
+    } else {
+      this.sourceStart = loc.sourcePos;
+      this.sourceEnd = loc.sourcePos + loc.text.length;
+    }
   }
 }
 

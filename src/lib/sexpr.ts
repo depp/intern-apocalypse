@@ -105,11 +105,7 @@ export interface ListExpr extends SourceSpan {
 export type SExpr = SymbolExpr | NumberExpr | ListExpr;
 
 /** An error parsing an S-expression. */
-export class SExprSyntaxError extends SourceError {
-  constructor(tok: Token, message: string) {
-    super(tok.sourcePos, tok.sourcePos + tok.text.length, message);
-  }
-}
+export class SExprSyntaxError extends SourceError {}
 
 /** Throw an error when encountering an unexpected token while parsing. */
 function unexpectedToken(tok: Token): never {

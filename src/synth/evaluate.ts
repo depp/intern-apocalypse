@@ -84,11 +84,7 @@ function printValueType(value: Value): string {
 }
 
 /** An error during evaluation of a synthesizer program. */
-class EvaluationError extends SourceError {
-  constructor(node: SourceSpan, message: string) {
-    super(node.sourceStart, node.sourceEnd, message);
-  }
-}
+class EvaluationError extends SourceError {}
 
 /**
  * A definition of a Lisp operator. Takes an S-expression as input and returns

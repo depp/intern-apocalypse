@@ -4,7 +4,7 @@
 
 import chalk from 'chalk';
 
-import { SourceSpan, SourceText, SourceError } from '../src/lib/sourcepos';
+import { SourceSpan, SourceText } from '../src/lib/sourcepos';
 
 const colorFilename: (s: string) => string = chalk.cyan;
 const colorLoc: (s: string) => string = chalk.yellow;
