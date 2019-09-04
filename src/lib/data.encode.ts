@@ -7,6 +7,9 @@
 
 import { AssertionError } from '../debug/debug';
 
+/** Maximum value in the data stream. */
+export const dataMax = 91;
+
 // Character 39 <'> and 92 <\> are excluded.
 
 /**
@@ -27,7 +30,7 @@ export function decode(s: string): Uint8Array {
  */
 export function encode(a: Uint8Array): string {
   const max = Math.max(...a);
-  if (max > 91) {
+  if (max > dataMax) {
     throw new AssertionError(`data value out of range: ${max}`);
   }
   return String.fromCharCode(

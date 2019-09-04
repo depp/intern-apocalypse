@@ -2,9 +2,6 @@
  * Data encodings for the syntheszier.
  */
 
-/** Maximum value in the data stream. */
-export const dataMax = 91;
-
 /** Decode a bipolar linear ratio from the data stream. */
 export function decodeLinear(x: number): number {
   // This gives us a range of -1 to +1, with an extra 1.02.

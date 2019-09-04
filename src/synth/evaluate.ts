@@ -3,6 +3,7 @@
  */
 
 import * as data from './data';
+import { dataMax } from '../lib/data.encode';
 import { AssertionError } from '../debug/debug';
 import { SExpr, ListExpr, NumberExpr, prefixes } from '../lib/sexpr';
 import { SourceError, SourceSpan } from '../lib/sourcepos';
@@ -148,8 +149,8 @@ function toData(x: number): number {
   const y = Math.round(x);
   if (y < 0) {
     return 0;
-  } else if (y > data.dataMax) {
-    return data.dataMax;
+  } else if (y > dataMax) {
+    return dataMax;
   } else {
     return y;
   }
