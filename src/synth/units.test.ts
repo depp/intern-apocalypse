@@ -9,6 +9,9 @@ test('multiply', () => {
   for (const key of Object.keys(Units)) {
     const value = Units[key as any];
     if (typeof value == 'number') {
+      if (value == Units.Decibel) {
+        continue;
+      }
       const units = value as Units;
       cases.push({ units: [value], result: value });
     }

@@ -53,7 +53,7 @@ export function multiplyUnits(units: Units[]): Units {
   for (const unit of units) {
     const cm = unitComponents.get(unit);
     if (cm == null) {
-      throw new AssertionError(`missing definition for unit ${Units[unit]}`);
+      throw new UnitError(`cannot multiply unit ${Units[unit]}`);
     }
     for (const key in c) {
       const k = key as keyof UnitComponents;
