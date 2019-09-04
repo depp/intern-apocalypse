@@ -8,8 +8,8 @@ import * as fs from 'fs';
 
 import { readStream } from './stream';
 
-import { SExpr, parseSExpr, printSExpr } from '../src/sexpr';
-import { SourceText, SourceError } from '../src/sourcepos';
+import { SExpr, parseSExpr, printSExpr } from '../src/lib/sexpr';
+import { SourceText, SourceError } from '../src/lib/sourcepos';
 import { printError } from './source';
 
 /**
