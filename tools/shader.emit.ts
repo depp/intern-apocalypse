@@ -4,10 +4,7 @@
 
 import { Program } from './shader.programs';
 import { Declarations, Shader } from './shader.syntax';
-
-function titleCase(s: string): string {
-  return s.charAt(0).toUpperCase() + s.substring(1);
-}
+import { convertName } from './util';
 
 interface Output {
   stub: string;
@@ -26,7 +23,7 @@ function programLoader(
   if (fdecls == null) {
     throw new Error(`missing vertex decls: ${program.vertex}`);
   }
-  const tname = titleCase(program.name) + 'Program';
+  const tname = program.name.upperCase + 'Program';
   const uniforms = Array.from(new Set(vdecls.uniforms.concat(fdecls.uniforms)));
   uniforms.sort();
 
@@ -35,16 +32,16 @@ function programLoader(
     stub += `  ${name}: WebGLUniformLocation | null;\n`;
   }
   stub += '}\n';
-  stub += `export const ${program.name} = `;
+  stub += `export const ${program.name.lowerCase} = `;
   stub += `compileShader(${JSON.stringify(uniforms)}) as ${tname};\n`;
 
   let loader = '{\n';
-  loader += `  name: ${JSON.stringify(program.name)},\n`;
+  loader += `  name: ${JSON.stringify(program.name.lowerCase)},\n`;
   loader += `  vertex: ${JSON.stringify(program.vertex)},\n`;
   loader += `  fragment: ${JSON.stringify(program.fragment)},\n`;
   loader += `  attributes: ${JSON.stringify(program.attributes)},\n`;
   loader += `  uniforms: ${JSON.stringify(uniforms)},\n`;
-  loader += `  object: ${program.name},\n`;
+  loader += `  object: ${program.name.lowerCase},\n`;
   loader += '},\n';
 
   return { stub, loader };

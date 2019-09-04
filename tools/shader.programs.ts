@@ -1,9 +1,11 @@
 import * as fs from 'fs';
 
+import { Names, convertName } from './util';
+
 /** A shader program specification. */
 export interface Program {
   /** Name of the program. */
-  name: string;
+  name: Names;
   /** Filename of the vertex shader. */
   vertex: string;
   /** Filename of the fragment shader. */
@@ -54,7 +56,7 @@ export async function readPrograms(filename: string): Promise<Program[]> {
       }
     }
     result.push({
-      name,
+      name: convertName(name),
       vertex,
       fragment,
       attributes,

@@ -155,3 +155,47 @@ export function listFilesWithExtensions(
   scanDir(dirpath);
   return result;
 }
+
+/** Regular expression for names that can be converted to TitleCase. */
+export const validName = /^[A-Za-z][-_A-Za-z0-9]$/;
+
+/** A name, converted for source code identifier conventions. */
+export interface Names {
+  /** Name, in UpperCamelCase format. */
+  upperCase: string;
+  /** Name, in lowerCamelCase format. */
+  lowerCase: string;
+}
+
+/** Convert an ASCII string to UpperCamelCase and lowerCamelCase. */
+export function convertName(text: string): Names {
+  const segment = /[-_.]*([0-9]+|[A-Za-z][a-z]*)[-_.]*/y;
+  let match: RegExpMatchArray | null;
+  let upperCase = '';
+  let pos = 0;
+  while ((match = segment.exec(text)) != null) {
+    const part = match[1];
+    upperCase += part.charAt(0).toUpperCase();
+    upperCase += part.substring(1);
+    pos = segment.lastIndex;
+  }
+  if (pos != text.length) {
+    const codepoint = String.fromCodePoint(text.codePointAt(pos)!);
+    throw new Error(
+      `unexpected character in name: ${JSON.stringify(codepoint)}`,
+    );
+  }
+  if (upperCase == '') {
+    throw new Error(
+      `name does not contain alphanumeric characters: ${JSON.stringify(text)}`,
+    );
+  }
+  if (upperCase.charAt(0) >= '0' && upperCase.charAt(0) <= '9') {
+    throw new Error(`name starts with digit: ${JSON.stringify(text)}`);
+  }
+  const lowerCase = upperCase.charAt(0).toLowerCase() + upperCase.substring(1);
+  return {
+    upperCase,
+    lowerCase,
+  };
+}
