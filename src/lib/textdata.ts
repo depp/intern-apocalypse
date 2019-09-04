@@ -11,6 +11,11 @@ export interface Chunk {
   sourcePos: number;
 }
 
+/** Return the endo position of a chunk. */
+export function chunkEnd(chunk: Chunk): number {
+  return chunk.sourcePos + chunk.text.length;
+}
+
 /** Split a source file into lines. */
 export function splitLines(source: string): Chunk[] {
   const linebreak = /\r?\n/g;
@@ -55,10 +60,22 @@ export function splitFields(line: Chunk): Chunk[] {
   if (pos != text.length) {
     const codepoint = String.fromCodePoint(text.codePointAt(pos)!);
     throw new SourceError(
-      sourcePos + pos,
-      sourcePos + pos + codepoint.length,
+      { sourcePos: sourcePos + pos, text: codepoint },
       `unexpected character ${JSON.stringify(codepoint)}`,
     );
   }
   return result;
+}
+
+/** Parse an integer, and throw for any non-integer parts of the chunk. */
+export function parseIntExact(chunk: Chunk): number {
+  const { text, sourcePos } = chunk;
+  if (!/^[-+]?\d+/.test(chunk.text)) {
+    throw new SourceError(chunk, 'invalid number');
+  }
+  const n = parseInt(text, 10);
+  if (!isFinite(n)) {
+    throw new SourceError(chunk, 'number is out of range');
+  }
+  return n;
 }
