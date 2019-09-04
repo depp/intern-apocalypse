@@ -14,7 +14,7 @@ To build the project,
 
 ```shell
 yarn install
-./node_modules/.bin/ts-node tools/build.ts
+yarn run build
 ```
 
 This will create two files:
@@ -22,7 +22,42 @@ This will create two files:
 - `build/index.html`: The game, in a self-contained HTML file.
 - `build/InternApocalypse.zip`: The game, packaged for submission to JS13K.
 
-The build script accepts the parameter `--watch`, which causes it to continuously rebuild as the input files change.
+### Build script options
+
+- `--watch`: Rebuild continuously as sources change.
+- `--serve`: Seve the game from a local development server, rebuilding the game as the sources change. This will also stream data files to the game as they change, so the results can be seen without reloading the game.
+
+### Checking for Errors
+
+To check the source code for TypeScript type errors,
+
+```shell
+yarn run check-game
+yarn run check-tools
+```
+
+## Audio
+
+Audio scripts are stored in the `audio` directory. You can compile and play them from the command line. For example:
+
+```shell
+yarn run audio audio/clang.lisp --play
+```
+
+### Audio script options
+
+- `--disassemble`: Show the disassembled audio program.
+- `--output=<file>`: Write audio to an output WAVE file.
+- `--play`: Play the resulting audio. Plays in a loop if combined with `--watch`.
+- `--watch`: Watch input and rebuild as it changes.
+
+## Models
+
+The models are stored in the `model` directory. To convert a model to compact format,
+
+```shell
+yarn run model model/sword.txt
+```
 
 ## License
 

@@ -36,5 +36,14 @@
     "hooks": {
       "pre-commit": "pretty-quick --staged"
     }
+  },
+  "scripts": {
+    "audio": "ts-node tools/audio.ts",
+    "build": "ts-node tools/build.ts",
+    "check-game": "tsc --project src/tsconfig.json --noEmit",
+    "check-tools": "tsc --project tsconfig.json --noEmit",
+    "color": "ts-node tools/color.ts",
+    "model": "ts-node tools/model.ts",
+    "docs": "pandoc --from=commonmark --to=html5 --standalone README.md --metadata=pagetitle='Internship at the Apocalypse' > README.html"
   }
 }
