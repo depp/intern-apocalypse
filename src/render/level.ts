@@ -9,32 +9,12 @@ import { Random } from '../lib/random';
 import { clamp } from '../lib/util';
 import { level as levelShader } from './shaders';
 import { Edge } from '../game/level';
+import { concatArrays } from '../lib/array';
 
 const indexBuf = gl.createBuffer()!; // FIXME: check?
 const posBuf = gl.createBuffer()!;
 const colorBuf = gl.createBuffer()!;
 let elementCount: number | undefined;
-
-interface TypedArray extends ArrayLike<number> {
-  set(array: ArrayLike<number>, offset?: number): void;
-}
-
-function concatArrays<T extends TypedArray>(
-  constructor: new (length: number) => T,
-  arrays: readonly T[],
-): T {
-  let n = 0;
-  for (const arr of arrays) {
-    n += arr.length;
-  }
-  const r = new constructor(n);
-  let i = 0;
-  for (const arr of arrays) {
-    r.set(arr, i);
-    i += arr.length;
-  }
-  return r;
-}
 
 const random = new Random(9876);
 
