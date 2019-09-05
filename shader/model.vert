@@ -7,6 +7,5 @@ uniform mat4 Model;
 
 void main() {
   Color = aColor;
-  gl_Position =
-      ViewProjection * Model * vec4(aPos.xy * 0.5 - 0.25, aPos.z, 1.0);
+  gl_Position = ViewProjection * Model * vec4(aPos, 1.0);
 }

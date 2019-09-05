@@ -4,83 +4,54 @@
 
 import { cameraMatrix } from '../game/camera';
 import { gl } from '../lib/global';
-import { translationMatrix } from '../lib/matrix';
+import {
+  translationMatrix,
+  scaleMatrix,
+  matrixMultiply,
+  rotationMatrixFromAngle,
+  Axis,
+  identityMatrix,
+} from '../lib/matrix';
 import { playerPos } from '../game/player';
 import { model as modelShader } from './shaders';
-
-const indexBuf = gl.createBuffer()!; // FIXME: check?
-const posBuf = gl.createBuffer()!;
-const colorBuf = gl.createBuffer()!;
-
-function createCube() {
-  // Element indexes.
-  const index = new Uint16Array(6 * 6);
-  for (let i = 0; i < 6; i++) {
-    index.set([0, 1, 2, 2, 1, 3].map(x => x + i * 4), i * 6);
-  }
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuf);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, index, gl.STATIC_DRAW);
-
-  // Position attribute.
-  // prettier-ignore
-  const pos = new Float32Array([
-    // +x
-    1, 0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1,
-    // -x
-    0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1,
-    // +y
-    1, 1, 0, 0, 1, 0, 1, 1, 1, 0, 1, 1,
-    // -y
-    0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 1,
-    // +z
-    0, 0, 1, 1, 0, 1, 0, 1, 1, 1, 1, 1,
-    // -z
-    1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0,
-  ]);
-  gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-  gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW);
-
-  // Color attribute.
-  // prettier-ignore
-  const color = new Uint8Array([
-    // +x
-    255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0,
-    // -x
-    0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0,
-    // +y
-    0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0,
-    // -y
-    255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0, 255, 0,
-    // +z
-    0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0,
-    // -z
-    255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0, 255, 255, 0, 0,
-  ]);
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuf);
-  gl.bufferData(gl.ARRAY_BUFFER, color, gl.STATIC_DRAW);
-}
-
-createCube();
+import { Models, models } from '../model/models';
+import { frameDT } from '../game/time';
 
 /** The model transformation matrix. */
 const modelMatrix = new Float32Array(16);
+const mulMatrix = new Float32Array(16);
+
+let rot = 0;
 
 /**
  * Render all models in the level.
  */
 export function renderModels(): void {
+  rot = (rot + frameDT * 0.25) % 1;
   const p = modelShader;
   if (!p.program) {
     return;
   }
 
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuf);
-  gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
+  const m = models[Models.Sword];
+  if (!m) {
+    return;
+  }
+
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.index);
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.pos);
   gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuf);
+  gl.bindBuffer(gl.ARRAY_BUFFER, m.color);
   gl.vertexAttribPointer(1, 4, gl.UNSIGNED_BYTE, true, 0, 0);
 
-  translationMatrix(modelMatrix, [playerPos.x, playerPos.y]);
+  identityMatrix(modelMatrix);
+  translationMatrix(modelMatrix, [playerPos.x, playerPos.y, 2.0]);
+  rotationMatrixFromAngle(mulMatrix, Axis.Z, 2 * Math.PI * rot);
+  matrixMultiply(modelMatrix, modelMatrix, mulMatrix);
+  rotationMatrixFromAngle(mulMatrix, Axis.X, 4 * Math.PI * rot);
+  matrixMultiply(modelMatrix, modelMatrix, mulMatrix);
+  scaleMatrix(mulMatrix, [0.2, 0.2, 0.2 / 3]);
+  matrixMultiply(modelMatrix, modelMatrix, mulMatrix);
 
   gl.useProgram(p.program);
   gl.enable(gl.CULL_FACE);
@@ -89,5 +60,5 @@ export function renderModels(): void {
   gl.enableVertexAttribArray(1);
   gl.uniformMatrix4fv(p.ViewProjection, false, cameraMatrix);
   gl.uniformMatrix4fv(p.Model, false, modelMatrix);
-  gl.drawElements(gl.TRIANGLES, 6 * 6, gl.UNSIGNED_SHORT, 0);
+  gl.drawElements(gl.TRIANGLES, m.count, gl.UNSIGNED_SHORT, 0);
 }

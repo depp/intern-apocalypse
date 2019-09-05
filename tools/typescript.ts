@@ -264,11 +264,15 @@ class CompileTS implements BuildAction {
       return Promise.resolve(false);
     }
     if (config.config == Config.Release) {
-      const shaders = await fs.promises.readFile('build/shaders.js', 'utf8');
-      await fs.promises.writeFile(
-        'build/src/render/shaders.js',
-        shaders,
-        'utf8',
+      const copies: [string, string][] = [
+        ['build/shaders.js', 'build/src/render/shaders.js'],
+        ['build/models.js', 'build/src/model/models.js'],
+      ];
+      await Promise.all(
+        copies.map(async ([src, dest]) => {
+          const bytes = await fs.promises.readFile(src);
+          await fs.promises.writeFile(dest, bytes);
+        }),
       );
     }
     return Promise.resolve(true);

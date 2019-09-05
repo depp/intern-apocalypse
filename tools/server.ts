@@ -160,14 +160,21 @@ async function sendDataFiles(ws: WebSocket, watcher: Watcher): Promise<void> {
     }
     sendData();
   }
-  const handle = await watcher.subscribe(
-    'shader',
-    ['anyof', ['match', '*.vert'], ['match', '*.frag']],
-    files => onChange('shader', files),
-  );
+  const handles = [
+    await watcher.subscribe(
+      'shader',
+      ['anyof', ['match', '*.vert'], ['match', '*.frag']],
+      files => onChange('shader', files),
+    ),
+    await watcher.subscribe('model', ['match', '*.txt'], files =>
+      onChange('model', files),
+    ),
+  ];
   ws.on('close', () => {
     closing = true;
-    watcher.unsubscribe(handle);
+    for (const handle of handles) {
+      watcher.unsubscribe(handle);
+    }
     if (timeout != null) {
       clearTimeout(timeout);
     }

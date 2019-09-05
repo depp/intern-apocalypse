@@ -8,6 +8,7 @@ import { openWebSocket } from './debug/socket';
 openWebSocket();
 
 import { startDebugGUI } from './debug/controls';
+import { watchModels } from './debug/model';
 import { renderDebug } from './debug/render';
 import { watchShaders } from './debug/shader';
 import { gl } from './lib/global';
@@ -34,6 +35,7 @@ function mainDebug(curTimeMS: DOMHighResTimeStamp): void {
 
 if (gl) {
   watchShaders();
+  watchModels();
   startDebugGUI();
   initialize();
   requestAnimationFrame(mainDebug);

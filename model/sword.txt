@@ -8,22 +8,22 @@ p b3 1 5 0
 p b4 0 5 2
 
 color dddddd
-f b0 b1 b2
-f b1 b3 b4 b2
+f b0 b2 b1
+f b1 b2 b4 b3
 
 # Guard
 p g5 1 5 3
 p g6 3 6 0
-p g7 1 4 6
+p g7 1 4 3
 p g8 3 4 0
 
 color 288045
-f b4 g5 g5.x
-f b4 b3 g6 g5
-f g5 g7 g7.x g5.x
-f g5 g6 g8 g7
-f h10 g7.x g7
-f g7 g8 h9 h10
+f b4 g5.x g5
+f b3 b4 g5 g6
+f g5 g5.x g7.x g7
+f g6 g5 g7 g8
+f g7 g7.x h10
+f g8 g7 h10 h9
 
 # Handle
 p h9 1 4 0
@@ -32,5 +32,5 @@ p h11 1 0 0
 p h12 0 1 2
 
 color 785f2e
-f h10 h9 h11 h12
-f h11.x h12 h11
+f h9 h10 h12 h11
+f h11 h12 h11.x h12

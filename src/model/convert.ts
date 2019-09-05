@@ -13,16 +13,10 @@ import {
 import { dataMax } from '../lib/data.encode';
 import { DataWriter } from '../lib/data.writer';
 import { AssertionError } from '../debug/debug';
+import { Opcode } from './defs';
 
 /** Maximum number of different points in a model. */
 const maxPoints = dataMax - 7;
-
-/** Opcodes for the model binary stream. */
-enum Opcode {
-  Color,
-  Symmetry,
-  Face3,
-}
 
 /** Kinds of items in the parsed model. */
 enum Kind {

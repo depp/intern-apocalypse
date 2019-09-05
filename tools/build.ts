@@ -10,6 +10,7 @@ import { BuildContext, Builder, recursive } from './action';
 import { Config, BuildArgs } from './config';
 import { evalHTML } from './html';
 import { projectName, sizeTarget } from './info';
+import { packModels } from './model.build';
 import { rollupJS } from './rollup';
 import { serve } from './server';
 import { packShaders } from './shader';
@@ -28,6 +29,10 @@ function emitActions(ctx: BuildContext) {
   ]);
   packShaders(ctx, {
     inputs: ['shader/programs.json', ...shaderSources],
+  });
+  const modelSources = ctx.listFilesWithExtensions('model', ['.txt']);
+  packModels(ctx, {
+    inputs: modelSources,
   });
   const tsSources = ctx.listFilesWithExtensions('src', ['.ts'], recursive);
   compileTS(ctx, {

@@ -91,3 +91,15 @@ export function translationMatrix(out: Matrix, value: ArrayLike<number>): void {
   identityMatrix(out);
   out.set(value, 12);
 }
+
+/**
+ * Set a matrix to a scale matrix.
+ * @param out Output matrix.
+ * @param scale The X, Y, Z scaling parameters.
+ */
+export function scaleMatrix(out: Matrix, scale: number[]): void {
+  identityMatrix(out);
+  for (let i = 0; i < scale.length; i++) {
+    out[i * 5] = scale[i];
+  }
+}
