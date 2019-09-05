@@ -5,9 +5,10 @@
 import { startAudio } from './audio/audio';
 import { updateCamera } from './game/camera';
 import { startInput, endFrameInput } from './lib/input';
-import { updatePlayer } from './game/player';
+import { spawnPlayer } from './game/player';
 import { render } from './render/render';
 import { updateTime } from './game/time';
+import { updateWorld } from './game/world';
 
 /**
  * Initialize game.
@@ -15,6 +16,7 @@ import { updateTime } from './game/time';
 export function initialize(): void {
   startInput();
   startAudio();
+  spawnPlayer();
 }
 
 /**
@@ -24,7 +26,7 @@ export function initialize(): void {
  */
 export function main(curTimeMS: DOMHighResTimeStamp): void {
   updateTime(curTimeMS);
-  updatePlayer();
+  updateWorld();
   updateCamera();
   endFrameInput();
   render();
