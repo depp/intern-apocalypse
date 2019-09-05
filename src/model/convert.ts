@@ -371,7 +371,6 @@ function writePoints(w: DataWriter, items: Item[]): PointNames {
   for (let i = 0; i < 3; i++) {
     let { min } = pbounds[i];
     if (origin[i] < min) {
-      console.warn('warning: origin outside model');
       min = origin[i];
     }
     base.push(min);
