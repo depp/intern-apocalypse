@@ -10,14 +10,19 @@ import {
   translateMatrix,
   matrixNew,
 } from '../lib/matrix';
-import { Vector, vector } from '../lib/math';
+import { Vector, vector, zeroVector, lerp } from '../lib/math';
+import { frameDT } from './time';
 
-/** The current camera target. */
-export let cameraTarget: Readonly<Vector> = vector(0, 0);
+/** The current camera target and filter coefficients. */
+let cameraTargetFilter = [zeroVector, zeroVector, zeroVector];
+
+export function getCameraTarget(): Readonly<Vector> {
+  return cameraTargetFilter[2];
+}
 
 /** Set the current target of the camera. */
 export function setCameraTarget(target: Readonly<Vector>): void {
-  cameraTarget = target;
+  cameraTargetFilter[0] = target;
 }
 
 /** The view projection matrix. */
@@ -27,6 +32,15 @@ export const cameraMatrix = matrixNew();
  * Update the camera.
  */
 export function updateCamera(): void {
+  const smoothRatio = Math.exp(-cameraSettings.speed * frameDT);
+  for (let i = 0; i < 2; i++) {
+    cameraTargetFilter[i + 1] = lerp(
+      cameraTargetFilter[i],
+      cameraTargetFilter[i + 1],
+      smoothRatio,
+    );
+  }
+
   const { distance, elevation, zoom, zNear, zFar } = cameraSettings;
   // Set up projection matrix.
   //
@@ -63,9 +77,10 @@ export function updateCamera(): void {
   rotateMatrixFromDirection(cameraMatrix, Axis.X, elevation, -1);
 
   // Transpose.
+  const { x, y } = cameraTargetFilter[2];
   translateMatrix(cameraMatrix, [
-    -cameraTarget.x,
-    distance * a - cameraTarget.y + adjust,
+    -x,
+    distance * a - y + adjust,
     -distance * a * elevation - 0.5,
   ]);
 }

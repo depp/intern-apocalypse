@@ -21,6 +21,8 @@ export const cameraSettings = {
   zNear: 0.1,
   /** Far Z clip plane distance. */
   zFar: 20,
+  /** Camera movement speed (filtering). */
+  speed: 8,
 };
 
 /** Settings for the player. */
