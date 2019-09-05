@@ -36,7 +36,7 @@ const playerDefaults = {
   /** Player movement speed, in meters per second. */
   speed: 5,
   /** Player turning speed, in radians per second. */
-  turnSpeed: 8,
+  turnSpeed: 20,
 };
 
 /** Settings for the player. */
