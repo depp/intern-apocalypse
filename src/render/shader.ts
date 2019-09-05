@@ -52,12 +52,14 @@ export function compileShader(
   attribs: StringArray,
   vertex: string,
   fragment: string,
+  programName: string,
 ): any;
 export function compileShader(
   uniforms: StringArray,
   attribs?: StringArray | undefined,
   vertex?: string | undefined,
   fragment?: string | undefined,
+  programName?: string | undefined,
 ): any {
   // Stub object for debug builds.
   if (isDebug && attribs == null) {
@@ -89,7 +91,8 @@ export function compileShader(
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
       if (isDebug) {
         console.error(
-          'Failed to compile shader.\n' + gl.getShaderInfoLog(shader),
+          `${programName}: Failed to compile shader.\n` +
+            gl.getShaderInfoLog(shader),
         );
         gl.deleteShader(shader);
         gl.deleteProgram(program);
@@ -106,7 +109,8 @@ export function compileShader(
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
     if (isDebug) {
       console.error(
-        'Failed to link shader program.\n' + gl.getProgramInfoLog(program),
+        `${programName}: Failed to link shader program.\n` +
+          gl.getProgramInfoLog(program),
       );
       gl.deleteProgram(program);
     }
@@ -123,13 +127,17 @@ export function compileShader(
       if (attrib) {
         aexist.add(attrib.name);
         if (!anames.has(attrib.name)) {
-          console.warn(`unused attribute: ${JSON.stringify(attrib.name)}`);
+          console.warn(
+            `${programName}: Unused attribute: ` + JSON.stringify(attrib.name),
+          );
         }
       }
     }
     for (const name of anames) {
       if (!aexist.has(name)) {
-        console.warn(`unknown attribute: ${JSON.stringify(name)}`);
+        console.warn(
+          `${programName}: Unknown attribute: ` + JSON.stringify(name),
+        );
       }
     }
     // Print warnings for extra uniforms.
@@ -140,7 +148,9 @@ export function compileShader(
       if (uniform) {
         const name = uniform.name.split('[')[0];
         if (!unames.has(name)) {
-          console.warn(`unused uniform: ${JSON.stringify(uniform.name)}`);
+          console.warn(
+            `${programName}: Unused uniform: ` + JSON.stringify(uniform.name),
+          );
         }
       }
     }

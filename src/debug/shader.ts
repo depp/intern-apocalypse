@@ -37,6 +37,7 @@ function update(shader: Shader): void {
       shader.spec.attributes,
       vertex.data,
       fragment.data,
+      shader.spec.name,
     );
   } catch (e) {
     if (e instanceof ShaderError) {
