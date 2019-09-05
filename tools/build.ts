@@ -6,7 +6,7 @@
 import * as program from 'commander';
 import chalk from 'chalk';
 
-import { BuildContext, Builder } from './action';
+import { BuildContext, Builder, recursive } from './action';
 import { Config, BuildArgs } from './config';
 import { evalHTML } from './html';
 import { projectName, sizeTarget } from './info';
@@ -29,7 +29,7 @@ function emitActions(ctx: BuildContext) {
   packShaders(ctx, {
     inputs: ['shader/programs.json', ...shaderSources],
   });
-  const tsSources = ctx.listFilesWithExtensions('src', ['.ts']);
+  const tsSources = ctx.listFilesWithExtensions('src', ['.ts'], recursive);
   compileTS(ctx, {
     outDir: 'build/src',
     inputs: tsSources,
