@@ -3,7 +3,7 @@
 import { Model } from './model';
 
 /** Model asset identifiers. */
-export const enum Models {
+export const enum ModelAsset {
   Person,
   Sword,
 }

@@ -64,7 +64,7 @@ function generateDefs(models: ModelInfo[]): string {
   out += "import { Model } from './model';\n";
   out += '\n';
   out += '/** Model asset identifiers. */\n';
-  out += 'export const enum Models {\n';
+  out += 'export const enum ModelAsset {\n';
   for (const { name } of models) {
     out += `  ${name},\n`;
   }

@@ -14,7 +14,7 @@ import {
 } from '../lib/matrix';
 import { playerPos } from '../game/player';
 import { model as modelShader } from './shaders';
-import { Models, models } from '../model/models';
+import { ModelAsset, models } from '../model/models';
 import { frameDT } from '../game/time';
 
 /** The model transformation matrix. */
@@ -33,7 +33,7 @@ export function renderModels(): void {
     return;
   }
 
-  const m = models[Models.Person];
+  const m = models[ModelAsset.Person];
   if (!m) {
     return;
   }
