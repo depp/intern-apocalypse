@@ -5,7 +5,6 @@
 import * as fs from 'fs';
 import * as child_process from 'child_process';
 
-import * as chokidar from 'chokidar';
 import * as program from 'commander';
 import { file, setGracefulCleanup } from 'tmp-promise';
 
@@ -25,17 +24,17 @@ setGracefulCleanup();
 interface AudioArgs {
   output: string;
   input: string;
-  play: false;
+  play: boolean;
   disassemble: boolean;
-  verbose: false;
-  watch: false;
+  verbose: boolean;
+  loop: boolean;
 }
 
 function parseArgs() {
   program.option('--output <file>', 'path to output WAVE file');
   program.option('--play', 'play the audio file');
   program.option('--disassemble', 'show program disassembly');
-  program.option('--watch', '');
+  program.option('--loop', 'play repeatedly as file changes');
   program.option('-v --verbose', 'verbose logging');
   program.parse(process.argv);
   const args: AudioArgs = {
@@ -44,7 +43,7 @@ function parseArgs() {
     play: false,
     disassemble: false,
     verbose: false,
-    watch: false,
+    loop: false,
   };
   for (const arg of Object.keys(args)) {
     if (arg != 'input' && arg in program) {
@@ -58,6 +57,13 @@ function parseArgs() {
       program.exit(2);
     }
     args.input = program.args[0];
+  }
+  if (args.loop) {
+    args.play = true;
+    if (args.input == '-') {
+      console.error('cannot read from stdin with --loop');
+      program.exit(2);
+    }
   }
   return args;
 }
@@ -132,6 +138,28 @@ function makeWave(code: Uint8Array): Buffer {
   });
 }
 
+interface Reader {
+  path: string;
+  read(): Promise<string>;
+}
+
+function makeReader(args: AudioArgs): Reader {
+  if (args.input == '-') {
+    return {
+      path: '<stdin>',
+      read() {
+        return readStream(process.stdin);
+      },
+    };
+  }
+  return {
+    path: args.input,
+    read() {
+      return fs.promises.readFile(args.input, 'utf8');
+    },
+  };
+}
+
 interface Writer {
   path: string;
   write(data: Buffer): Promise<void>;
@@ -200,114 +228,55 @@ function playAudio(path: string): Promise<void> {
   });
 }
 
-interface Sink {
-  sink(code: Uint8Array): void;
-}
-
-async function makeSink(args: AudioArgs): Promise<Sink> {
-  if (args.output == '' && !args.play) {
-    return {
-      sink() {},
-    };
-  }
-
-  let currentCode: Uint8Array | null = null;
-  let codeChanged = false;
-  let running = false;
-  const writer = await makeWriter(args);
-
-  async function run(): Promise<void> {
-    try {
-      if (currentCode == null) {
-        throw new Error('currentCode == null');
-      }
-      if (codeChanged) {
-        codeChanged = false;
-        const data = makeWave(currentCode);
-        await writer.write(data);
-      }
-      await playAudio(writer.path);
-    } catch (e) {
-      console.error(e);
-      process.exit(1);
-    }
-    if (args.watch && args.play) {
-      setImmediate(run);
-    } else {
-      running = false;
-    }
-  }
-
-  return {
-    sink(code: Uint8Array): void {
-      currentCode = code;
-      codeChanged = true;
-      if (!running) {
-        running = true;
-        setImmediate(run);
-      }
-    },
-  };
-}
-
-async function runMain(args: AudioArgs): Promise<boolean> {
-  let inputName: string;
-  let inputText: string;
-  if (args.input == '-') {
-    inputName = '<stdin>';
-    inputText = await readStream(process.stdin);
-  } else {
-    inputName = args.input;
-    inputText = await fs.promises.readFile(inputName, 'utf8');
-  }
-  const code = compile(args, inputName, inputText);
+async function runMain(
+  args: AudioArgs,
+  reader: Reader,
+  writer: Writer | null,
+): Promise<boolean> {
+  const source = await reader.read();
+  const code = compile(args, reader.path, source);
   if (code == null) {
     return false;
   }
-  if (args.output != '' || args.play) {
+  if (writer != null) {
     const data = makeWave(code);
-    const writer = await makeWriter(args);
     await writer.write(data);
     if (args.play) {
-      playAudio(writer.path);
+      await playAudio(writer.path);
     }
   }
   return true;
 }
 
-async function watchMain(args: AudioArgs): Promise<void> {
-  const { input } = args;
-  if (input == '-') {
-    console.error('input required for --watch');
-    process.exit(2);
-  }
-  const sink = await makeSink(args);
-  const watcher = chokidar.watch(input);
-  let changed = false;
-  let loading = false;
-  async function load(): Promise<void> {
-    changed = false;
-    const text = await fs.promises.readFile(input, 'utf8');
-    const code = compile(args, input, text);
-    if (code != null) {
-      sink.sink(code);
+function delay(timeMS: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, timeMS));
+}
+
+async function loopMain(
+  args: AudioArgs,
+  reader: Reader,
+  writer: Writer | null,
+): Promise<void> {
+  let lastMtime = 0;
+  let lastSuccess = true;
+  while (true) {
+    let st: fs.Stats;
+    try {
+      st = await fs.promises.stat(reader.path);
+    } catch (e) {
+      if (e.code == 'ENOENT') {
+        await delay(500);
+        continue;
+      }
+      throw e;
     }
-    if (changed) {
-      setImmediate(load);
-    } else {
-      loading = false;
+    if (!lastSuccess && st.mtimeMs == lastMtime) {
+      await delay(500);
+      continue;
     }
+    lastMtime = st.mtimeMs;
+    lastSuccess = await runMain(args, reader, writer);
   }
-  function onChanged(): void {
-    changed = true;
-    if (!loading) {
-      loading = true;
-      setImmediate(load);
-    }
-  }
-  watcher.on('change', onChanged);
-  watcher.on('ready', onChanged);
-  await new Promise(() => {});
 }
 
 async function main(): Promise<void> {
@@ -316,15 +285,18 @@ async function main(): Promise<void> {
   let status = 0;
 
   try {
-    if (args.watch) {
-      await watchMain(args);
+    const reader = makeReader(args);
+    const writer = await makeWriter(args);
+    if (args.loop) {
+      await loopMain(args, reader, writer);
     } else {
-      if (!(await runMain(args))) {
+      const success = await runMain(args, reader, writer);
+      if (!success) {
         status = 1;
       }
     }
   } catch (e) {
-    console.log(e);
+    console.error(e);
     status = 1;
   }
 
