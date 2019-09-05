@@ -7,6 +7,8 @@ import * as child_process from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 
+import * as prettierTypes from 'prettier';
+
 /** Path to root directory containing the project. */
 export const projectRoot = path.dirname(__dirname);
 
@@ -198,4 +200,17 @@ export function convertName(text: string): Names {
     upperCase,
     lowerCase,
   };
+}
+
+/** Header for generated source files. */
+export const generatedHeader = '/* This code is automatically generated. */\n';
+
+/** Prettify TypeScript code. */
+export function prettifyTypeScript(source: string): string {
+  const prettier = require('prettier') as typeof prettierTypes;
+  return prettier.format(source, {
+    parser: 'typescript',
+    singleQuote: true,
+    trailingComma: 'all',
+  });
 }

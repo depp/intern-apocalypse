@@ -5,13 +5,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import * as prettierTypes from 'prettier';
-
 import { BuildAction, BuildContext } from './action';
 import { BuildArgs, Config } from './config';
 import { loadShaders } from './shader.syntax';
 import { readPrograms, programSources } from './shader.programs';
 import { emitLoader, emitReleaseData } from './shader.emit';
+import { prettifyTypeScript } from './util';
 
 const dirname = 'shader';
 
@@ -19,14 +18,8 @@ async function generateLoader(config: Config): Promise<void> {
   const programs = await readPrograms(path.join(dirname, 'programs.json'));
   const sources = programSources(programs);
   const code = await loadShaders(dirname, sources);
-  const out = emitLoader(programs, code);
-  const prettier = require('prettier') as typeof prettierTypes;
-  const prettyOut = prettier.format(out, {
-    parser: 'typescript',
-    singleQuote: true,
-    trailingComma: 'all',
-  });
-  let out1 = fs.promises.writeFile('src/render/shaders.ts', prettyOut, 'utf8');
+  const out = prettifyTypeScript(emitLoader(programs, code));
+  let out1 = fs.promises.writeFile('src/render/shaders.ts', out, 'utf8');
   if (config == Config.Release) {
     const { shaders, uniforms } = emitReleaseData(programs, code);
     const out2 = fs.promises.writeFile('build/shaders.js', shaders, 'utf8');
