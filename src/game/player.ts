@@ -4,7 +4,6 @@
 
 import { Button, buttonAxis } from '../lib/input';
 import {
-  Vector,
   vector,
   lengthSquared,
   scaleVector,
@@ -25,14 +24,11 @@ import {
   rotateMatrixFromAngle,
   rotateMatrixFromDirection,
 } from '../lib/matrix';
-
-/**
- * Current 2D position of the player.
- */
-export let playerPos: Vector = { x: 0, y: 0 };
+import { setCameraTarget } from './camera';
 
 /** Spawn the player in the level. */
 export function spawnPlayer(): void {
+  let pos = vector(0, 0);
   const transform = matrixNew();
   const swordTransform = matrixNew();
   const model: ModelInstance = {
@@ -56,7 +52,7 @@ export function spawnPlayer(): void {
         walkVector = scaleVector(walkVector, 1 / Math.sqrt(magSquared));
       }
       const distance = playerSettings.speed * frameDT;
-      playerPos = walk(playerPos, scaleVector(walkVector, distance));
+      pos = walk(pos, scaleVector(walkVector, distance));
       if (magSquared) {
         const targetAngle = Math.atan2(walkVector.y, walkVector.x);
         let deltaAngle = canonicalAngle(targetAngle - angle);
@@ -64,8 +60,9 @@ export function spawnPlayer(): void {
         deltaAngle = clamp(deltaAngle, -turnAmount, turnAmount);
         angle = canonicalAngle(angle + deltaAngle);
       }
+      setCameraTarget(pos);
       identityMatrix(transform);
-      translateMatrix(transform, [playerPos.x, playerPos.y]);
+      translateMatrix(transform, [pos.x, pos.y]);
       rotateMatrixFromAngle(transform, Axis.Z, angle + 0.5 * Math.PI);
       rotateMatrixFromDirection(transform, Axis.X, 0, 1);
       swordTransform.set(transform);

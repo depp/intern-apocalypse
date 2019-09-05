@@ -7,9 +7,9 @@ import { debugView } from '../lib/settings';
 import { ctx } from './global';
 import { Cell, Edge } from '../game/level';
 import { Vector } from '../lib/math';
-import { playerPos } from '../game/player';
 import { walkerRadius } from '../game/walk';
 import { level } from '../game/world';
+import { cameraTarget } from '../game/camera';
 
 const edgeInset = 2;
 
@@ -197,14 +197,14 @@ export function drawLevel(): void {
   ctx.save();
   ctx.translate(clientWidth / 2, clientHeight / 2);
   ctx.scale(scale, -scale);
-  ctx.translate(-playerPos.x, -playerPos.y);
+  ctx.translate(-cameraTarget.x, -cameraTarget.y);
   for (const cell of level.cells.values()) {
     if (cell.index >= 0) {
       drawCell(cell, scale);
     }
   }
   if (debugView.player) {
-    drawEntity(playerPos);
+    // drawEntity(playerPos);
   }
   drawEdges(scale);
   ctx.restore();

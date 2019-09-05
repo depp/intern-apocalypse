@@ -10,7 +10,15 @@ import {
   translateMatrix,
   matrixNew,
 } from '../lib/matrix';
-import { playerPos } from './player';
+import { Vector, vector } from '../lib/math';
+
+/** The current camera target. */
+export let cameraTarget: Readonly<Vector> = vector(0, 0);
+
+/** Set the current target of the camera. */
+export function setCameraTarget(target: Readonly<Vector>): void {
+  cameraTarget = target;
+}
 
 /** The view projection matrix. */
 export const cameraMatrix = matrixNew();
@@ -56,8 +64,8 @@ export function updateCamera(): void {
 
   // Transpose.
   translateMatrix(cameraMatrix, [
-    -playerPos.x,
-    distance * a - playerPos.y + adjust,
+    -cameraTarget.x,
+    distance * a - cameraTarget.y + adjust,
     -distance * a * elevation - 0.5,
   ]);
 }
