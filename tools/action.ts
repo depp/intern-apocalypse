@@ -152,6 +152,10 @@ function filesEqual(x: readonly string[], y: readonly string[]): boolean {
   return true;
 }
 
+function delay(timeMS: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, timeMS));
+}
+
 /**
  * Builder for running build steps when necessary.
  */
@@ -178,6 +182,8 @@ export class Builder {
   private inputsDidChange = false;
   /** Internal clock for comparing when files changed. */
   private watchClock = 0;
+  /** Delay before rebuilding. */
+  private rebuildDelay: Promise<void> | null = null;
 
   /** Called after the state changes. */
   readonly stateChanged = new SyncEvent<BuildState>();
@@ -270,6 +276,12 @@ export class Builder {
       while (true) {
         await this.build();
         await this.waitUntilDirty();
+        // This is to avoid double-rebuilding when a series of files change
+        // quickly.
+        if (this.rebuildDelay != null) {
+          await this.rebuildDelay;
+          this.rebuildDelay = null;
+        }
       }
     } catch (e) {
       console.error('Uncaught build error:', e);
@@ -380,6 +392,9 @@ export class Builder {
    * completes.
    */
   private markBuildDirty(): void {
+    if (this.rebuildDelay == null) {
+      this.rebuildDelay = delay(200);
+    }
     switch (this._state) {
       case BuildState.Building:
         this.inputsDidChange = true;
