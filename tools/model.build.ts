@@ -19,23 +19,6 @@ import { printError } from './source';
 import { encode } from '../src/lib/data.encode';
 import { AssertionError } from '../src/debug/debug';
 
-/** Load a model and return the data, as an encoded string. */
-async function loadModel(filename: string): Promise<string | null> {
-  const source = await fs.promises.readFile(filename, 'utf8');
-  let data: Uint8Array;
-  try {
-    data = convertModel(source);
-  } catch (e) {
-    if (e instanceof SourceError) {
-      const text = new SourceText(filename, source);
-      printError(text, e);
-      return null;
-    }
-    throw e;
-  }
-  return encode(data);
-}
-
 interface ModelInfo {
   name: string;
   filename: string;
