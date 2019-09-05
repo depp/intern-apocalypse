@@ -55,7 +55,7 @@ export function updateCamera(): void {
 
   const a = 1 / Math.hypot(elevation, 1);
   // Rotate.
-  rotationMatrixFromDirection(componentMatrix, Axis.X, elevation, 1);
+  rotationMatrixFromDirection(componentMatrix, Axis.X, elevation, -1);
   matrixMultiply(cameraMatrix, cameraMatrix, componentMatrix);
 
   // Transpose.

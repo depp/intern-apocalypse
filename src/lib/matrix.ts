@@ -65,7 +65,7 @@ export function rotationMatrixFromDirection(
   const a = 1 / Math.hypot(u, v);
   identityMatrix(out);
   out[c1] = out[c2] = a * u;
-  out[s1] = -(out[s2] = a * v);
+  out[s2] = -(out[s1] = a * v);
 }
 
 /**
