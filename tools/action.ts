@@ -160,8 +160,6 @@ export class Builder {
   private readonly config: Readonly<BuildArgs>;
   /** Function which returns a list of actions in the build. */
   private readonly createActions: ActionEmitter;
-  /** List of paths to watch. */
-  private watchPaths: string | string[];
   /** If true, show the build times. */
   private readonly showBuildTimes: boolean;
   /** The current state of the build. */
@@ -184,15 +182,10 @@ export class Builder {
   /** Called after the state changes. */
   readonly stateChanged = new SyncEvent<BuildState>();
 
-  constructor(
-    createActions: ActionEmitter,
-    watchPaths: string | string[],
-    options: Readonly<BuildArgs>,
-  ) {
+  constructor(createActions: ActionEmitter, options: Readonly<BuildArgs>) {
     const { showBuildTimes } = options;
     this.config = options;
     this.createActions = createActions;
-    this.watchPaths = watchPaths;
     this.showBuildTimes = showBuildTimes;
   }
 

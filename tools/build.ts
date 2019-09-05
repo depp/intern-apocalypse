@@ -110,7 +110,7 @@ async function main(): Promise<void> {
     await mkdir('build');
     await removeAll('build/tmp');
     await mkdir('build/tmp');
-    const builder = new Builder(emitActions, 'src', args);
+    const builder = new Builder(emitActions, args);
     if (args.serve) {
       const watcher = await createWatcher();
       serve(Object.assign({ builder, watcher }, args));
