@@ -116,13 +116,20 @@ export function compileShader(
   if (isDebug) {
     // Print warnings for extra attributes.
     const anames = new Set<string>(attribs);
+    const aexist = new Set<string>();
     const acount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
     for (let i = 0; i < acount; i++) {
       const attrib = gl.getActiveAttrib(program, i);
       if (attrib) {
+        aexist.add(attrib.name);
         if (!anames.has(attrib.name)) {
           console.warn(`unused attribute: ${JSON.stringify(attrib.name)}`);
         }
+      }
+    }
+    for (const name of anames) {
+      if (!aexist.has(name)) {
+        console.warn(`unknown attribute: ${JSON.stringify(name)}`);
       }
     }
     // Print warnings for extra uniforms.
