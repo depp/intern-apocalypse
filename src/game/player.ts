@@ -34,12 +34,17 @@ export let playerPos: Vector = { x: 0, y: 0 };
 /** Spawn the player in the level. */
 export function spawnPlayer(): void {
   const transform = matrixNew();
+  const swordTransform = matrixNew();
   const model: ModelInstance = {
     model: ModelAsset.Person,
     transform,
   };
+  const swordModel: ModelInstance = {
+    model: ModelAsset.Sword,
+    transform: swordTransform,
+  };
   let angle = 0;
-  modelInstances.push(model);
+  modelInstances.push(model, swordModel);
   entities.push({
     update() {
       let walkVector = vector(
@@ -63,6 +68,10 @@ export function spawnPlayer(): void {
       translateMatrix(transform, [playerPos.x, playerPos.y]);
       rotateMatrixFromAngle(transform, Axis.Z, angle + 0.5 * Math.PI);
       rotateMatrixFromDirection(transform, Axis.X, 0, 1);
+      swordTransform.set(transform);
+      translateMatrix(swordTransform, [-0.4, 0.5, 0]);
+      rotateMatrixFromDirection(swordTransform, Axis.X, 1, 1);
+      rotateMatrixFromDirection(swordTransform, Axis.Y, 1, 1);
     },
   });
 }

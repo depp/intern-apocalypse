@@ -52,6 +52,7 @@ export function identityMatrix(out: Matrix) {
 /** Axes we can rotate the around. */
 export const enum Axis {
   X,
+  Y,
   Z,
 }
 
@@ -69,7 +70,8 @@ export function rotateMatrixFromDirection(
   u: number,
   v: number,
 ) {
-  const [c1, c2, s1, s2] = axis ? [0, 5, 1, 4] : [5, 10, 6, 9];
+  const [c1, c2, s1, s2] =
+    axis == Axis.Z ? [0, 5, 1, 4] : axis ? [0, 10, 8, 2] : [5, 10, 6, 9];
   const a = 1 / Math.hypot(u, v);
   identityMatrix(scratchMatrix2);
   scratchMatrix2[c1] = scratchMatrix2[c2] = a * u;

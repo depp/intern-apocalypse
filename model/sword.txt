@@ -1,4 +1,5 @@
-origin 0 4 0
+# Origin in middle of handle.
+origin 0 2 0
 scale z 1/3
 scale 1/14
 symmetry xz
