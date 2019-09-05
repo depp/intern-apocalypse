@@ -155,9 +155,7 @@ async function sendDataFiles(ws: WebSocket, watcher: Watcher): Promise<void> {
     }, delay);
   }
   function onChange(base: string, files: FileInfo[]): void {
-    console.log('changes');
     for (const file of files) {
-      console.log(path.join(base, file.name));
       changes.add(path.join(base, file.name));
     }
     sendData();
