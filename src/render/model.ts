@@ -33,7 +33,7 @@ export function renderModels(): void {
     return;
   }
 
-  const m = models[Models.Sword];
+  const m = models[Models.Person];
   if (!m) {
     return;
   }

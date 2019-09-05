@@ -85,7 +85,7 @@ export function parseIntExact(chunk: Chunk): number {
  * chunk.
  */
 export function parseFloatExact(chunk: Chunk): number {
-  if (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(chunk.text)) {
+  if (!/^[-+]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(chunk.text)) {
     throw new SourceError(
       chunk,
       `invalid floating-point number: ${JSON.stringify(chunk.text)}`,

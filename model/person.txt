@@ -1,0 +1,40 @@
+origin 0 -9 0
+scale 1/16
+scale z 1/2
+symmetry xz
+
+# Upper body
+p u0 4 8 2
+p u1 7 0 2
+p u2 5 0 2
+p u3 3 4 3
+
+color 6e3a4d
+# front
+f u3 u2 u1 u0
+f u3 u0 u0.x u3.x
+f m0 u3 u3.x m0.x
+# sides
+f u3 m0 m0.z u3.z
+f u2 u3 u3.z u2.z
+f u1 u2 u2.z u1.z
+f u0 u1 u1.z u0.z
+# top
+f u0.x u0 u0.z u0.zx
+
+# Middle
+p m0 3 0 3
+
+# Lower body
+p l0 3 -1 3
+p l1 4 -9 2
+p l2 2 -9 2
+p l3 0 -2 3
+
+color bf8726
+f l3 l0 m0 m0.x l0.x
+f m0 l0 l0.z m0.z
+f l3 l2 l1 l0
+f l2 l3 l3.z l2.z
+f l1 l2 l2.z l1.z
+f l0 l1 l1.z l0.z
