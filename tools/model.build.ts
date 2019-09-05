@@ -19,6 +19,9 @@ import { printError } from './source';
 import { encode } from '../src/lib/data.encode';
 import { AssertionError } from '../src/debug/debug';
 
+const defsFile = 'src/model/models.ts';
+const dataFile = 'build/models.js';
+
 interface ModelInfo {
   name: string;
   filename: string;
@@ -137,12 +140,12 @@ async function generateSources(
       if (text == null) {
         return false;
       }
-      await fs.promises.writeFile('build/models.js', text, 'utf8');
+      await fs.promises.writeFile(dataFile, text, 'utf8');
       return true;
     })();
   }
   const defs = prettifyTypeScript(generateDefs(models));
-  await fs.promises.writeFile('src/model/models.ts', defs, 'utf8');
+  await fs.promises.writeFile(defsFile, defs, 'utf8');
   if (outData) {
     return await outData;
   }
@@ -166,9 +169,9 @@ class PackModels implements BuildAction {
     return this.params.inputs;
   }
   get outputs(): readonly string[] {
-    const outputs = ['src/model/models.js'];
+    const outputs = [defsFile];
     if (this.config == Config.Release) {
-      outputs.push('build/models.js');
+      outputs.push(dataFile);
     }
     return outputs;
   }
