@@ -146,13 +146,13 @@ async function makeWriter(args: AudioArgs): Promise<Writer> {
       },
     };
   }
-  let r = await file({ postfix: 'wav' });
+  let r = await file({ postfix: '.wav' });
   return {
     path: r.path,
     async write(data) {
       const { fd } = r;
       await new Promise((resolve, reject) =>
-        fs.ftruncate(fd, err => {
+        fs.ftruncate(fd, 0, err => {
           if (err) {
             reject(err);
           } else {
@@ -161,7 +161,7 @@ async function makeWriter(args: AudioArgs): Promise<Writer> {
         }),
       );
       await new Promise((resolve, reject) =>
-        fs.write(fd, data, 0, err => {
+        fs.write(fd, data, 0, data.length, 0, err => {
           if (err) {
             reject(err);
           } else {
@@ -189,6 +189,7 @@ function playAudio(path: string): Promise<void> {
   }
   return new Promise((resolve, reject) => {
     child_process.execFile(prog, [path], (err, stdout, stderr) => {
+      process.stderr.write(stdout);
       process.stderr.write(stderr);
       if (err) {
         reject(err);
