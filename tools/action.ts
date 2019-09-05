@@ -5,11 +5,11 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
-import * as chokidar from 'chokidar';
 import { SyncEvent } from 'ts-events';
 
-import { BuildArgs } from './config';
+import { BuildArgs, Config } from './config';
 import { recursive, listFilesWithExtensions, pathExt } from './util';
+import { Watcher, FileInfo } from './watch';
 
 export { recursive };
 
@@ -108,35 +108,17 @@ export type ActionEmitter = (ctx: BuildContext) => void;
 interface FileMetadata {
   filename: string;
   exists: boolean;
-  mtime: number;
-  dirty: boolean;
+  clock: number;
+  isOutput: boolean;
 }
 
 interface ActionCacheEntry {
+  /** Whether the action succeeded. */
   success: boolean;
-  inputs: FileMetadata[];
-}
-
-/** Return true if two lists of inputs are equal to each other. */
-function inputsEqual(
-  xinputs: readonly FileMetadata[],
-  yinputs: readonly FileMetadata[],
-): boolean {
-  if (xinputs.length != yinputs.length) {
-    return false;
-  }
-  for (let i = 0; i < xinputs.length; i++) {
-    const x = xinputs[i];
-    const y = yinputs[i];
-    if (
-      x.filename != y.filename ||
-      x.exists != y.exists ||
-      x.mtime != y.mtime
-    ) {
-      return false;
-    }
-  }
-  return true;
+  /** List of all inputs. */
+  inputs: readonly string[];
+  /** Maximum clock of any input. */
+  clock: number;
 }
 
 /** The state of a build operation. */
@@ -156,6 +138,18 @@ function formatHRTime(time: [number, number]): string {
   const [s, ns] = time;
   const sns = ns.toString().padStart(9, '0');
   return `${s}.${sns.substring(0, 3)}s`;
+}
+
+function filesEqual(x: readonly string[], y: readonly string[]): boolean {
+  if (x.length != y.length) {
+    return false;
+  }
+  for (let i = 0; i < x.length; i++) {
+    if (x[i] != y[i]) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**
@@ -184,6 +178,8 @@ export class Builder {
   private readonly inputs = new Set<string>();
   /** Indicates that the inputs have changed during the build. */
   private inputsDidChange = false;
+  /** Internal clock for comparing when files changed. */
+  private watchClock = 0;
 
   /** Called after the state changes. */
   readonly stateChanged = new SyncEvent<BuildState>();
@@ -214,43 +210,23 @@ export class Builder {
   }
 
   /** Update metadata for a single file, without reading from the cache. */
-  private async scanFileUncached(filename: string): Promise<FileMetadata> {
-    let file: FileMetadata;
+  private async scanOutput(filename: string, clock: number): Promise<void> {
+    let exists: boolean;
     try {
-      const stat = await fs.promises.stat(filename);
-      file = {
-        filename,
-        exists: true,
-        mtime: stat.mtimeMs,
-        dirty: false,
-      };
+      await fs.promises.stat(filename);
+      exists = true;
     } catch (e) {
       if (e.code != 'ENOENT') {
         throw e;
       }
-      file = {
-        filename,
-        exists: true,
-        mtime: 0,
-        dirty: false,
-      };
+      exists = false;
     }
-    this.fileCache.set(filename, file);
-    return file;
-  }
-
-  /** Get metadata for a single file. */
-  private scanFile(filename: string): Promise<FileMetadata> {
-    let file = this.fileCache.get(filename);
-    if (file != null && !file.dirty) {
-      return Promise.resolve(file);
-    }
-    return this.scanFileUncached(filename);
-  }
-
-  /** Get metadata for a list of input files. */
-  private scanInputs(filenames: readonly string[]): Promise<FileMetadata[]> {
-    return Promise.all(filenames.map(filename => this.scanFile(filename)));
+    this.fileCache.set(filename, {
+      filename,
+      exists,
+      clock,
+      isOutput: true,
+    });
   }
 
   /**
@@ -281,14 +257,18 @@ export class Builder {
   }
 
   /** Build the targets asynchronously, and rebuild them as inputs change. */
-  watch(): void {
-    const watcher = chokidar.watch(this.watchPaths, {
-      ignored: '.*',
-    });
-    watcher.on('change', (filename, stats) => this.didChange(filename, stats));
-    watcher.on('add', filename => this.didAddOrRemove(filename));
-    watcher.on('unlink', filename => this.didAddOrRemove(filename));
-    watcher.once('ready', () => setImmediate(() => this.watchLoop()));
+  async watch(watcher: Watcher): Promise<void> {
+    await watcher.subscribe('src', ['match', '*.ts'], files =>
+      this.didChange('src', files),
+    );
+    if (this.config.config == Config.Release) {
+      await watcher.subscribe(
+        'shader',
+        ['anyof', ['match', '*.frag'], ['match', '*.vert']],
+        files => this.didChange('shader', files),
+      );
+    }
+    setTimeout(() => this.watchLoop(), 100);
   }
 
   /** Main watch loop. */
@@ -330,6 +310,20 @@ export class Builder {
   }
 
   /**
+   * Get the clock value for the listed files.
+   */
+  private filesClock(names: readonly string[]): number {
+    let clock = 0;
+    for (const name of names) {
+      const file = this.fileCache.get(name);
+      if (file != null) {
+        clock = Math.max(file.clock, clock);
+      }
+    }
+    return clock;
+  }
+
+  /**
    * Run a single action if it is out of date.
    *
    * @returns True if the action executed successfully.
@@ -340,9 +334,13 @@ export class Builder {
     for (const input of inputs) {
       this.inputs.add(input);
     }
-    const curinputs = await this.scanInputs(inputs);
+    const clock = this.filesClock(inputs);
     const preventry = this.actionCache.get(name);
-    if (preventry != null && inputsEqual(curinputs, preventry.inputs)) {
+    if (
+      preventry != null &&
+      clock == preventry.clock &&
+      filesEqual(inputs, preventry.inputs)
+    ) {
       return preventry.success;
     }
     console.log(`Build ${name}`);
@@ -366,15 +364,19 @@ export class Builder {
     }
     // It is OK if the outputs are not created. Actions must deal with this.
     for (const output of outputs) {
-      this.scanFileUncached(output);
+      await this.scanOutput(output, clock);
     }
     this.actionCache.set(name, {
       success,
-      inputs: curinputs,
+      inputs,
+      clock,
     });
     const elapsed = process.hrtime(startTime);
     if (this.showBuildTimes) {
       console.log(`Action ${name} completed in ${formatHRTime(elapsed)}`);
+    }
+    if (this.filesClock(inputs) != clock) {
+      this.inputsDidChange = true;
     }
     return success;
   }
@@ -396,13 +398,35 @@ export class Builder {
     }
   }
 
-  /** Called when a watched file changes. */
-  private didChange(filename: string, stats: fs.Stats | undefined): void {
-    const file = this.fileCache.get(filename);
-    if (file != null) {
-      file.dirty = true;
+  /** Called when watched files change. */
+  private didChange(base: string, files: FileInfo[]): void {
+    const clock = ++this.watchClock;
+    let dirty = false;
+    for (const file of files) {
+      const filename = path.join(base, file.name);
+      const entry = this.fileCache.get(filename);
+      if (entry == null) {
+        this.fileCache.set(filename, {
+          filename,
+          exists: file.exists,
+          clock,
+          isOutput: false,
+        });
+        this.actions = null;
+        dirty = true;
+      } else if (!entry.isOutput) {
+        if (file.exists != entry.exists) {
+          this.actions = null;
+          dirty = true;
+        }
+        entry.exists = file.exists;
+        entry.clock = clock;
+      }
+      if (this.inputs.has(filename)) {
+        dirty = true;
+      }
     }
-    if (this.inputs.has(filename)) {
+    if (dirty) {
       this.markBuildDirty();
     }
   }
@@ -430,14 +454,6 @@ export class Builder {
       return true;
     }
     return false;
-  }
-
-  /** Called when a watched file is added or removed. */
-  private didAddOrRemove(filename: string): void {
-    if (this.fileMatchesAnyList(filename)) {
-      this.actions = null;
-      this.markBuildDirty();
-    }
   }
 
   /** Wait until the builder is dirty. */

@@ -15,12 +15,12 @@ import { serve } from './server';
 import { packShaders } from './shader';
 import { compileTS } from './typescript';
 import { pathWithExt, projectRoot, mkdir, removeAll } from './util';
+import { createWatcher } from './watch';
 import { createZip } from './zip';
 
 /**
  * Create the build actions.
  */
-
 function emitActions(ctx: BuildContext) {
   const shaderSources = ctx.listFilesWithExtensions('shader', [
     '.frag',
@@ -112,10 +112,12 @@ async function main(): Promise<void> {
     await mkdir('build/tmp');
     const builder = new Builder(emitActions, 'src', args);
     if (args.serve) {
-      serve(Object.assign({ builder }, args));
-      builder.watch();
+      const watcher = await createWatcher();
+      serve(Object.assign({ builder, watcher }, args));
+      builder.watch(watcher);
     } else if (args.watch) {
-      builder.watch();
+      const watcher = await createWatcher();
+      builder.watch(watcher);
     } else {
       console.log('Building...');
       const success = await builder.build();

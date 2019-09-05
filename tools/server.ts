@@ -4,8 +4,8 @@
 
 import * as fs from 'fs';
 import * as http from 'http';
+import * as path from 'path';
 
-import * as chokidar from 'chokidar';
 import * as express from 'express';
 import { Request, Response, NextFunction } from 'express';
 import * as send from 'send';
@@ -15,10 +15,12 @@ import * as WebSocket from 'ws';
 import { BuildState, Builder } from './action';
 import { Config, BuildArgs } from './config';
 import { projectName } from './info';
+import { Watcher, FileInfo } from './watch';
 
 /** Parameters for running the HTTP server. */
 export interface ServerParameters extends BuildArgs {
   builder: Builder;
+  watcher: Watcher;
 }
 
 interface StaticFile {
@@ -95,20 +97,16 @@ function sendBuildState(ws: WebSocket, builder: Builder): void {
 /**
  * Send data files to the client.
  */
-function sendDataFiles(ws: WebSocket): void {
+async function sendDataFiles(ws: WebSocket, watcher: Watcher): Promise<void> {
   // Delay between when we get FS changes and when we send the data, in
   // milliseconds.
   const delay = 100;
   const changes = new Set<string>();
-  const watcher = chokidar.watch(['shader/*.vert', 'shader/*.frag'], {
-    ignored: '.*',
-  });
   let timeout: NodeJS.Timeout | null = null;
   let executing = false;
   let closing = false;
-  let ready = false;
   function sendData(): void {
-    if (!ready || timeout != null || executing) {
+    if (timeout != null || executing) {
       return;
     }
     timeout = setTimeout(async () => {
@@ -156,25 +154,26 @@ function sendDataFiles(ws: WebSocket): void {
       }
     }, delay);
   }
-  function onChange(filename: string): void {
-    changes.add(filename);
+  function onChange(base: string, files: FileInfo[]): void {
+    console.log('changes');
+    for (const file of files) {
+      console.log(path.join(base, file.name));
+      changes.add(path.join(base, file.name));
+    }
     sendData();
   }
-  function onReady(): void {
-    ready = true;
-    sendData();
-  }
+  const handle = await watcher.subscribe(
+    'shader',
+    ['anyof', ['match', '*.vert'], ['match', '*.frag']],
+    files => onChange('shader', files),
+  );
   ws.on('close', () => {
     closing = true;
-    watcher.close();
+    watcher.unsubscribe(handle);
     if (timeout != null) {
       clearTimeout(timeout);
     }
   });
-  watcher.on('add', onChange);
-  watcher.on('unlink', onChange);
-  watcher.on('change', onChange);
-  watcher.on('ready', onReady);
 }
 
 /**
@@ -193,7 +192,7 @@ function sendPings(ws: WebSocket): void {
 function handleWebSocket(options: ServerParameters, ws: WebSocket): void {
   const { builder } = options;
   sendBuildState(ws, builder);
-  sendDataFiles(ws);
+  sendDataFiles(ws, options.watcher);
   sendPings(ws);
 }
 
