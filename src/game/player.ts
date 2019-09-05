@@ -17,6 +17,14 @@ import { ModelInstance, modelInstances } from './model';
 import { ModelAsset } from '../model/models';
 import { playerSettings } from '../lib/settings';
 import { clamp } from '../lib/util';
+import {
+  matrixNew,
+  identityMatrix,
+  translateMatrix,
+  Axis,
+  rotateMatrixFromAngle,
+  rotateMatrixFromDirection,
+} from '../lib/matrix';
 
 /**
  * Current 2D position of the player.
@@ -25,13 +33,12 @@ export let playerPos: Vector = { x: 0, y: 0 };
 
 /** Spawn the player in the level. */
 export function spawnPlayer(): void {
-  const pos = new Float32Array(3);
+  const transform = matrixNew();
   const model: ModelInstance = {
     model: ModelAsset.Person,
-    pos,
-    angle: 0,
+    transform,
   };
-  pos[2] = 0;
+  let angle = 0;
   modelInstances.push(model);
   entities.push({
     update() {
@@ -45,15 +52,17 @@ export function spawnPlayer(): void {
       }
       const distance = playerSettings.speed * frameDT;
       playerPos = walk(playerPos, scaleVector(walkVector, distance));
-      pos[0] = playerPos.x;
-      pos[1] = playerPos.y;
       if (magSquared) {
         const targetAngle = Math.atan2(walkVector.y, walkVector.x);
-        let deltaAngle = canonicalAngle(targetAngle - model.angle);
+        let deltaAngle = canonicalAngle(targetAngle - angle);
         const turnAmount = playerSettings.turnSpeed * frameDT;
         deltaAngle = clamp(deltaAngle, -turnAmount, turnAmount);
-        model.angle = canonicalAngle(model.angle + deltaAngle);
+        angle = canonicalAngle(angle + deltaAngle);
       }
+      identityMatrix(transform);
+      translateMatrix(transform, [playerPos.x, playerPos.y]);
+      rotateMatrixFromAngle(transform, Axis.Z, angle + 0.5 * Math.PI);
+      rotateMatrixFromDirection(transform, Axis.X, 0, 1);
     },
   });
 }

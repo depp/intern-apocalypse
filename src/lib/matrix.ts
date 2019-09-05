@@ -14,6 +14,11 @@
 /** A 4x4 matrix. */
 export type Matrix = Float32Array;
 
+/** Create a new 4x4 matrix. */
+export function matrixNew(): Matrix {
+  return new Float32Array(16);
+}
+
 /** A scratch matrix for multiplication. */
 const scratchMatrix = new Float32Array(16);
 /** A second scratch matrix for other operations. */
