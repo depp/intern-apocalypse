@@ -16,6 +16,8 @@ export type Matrix = Float32Array;
 
 /** A scratch matrix for multiplication. */
 const scratchMatrix = new Float32Array(16);
+/** A second scratch matrix for other operations. */
+const scratchMatrix2 = new Float32Array(16);
 
 /** Compute out = a * b. Aliasing is permitted. */
 export function matrixMultiply(out: Matrix, a: Matrix, b: Matrix): void {
@@ -49,13 +51,14 @@ export const enum Axis {
 }
 
 /**
- * Set an output to a rotation matrix using a direction rather than angles.
+ * Right-multiply a matrix by a rotation matrix using a direction rather than
+ * angles.
  * @param out Output matrix.
  * @param axis Axis to rotate around.
  * @param u Second axis component (the axis after the main axis).
  * @param v Third axis component (the axis before the main axis).
  */
-export function rotationMatrixFromDirection(
+export function rotateMatrixFromDirection(
   out: Matrix,
   axis: Axis,
   u: number,
@@ -63,43 +66,42 @@ export function rotationMatrixFromDirection(
 ) {
   const [c1, c2, s1, s2] = axis ? [0, 5, 1, 4] : [5, 10, 6, 9];
   const a = 1 / Math.hypot(u, v);
-  identityMatrix(out);
-  out[c1] = out[c2] = a * u;
-  out[s2] = -(out[s1] = a * v);
+  identityMatrix(scratchMatrix2);
+  scratchMatrix2[c1] = scratchMatrix2[c2] = a * u;
+  scratchMatrix2[s2] = -(scratchMatrix2[s1] = a * v);
+  matrixMultiply(out, out, scratchMatrix2);
 }
 
 /**
- * Set a matrix to a rotation matrix.
+ * Right-multiply a matrix by a rotation matrix.
  * @param out Output matrix.
  * @param axis Axis to rotate around.
  * @param angle Angle to rotate.
  */
-export function rotationMatrixFromAngle(
-  out: Matrix,
-  axis: Axis,
-  angle: number,
-) {
-  rotationMatrixFromDirection(out, axis, Math.cos(angle), Math.sin(angle));
+export function rotateMatrixFromAngle(out: Matrix, axis: Axis, angle: number) {
+  rotateMatrixFromDirection(out, axis, Math.cos(angle), Math.sin(angle));
 }
 
 /**
- * Set a matrix to a translation matrix.
+ * Right-multiply a matrix by a translation matrix.
  * @param out Output matrix.
  * @param value Vector to translate by.
  */
-export function translationMatrix(out: Matrix, value: ArrayLike<number>): void {
-  identityMatrix(out);
-  out.set(value, 12);
+export function translateMatrix(out: Matrix, value: ArrayLike<number>): void {
+  identityMatrix(scratchMatrix2);
+  scratchMatrix2.set(value, 12);
+  matrixMultiply(out, out, scratchMatrix2);
 }
 
 /**
- * Set a matrix to a scale matrix.
+ * Right-multiply a matrix by a scaling matrix.
  * @param out Output matrix.
  * @param scale The X, Y, Z scaling parameters.
  */
 export function scaleMatrix(out: Matrix, scale: number[]): void {
-  identityMatrix(out);
+  identityMatrix(scratchMatrix2);
   for (let i = 0; i < scale.length; i++) {
     out[i * 5] = scale[i];
   }
+  matrixMultiply(out, out, scratchMatrix2);
 }

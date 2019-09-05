@@ -5,18 +5,14 @@
 import { cameraSettings } from '../debug/controls';
 import { canvas } from '../lib/global';
 import {
-  matrixMultiply,
   Axis,
-  rotationMatrixFromDirection,
-  translationMatrix,
+  rotateMatrixFromDirection,
+  translateMatrix,
 } from '../lib/matrix';
 import { playerPos } from './player';
 
 /** The view projection matrix. */
 export const cameraMatrix = new Float32Array(16);
-
-/** Matrix to be multiplied into the camera matrix. */
-const componentMatrix = new Float32Array(16);
 
 /**
  * Update the camera.
@@ -55,14 +51,12 @@ export function updateCamera(): void {
 
   const a = 1 / Math.hypot(elevation, 1);
   // Rotate.
-  rotationMatrixFromDirection(componentMatrix, Axis.X, elevation, -1);
-  matrixMultiply(cameraMatrix, cameraMatrix, componentMatrix);
+  rotateMatrixFromDirection(cameraMatrix, Axis.X, elevation, -1);
 
   // Transpose.
-  translationMatrix(componentMatrix, [
+  translateMatrix(cameraMatrix, [
     -playerPos.x,
     distance * a - playerPos.y + adjust,
     -distance * a * elevation - 0.5,
   ]);
-  matrixMultiply(cameraMatrix, cameraMatrix, componentMatrix);
 }

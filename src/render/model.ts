@@ -5,12 +5,12 @@
 import { cameraMatrix } from '../game/camera';
 import { gl } from '../lib/global';
 import {
-  translationMatrix,
+  translateMatrix,
   identityMatrix,
-  rotationMatrixFromDirection,
+  rotateMatrixFromDirection,
   Axis,
   matrixMultiply,
-  rotationMatrixFromAngle,
+  rotateMatrixFromAngle,
 } from '../lib/matrix';
 import { modelInstances } from '../game/model';
 import { model as modelShader } from './shaders';
@@ -18,7 +18,6 @@ import { models } from '../model/models';
 
 /** The model transformation matrix. */
 const modelMatrix = new Float32Array(16);
-const mulMatrix = new Float32Array(16);
 
 /**
  * Render all models in the level.
@@ -58,11 +57,9 @@ export function renderModels(): void {
 
     // Uniforms
     identityMatrix(modelMatrix);
-    translationMatrix(modelMatrix, instance.pos);
-    rotationMatrixFromAngle(mulMatrix, Axis.Z, instance.angle + 0.5 * Math.PI);
-    matrixMultiply(modelMatrix, modelMatrix, mulMatrix);
-    rotationMatrixFromDirection(mulMatrix, Axis.X, 0, 1);
-    matrixMultiply(modelMatrix, modelMatrix, mulMatrix);
+    translateMatrix(modelMatrix, instance.pos);
+    rotateMatrixFromAngle(modelMatrix, Axis.Z, instance.angle + 0.5 * Math.PI);
+    rotateMatrixFromDirection(modelMatrix, Axis.X, 0, 1);
     gl.uniformMatrix4fv(p.ViewProjection, false, cameraMatrix);
     gl.uniformMatrix4fv(p.Model, false, modelMatrix);
 
