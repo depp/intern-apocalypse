@@ -2,7 +2,7 @@
  * The camere.
  */
 
-import { cameraSettings } from '../debug/controls';
+import { cameraSettings } from '../lib/settings';
 import { canvas } from '../lib/global';
 import {
   Axis,

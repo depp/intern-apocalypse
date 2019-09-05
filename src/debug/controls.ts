@@ -1,46 +1,19 @@
 import * as datTypes from 'dat.gui';
 
+import { debugView, cameraSettings, playerSettings } from '../lib/settings';
+
 // =============================================================================
 // Settings
 // =============================================================================
 
 /** Default settings for debug view. */
-const debugViewDefaults = {
-  level: false,
-  centroids: false,
-  player: false,
-};
-
-/** Settings for debug view. */
-export const debugView = Object.assign({}, debugViewDefaults);
+const debugViewDefaults = Object.assign({}, debugView);
 
 /** Default settings for the camera. */
-const cameraDefaults = {
-  /** Camera distance from player, in meters. */
-  distance: 10,
-  /** Camera elevation, as a slope. */
-  elevation: 1,
-  /** Zoom. This is proportional to the lens focal length. */
-  zoom: 2,
-  /** Near Z clip plane distance. */
-  zNear: 0.1,
-  /** Far Z clip plane distance. */
-  zFar: 20,
-};
-
-/** Settings for the camera. */
-export const cameraSettings = Object.assign({}, cameraDefaults);
+const cameraDefaults = Object.assign({}, cameraSettings);
 
 /** Default settings for player movement. */
-const playerDefaults = {
-  /** Player movement speed, in meters per second. */
-  speed: 5,
-  /** Player turning speed, in radians per second. */
-  turnSpeed: 20,
-};
-
-/** Settings for the player. */
-export const playerSettings = Object.assign({}, playerDefaults);
+const playerDefaults = Object.assign({}, playerSettings);
 
 // =============================================================================
 // Load / Save / UI

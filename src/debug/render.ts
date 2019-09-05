@@ -2,7 +2,7 @@
  * Debug renderer. Draws the game using simple 2D graphics.
  */
 
-import { debugView } from './controls';
+import { debugView } from '../lib/settings';
 import { ctx, initContext } from './global';
 import { resetLevelDebug, drawLevel } from './level';
 import { frameDT } from '../game/time';

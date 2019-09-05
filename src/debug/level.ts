@@ -3,7 +3,7 @@
  */
 
 import { AssertionError, DebugColor, debugColors } from './debug';
-import { debugView } from './controls';
+import { debugView } from '../lib/settings';
 import { ctx } from './global';
 import { Cell, Edge } from '../game/level';
 import { Vector } from '../lib/math';

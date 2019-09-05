@@ -15,7 +15,7 @@ import { walk } from './walk';
 import { entities } from './world';
 import { ModelInstance, modelInstances } from './model';
 import { ModelAsset } from '../model/models';
-import { playerSettings } from '../debug/controls';
+import { playerSettings } from '../lib/settings';
 import { clamp } from '../lib/util';
 
 /**
