@@ -106,9 +106,7 @@ async function generateData(models: ModelInfo[]): Promise<string | null> {
     if (item == null) {
       return null;
     }
-    if (data != '') {
-      data += ' ';
-    }
+    data += ' ';
     data += item;
   }
   let out = '';
@@ -116,7 +114,7 @@ async function generateData(models: ModelInfo[]): Promise<string | null> {
   out += "import { decode } from '../lib/data.encode';\n";
   out += "import { loadModel } from './model';\n";
   out += 'const data = ';
-  out += JSON.stringify(data);
+  out += JSON.stringify(data.substring(1));
   out += ';\n';
   out +=
     "export let models = data.split(' ').map(item => loadModel(decode(item)));\n";
