@@ -7,6 +7,7 @@ import * as program from 'commander';
 import chalk from 'chalk';
 
 import { BuildContext, Builder, recursive } from './action';
+import { packAudio } from './audio.build';
 import { Config, BuildArgs } from './config';
 import { evalHTML } from './html';
 import { projectName, sizeTarget } from './info';
@@ -33,6 +34,10 @@ function emitActions(ctx: BuildContext) {
   const modelSources = ctx.listFilesWithExtensions('model', ['.txt']);
   packModels(ctx, {
     inputs: modelSources,
+  });
+  const audioSources = ctx.listFilesWithExtensions('audio', ['.lisp']);
+  packAudio(ctx, {
+    inputs: audioSources,
   });
   const tsSources = ctx.listFilesWithExtensions('src', ['.ts'], recursive);
   compileTS(ctx, {

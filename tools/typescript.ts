@@ -267,6 +267,7 @@ class CompileTS implements BuildAction {
       const copies: [string, string][] = [
         ['build/shaders.js', 'build/src/render/shaders.js'],
         ['build/models.js', 'build/src/model/models.js'],
+        ['build/sounds.js', 'build/src/audio/sounds.js'],
       ];
       await Promise.all(
         copies.map(async ([src, dest]) => {

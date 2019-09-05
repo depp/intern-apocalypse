@@ -13,6 +13,7 @@ import { renderDebug } from './debug/render';
 import { watchShaders } from './debug/shader';
 import { gl } from './lib/global';
 import { initialize, main } from './main';
+import { watchSounds } from './debug/audio';
 
 /**
  * Main update loop for debug builds.
@@ -36,6 +37,7 @@ function mainDebug(curTimeMS: DOMHighResTimeStamp): void {
 if (gl) {
   watchShaders();
   watchModels();
+  watchSounds();
   startDebugGUI();
   initialize();
   requestAnimationFrame(mainDebug);
