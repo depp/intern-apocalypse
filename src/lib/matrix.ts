@@ -12,17 +12,17 @@
 // m_ij = m[i+j*4]
 
 /** A 4x4 matrix. */
-export type Matrix = Float32Array;
+export type Matrix = Float32Array & { _brand: 'Matrix' };
 
 /** Create a new 4x4 matrix. */
 export function matrixNew(): Matrix {
-  return new Float32Array(16);
+  return new Float32Array(16) as Matrix;
 }
 
 /** A scratch matrix for multiplication. */
-const scratchMatrix = new Float32Array(16);
+const scratchMatrix = matrixNew();
 /** A second scratch matrix for other operations. */
-const scratchMatrix2 = new Float32Array(16);
+const scratchMatrix2 = matrixNew();
 
 /** Compute out = a * b. Aliasing is permitted. */
 export function matrixMultiply(out: Matrix, a: Matrix, b: Matrix): void {

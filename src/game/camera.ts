@@ -8,11 +8,12 @@ import {
   Axis,
   rotateMatrixFromDirection,
   translateMatrix,
+  matrixNew,
 } from '../lib/matrix';
 import { playerPos } from './player';
 
 /** The view projection matrix. */
-export const cameraMatrix = new Float32Array(16);
+export const cameraMatrix = matrixNew();
 
 /**
  * Update the camera.
