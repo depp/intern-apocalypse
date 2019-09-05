@@ -21,6 +21,11 @@ export function vector(x: number, y: number): Vector {
 /** The zero vector. */
 export const zeroVector = vector(0, 0);
 
+/** Multiply a vector by a scalar. */
+export function scaleVector(u: Readonly<Vector>, scale: number): Vector {
+  return vector(u.x * scale, u.y * scale);
+}
+
 /** Compute the length of a vector, squared. */
 export function lengthSquared(u: Readonly<Vector>): number {
   return u.x ** 2 + u.y ** 2;

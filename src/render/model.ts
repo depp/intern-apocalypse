@@ -10,6 +10,7 @@ import {
   rotationMatrixFromDirection,
   Axis,
   matrixMultiply,
+  rotationMatrixFromAngle,
 } from '../lib/matrix';
 import { modelInstances } from '../game/model';
 import { model as modelShader } from './shaders';
@@ -58,6 +59,8 @@ export function renderModels(): void {
     // Uniforms
     identityMatrix(modelMatrix);
     translationMatrix(modelMatrix, instance.pos);
+    rotationMatrixFromAngle(mulMatrix, Axis.Z, instance.angle + 0.5 * Math.PI);
+    matrixMultiply(modelMatrix, modelMatrix, mulMatrix);
     rotationMatrixFromDirection(mulMatrix, Axis.X, 0, 1);
     matrixMultiply(modelMatrix, modelMatrix, mulMatrix);
     gl.uniformMatrix4fv(p.ViewProjection, false, cameraMatrix);

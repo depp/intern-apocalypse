@@ -3,15 +3,13 @@
  */
 
 import { Button, buttonAxis } from '../lib/input';
-import { Vector } from '../lib/math';
+import { Vector, vector, lengthSquared, scaleVector } from '../lib/math';
 import { frameDT } from './time';
 import { walk } from './walk';
 import { entities } from './world';
 import { ModelInstance, modelInstances } from './model';
 import { ModelAsset } from '../model/models';
-
-/** Player walking speed, in meters per second. */
-const playerSpeed = 5.0;
+import { playerSettings } from '../debug/controls';
 
 /**
  * Current 2D position of the player.
@@ -24,17 +22,27 @@ export function spawnPlayer(): void {
   const model: ModelInstance = {
     model: ModelAsset.Person,
     pos,
+    angle: 0,
   };
   pos[2] = 0;
   modelInstances.push(model);
   entities.push({
     update() {
-      playerPos = walk(playerPos, {
-        x: buttonAxis(Button.Left, Button.Right) * playerSpeed * frameDT,
-        y: buttonAxis(Button.Backward, Button.Forward) * playerSpeed * frameDT,
-      });
+      let walkVector = vector(
+        buttonAxis(Button.Left, Button.Right),
+        buttonAxis(Button.Backward, Button.Forward),
+      );
+      const magSquared = lengthSquared(walkVector);
+      if (magSquared > 1) {
+        walkVector = scaleVector(walkVector, 1 / Math.sqrt(magSquared));
+      }
+      const distance = playerSettings.speed * frameDT;
+      playerPos = walk(playerPos, scaleVector(walkVector, distance));
       pos[0] = playerPos.x;
       pos[1] = playerPos.y;
+      if (magSquared) {
+        model.angle = Math.atan2(walkVector.y, walkVector.x);
+      }
     },
   });
 }

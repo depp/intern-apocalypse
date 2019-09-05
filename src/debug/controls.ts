@@ -31,6 +31,17 @@ const cameraDefaults = {
 /** Settings for the camera. */
 export const cameraSettings = Object.assign({}, cameraDefaults);
 
+/** Default settings for player movement. */
+const playerDefaults = {
+  /** Player movement speed, in meters per second. */
+  speed: 5,
+  /** Player turning speed, in radians per second. */
+  turnSpeed: 8,
+};
+
+/** Settings for the player. */
+export const playerSettings = Object.assign({}, playerDefaults);
+
 // =============================================================================
 // Load / Save / UI
 // =============================================================================
@@ -58,6 +69,7 @@ function section<T extends object>(
 const categories: readonly Section[] = [
   section('debugView', debugView, debugViewDefaults),
   section('camera', cameraSettings, cameraDefaults),
+  section('player', playerSettings, playerDefaults),
 ];
 
 /** Save debug settings to local storage. */
@@ -184,6 +196,11 @@ function startGUI(dat: typeof datTypes): void {
     gui.add(data, 'zoom', 1, 5);
     gui.add(data, 'zNear', 0.1, 5.0);
     gui.add(data, 'zFar', 10.0, 100.0);
+  });
+
+  folder('Player', playerSettings, playerDefaults, (gui, data) => {
+    gui.add(data, 'speed', 1, 10);
+    gui.add(data, 'turnSpeed', 5, 30);
   });
 }
 

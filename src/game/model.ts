@@ -6,6 +6,8 @@ export interface ModelInstance {
   model: ModelAsset;
   /** Model origin, 3D vector. */
   pos: Float32Array;
+  /** Angle the model is facing on the XY plane (0 = +X). */
+  angle: number;
 }
 
 export const modelInstances: ModelInstance[] = [];
