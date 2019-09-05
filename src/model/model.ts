@@ -7,6 +7,7 @@ import { gl } from '../lib/global';
 import { AssertionError } from '../debug/debug';
 import { dataMax, decodeExponential } from '../lib/data.encode';
 import { clamp } from '../lib/util';
+import { createNormals } from './normal';
 
 /** A loaded model. */
 export interface Model {
@@ -14,6 +15,8 @@ export interface Model {
   pos: WebGLBuffer | null;
   /** Color vertex data. */
   color: WebGLBuffer | null;
+  /** Vertex normals. */
+  normal: WebGLBuffer | null;
   /** Index array. */
   index: WebGLBuffer | null;
   /** Number of elements in index array. */
@@ -46,9 +49,9 @@ export function loadModel(data: Uint8Array): Model {
   const maxSize = 1000;
   let pos = 7 + data[0] * 3;
   const scale = new Float32Array(data.slice(4, 7)).map(decodeExponential);
-  const posData = new Float32Array(maxSize);
-  const colorData = new Uint32Array(maxSize);
-  const indexData = new Uint16Array(maxSize);
+  let posData = new Float32Array(maxSize);
+  let colorData = new Uint32Array(maxSize);
+  let indexData = new Uint16Array(maxSize);
   let color = 0;
   let symmetry = 0;
   let pointIndex = 0;
@@ -110,30 +113,26 @@ export function loadModel(data: Uint8Array): Model {
         break;
     }
   }
+  posData = posData.subarray(0, pointIndex * 3);
+  colorData = colorData.subarray(0, pointIndex);
+  indexData = indexData.subarray(0, indexPos);
+  const normalData = createNormals(posData, indexData);
   const posBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-  gl.bufferData(
-    gl.ARRAY_BUFFER,
-    posData.subarray(0, pointIndex * 3),
-    gl.STATIC_DRAW,
-  );
+  gl.bufferData(gl.ARRAY_BUFFER, posData, gl.STATIC_DRAW);
   const colorBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  gl.bufferData(
-    gl.ARRAY_BUFFER,
-    colorData.subarray(0, pointIndex),
-    gl.STATIC_DRAW,
-  );
+  gl.bufferData(gl.ARRAY_BUFFER, colorData, gl.STATIC_DRAW);
+  const normalBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, normalData, gl.STATIC_DRAW);
   const indexBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-  gl.bufferData(
-    gl.ELEMENT_ARRAY_BUFFER,
-    indexData.subarray(0, indexPos),
-    gl.STATIC_DRAW,
-  );
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexData, gl.STATIC_DRAW);
   return {
     pos: posBuffer,
     color: colorBuffer,
+    normal: normalBuffer,
     index: indexBuffer,
     count: indexPos,
   };
@@ -146,4 +145,5 @@ export function unloadModel(model: Model): void {
   gl.deleteBuffer(model.pos);
   gl.deleteBuffer(model.color);
   gl.deleteBuffer(model.index);
+  gl.deleteBuffer(model.normal);
 }

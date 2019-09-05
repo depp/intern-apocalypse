@@ -87,9 +87,14 @@ export function compileShader(
     gl.shaderSource(shader, source);
     gl.compileShader(shader);
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      console.error(
-        'Failed to compile shader.\n' + gl.getShaderInfoLog(shader),
-      );
+      if (isDebug) {
+        console.error(
+          'Failed to compile shader.\n' + gl.getShaderInfoLog(shader),
+        );
+        gl.deleteShader(shader);
+        gl.deleteProgram(program);
+      }
+      return { program: null };
     }
     gl.attachShader(program, shader);
     gl.deleteShader(shader);
@@ -99,9 +104,13 @@ export function compileShader(
   }
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-    console.error(
-      'Failed to link shader program.\n' + gl.getProgramInfoLog(program),
-    );
+    if (isDebug) {
+      console.error(
+        'Failed to link shader program.\n' + gl.getProgramInfoLog(program),
+      );
+      gl.deleteProgram(program);
+    }
+    return { program: null };
   }
 
   if (isDebug) {

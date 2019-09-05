@@ -18,7 +18,7 @@ export function getShaderSpecs(): ShaderSpec[] {
       name: 'level',
       vertex: 'level.vert',
       fragment: 'level.frag',
-      attributes: ['aPos', 'aColor'],
+      attributes: ['aPos', 'aColor', 'aNormal'],
       uniforms: ['ModelViewProjection'],
       object: level,
     },
