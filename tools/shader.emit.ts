@@ -4,7 +4,7 @@
 
 import { Program } from './shader.programs';
 import { Declarations, Shader } from './shader.syntax';
-import { convertName } from './util';
+import { generatedHeader } from './util';
 
 interface Output {
   stub: string;
@@ -71,7 +71,7 @@ export function emitLoader(
   }
 
   let out =
-    '/* This code is automatically generated. */\n' +
+    generatedHeader +
     "import { compileShader, ShaderProgram, ShaderSpec } from './shader';\n" +
     '\n';
   out += stubs;
@@ -284,7 +284,7 @@ export function emitReleaseData(
       return id;
     });
     const bindings = program.attributes.map((_, i) => attrMap[i]);
-    shaders += `export let ${program.name} = compileShader(`;
+    shaders += `export let ${program.name.lowerCase} = compileShader(`;
     shaders += encodeStrings(uniforms);
     shaders += ', ';
     shaders += encodeStrings(bindings);
