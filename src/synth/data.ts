@@ -2,6 +2,10 @@
  * Data encodings for the syntheszier.
  */
 
+import { decodeExponential, encodeExponential } from '../lib/data.encode';
+
+export { decodeExponential, encodeExponential };
+
 /** Decode a bipolar linear ratio from the data stream. */
 export function decodeLinear(x: number): number {
   // This gives us a range of -1 to +1, with an extra 1.02.
@@ -11,20 +15,6 @@ export function decodeLinear(x: number): number {
 /** Encode a bipolar linear value for the data stream. */
 export function encodeLinear(x: number): number {
   return (x + 1) * 45;
-}
-
-/** Decode an exponential value from the data stream. */
-export function decodeExponential(x: number): number {
-  // The range is -63 dB to +20 dB.
-  return 0.9 ** (69 - x);
-}
-
-/** Encode an exponential value for the data stream */
-export function encodeExponential(x: number): number {
-  if (x <= 0) {
-    return -1;
-  }
-  return 69 - Math.log(x) / Math.log(0.9);
 }
 
 /** Decode a musical note frequency from the data stream. */

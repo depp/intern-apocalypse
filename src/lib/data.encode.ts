@@ -43,3 +43,29 @@ export function encode(a: Uint8Array): string {
     ),
   );
 }
+
+/** Quantize and clamp a number for inclusion in the data stream. */
+export function toDataClamp(x: number): number {
+  const y = Math.round(x);
+  if (y < 0) {
+    return 0;
+  } else if (y > dataMax) {
+    return dataMax;
+  } else {
+    return y;
+  }
+}
+
+/** Decode an exponential value from the data stream. */
+export function decodeExponential(x: number): number {
+  // The range is -63 dB to +20 dB.
+  return 0.9 ** (69 - x);
+}
+
+/** Encode an exponential value for the data stream */
+export function encodeExponential(x: number): number {
+  if (x <= 0) {
+    return -1;
+  }
+  return 69 - Math.log(x) / Math.log(0.9);
+}

@@ -50,8 +50,6 @@ export function renderModels(): void {
   matrixMultiply(modelMatrix, modelMatrix, mulMatrix);
   rotationMatrixFromAngle(mulMatrix, Axis.X, 4 * Math.PI * rot);
   matrixMultiply(modelMatrix, modelMatrix, mulMatrix);
-  scaleMatrix(mulMatrix, [0.2, 0.2, 0.2 / 3]);
-  matrixMultiply(modelMatrix, modelMatrix, mulMatrix);
 
   gl.useProgram(p.program);
   gl.enable(gl.CULL_FACE);

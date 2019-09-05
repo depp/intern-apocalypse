@@ -79,3 +79,48 @@ export function parseIntExact(chunk: Chunk): number {
   }
   return n;
 }
+
+/**
+ * Parse a floating-point number, and throw for any non-number parts of the
+ * chunk.
+ */
+export function parseFloatExact(chunk: Chunk): number {
+  if (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(chunk.text)) {
+    throw new SourceError(
+      chunk,
+      `invalid floating-point number: ${JSON.stringify(chunk.text)}`,
+    );
+  }
+  const num = parseFloat(chunk.text);
+  if (!isFinite(num)) {
+    throw new SourceError(
+      chunk,
+      `floating-point number out of range: ${JSON.stringify(chunk.text)}`,
+    );
+  }
+  return num;
+}
+
+/** Parse a numeric fraction or number. */
+export function parseFraction(chunk: Chunk): number {
+  const slash = chunk.text.indexOf('/');
+  if (slash != -1) {
+    const num = parseFloatExact({
+      text: chunk.text.substring(0, slash),
+      sourcePos: chunk.sourcePos,
+    });
+    const denom = parseFloatExact({
+      text: chunk.text.substring(slash + 1),
+      sourcePos: chunk.sourcePos + slash + 1,
+    });
+    if (denom == 0) {
+      throw new SourceError(chunk, 'divide by zero');
+    }
+    const result = num / denom;
+    if (!isFinite(result)) {
+      throw new SourceError(chunk, 'overflow');
+    }
+    return result;
+  }
+  return parseFloatExact(chunk);
+}

@@ -9,8 +9,9 @@ import {
   splitFields,
   parseIntExact,
   Chunk,
+  parseFraction,
 } from '../lib/textdata';
-import { dataMax } from '../lib/data.encode';
+import { dataMax, encodeExponential, toDataClamp } from '../lib/data.encode';
 import { DataWriter } from '../lib/data.writer';
 import { AssertionError } from '../debug/debug';
 import { Opcode } from './defs';
@@ -24,6 +25,8 @@ enum Kind {
   Face,
   Color,
   Symmetry,
+  Origin,
+  Scale,
 }
 
 /** Base type for items in a parsed model. */
@@ -63,7 +66,19 @@ interface Symmetry extends ItemBase {
   flags: number;
 }
 
-type Item = Point | Face | Color | Symmetry;
+/** A parsed origin directive in the model. */
+interface Origin extends ItemBase {
+  kind: Kind.Origin;
+  origin: number[];
+}
+
+/** A parsed scale directive in the model. */
+interface Scale extends ItemBase {
+  kind: Kind.Scale;
+  scale: number[];
+}
+
+type Item = Point | Face | Color | Symmetry | Origin | Scale;
 
 /** Parse a field that contains a color. */
 function parseColorField(chunk: Chunk): number[] {
@@ -105,23 +120,17 @@ function parseColorField(chunk: Chunk): number[] {
   return arr;
 }
 
-/** Parse symmetry, and return the flags. */
-function parseSymmetryFlags(sourcePos: number, text: string): number {
+/** Parse a list of axes, and return the flags. */
+function parseAxes(chunk: Chunk): number {
   let flags = 0;
-  for (const c of text) {
+  for (const c of chunk.text) {
     const i = 'xyz'.indexOf(c);
     if (i == -1) {
-      throw new SourceError(
-        { text, sourcePos },
-        `unknown axis ${JSON.stringify(c)}`,
-      );
+      throw new SourceError(chunk, `unknown axis ${JSON.stringify(c)}`);
     }
     const mask = 1 << i;
     if ((flags & mask) != 0) {
-      throw new SourceError(
-        { text, sourcePos },
-        `duplicate axis ${JSON.stringify(c)}`,
-      );
+      throw new SourceError(chunk, `duplicate axis ${JSON.stringify(c)}`);
     }
     flags |= mask;
   }
@@ -178,7 +187,10 @@ deftype('f', function parseFace(loc: SourceSpan, fields: Chunk[]): Item {
       if (dot == text.length) {
         throw new SourceError(fields[dot], 'point reference has empty flags');
       }
-      flags = parseSymmetryFlags(sourcePos + dot + 1, text.substring(dot + 1));
+      flags = parseAxes({
+        text: text.substring(dot + 1),
+        sourcePos: sourcePos + dot + 1,
+      });
       text = text.substring(0, dot);
     }
     if (!validName.test(text)) {
@@ -210,8 +222,58 @@ deftype('symmetry', function parseSymmetry(
       `symmetry requires 1 argument (symmetry), given ${fields.length}`,
     );
   }
-  const flags = parseSymmetryFlags(fields[0].sourcePos, fields[0].text);
+  const flags = parseAxes(fields[0]);
   return { kind: Kind.Symmetry, loc, flags };
+});
+
+deftype('origin', function parseOrigin(loc: SourceSpan, fields: Chunk[]): Item {
+  if (fields.length != 3) {
+    throw new SourceError(
+      loc,
+      `origin requires 3 arguments (x y z), given ${fields.length}`,
+    );
+  }
+  const origin: number[] = [];
+  for (let i = 0; i < 3; i++) {
+    origin.push(parseIntExact(fields[i]));
+  }
+  return { kind: Kind.Origin, loc, origin };
+});
+
+deftype('scale', function parseScale(loc: SourceSpan, fields: Chunk[]): Item {
+  const scale = [1, 1, 1];
+  switch (fields.length) {
+    case 1:
+      {
+        const value = parseFraction(fields[0]);
+        for (let i = 0; i < 3; i++) {
+          scale[i] = value;
+        }
+      }
+      break;
+    case 2:
+      {
+        const flags = parseAxes(fields[0]);
+        const value = parseFraction(fields[1]);
+        for (let i = 0; i < 3; i++) {
+          if (flags & (1 << i)) {
+            scale[i] = value;
+          }
+        }
+      }
+      break;
+    case 3:
+      for (let i = 0; i < 3; i++) {
+        scale[i] = parseFraction(fields[i]);
+      }
+      break;
+    default:
+      throw new SourceError(
+        loc,
+        `scale requires 1, 2, or 3 arguments, given ${fields.length}`,
+      );
+  }
+  return { kind: Kind.Scale, loc, scale };
 });
 
 /** Read the directives in a model. */
@@ -274,10 +336,26 @@ type PointNames = ReadonlyMap<string, number>;
  * Write point data to binary format. Returns a map from point name to index.
  */
 function writePoints(w: DataWriter, items: Item[]): PointNames {
+  let hasOrigin = false;
+  let origin = [0, 0, 0];
+  const scale = [1, 1, 1];
   const points: Point[] = [];
   for (const item of items) {
-    if (item.kind == Kind.Point) {
-      points.push(item);
+    switch (item.kind) {
+      case Kind.Point:
+        points.push(item);
+        break;
+      case Kind.Origin:
+        if (hasOrigin) {
+          throw new SourceError(item.loc, 'multiple origin directives');
+        }
+        origin = item.origin;
+        break;
+      case Kind.Scale:
+        for (let i = 0; i < 3; i++) {
+          scale[i] *= item.scale[i];
+        }
+        break;
     }
   }
   if (points.length > maxPoints) {
@@ -289,24 +367,31 @@ function writePoints(w: DataWriter, items: Item[]): PointNames {
   }
   w.write(points.length);
   const pbounds = bounds(points);
-  const x0 = pbounds[0].min;
-  const y0 = pbounds[0].min;
-  const z0 = pbounds[0].min;
-  w.write(x0, y0, z0);
+  const base: number[] = [];
+  for (let i = 0; i < 3; i++) {
+    let { min } = pbounds[i];
+    if (origin[i] < min) {
+      console.warn('warning: origin outside model');
+      min = origin[i];
+    }
+    base.push(min);
+    origin[i] -= min;
+  }
+  w.writeArray(origin);
+  w.writeArray(scale.map(x => toDataClamp(encodeExponential(x))));
   const names = new Map<string, number>();
   for (let i = 0; i < points.length; i++) {
     const { loc, name, coords } = points[i];
     if (names.has(name)) {
       throw new SourceError(loc, `duplicate name ${JSON.stringify(name)}`);
     }
-    let [x, y, z] = coords;
-    x -= x0;
-    y -= y0;
-    z -= z0;
-    if (x > dataMax || y > dataMax || z > dataMax) {
-      throw new SourceError(loc, 'point out of range for encoding');
+    for (let i = 0; i < 3; i++) {
+      const coord = coords[i] - base[i];
+      if (coord > dataMax) {
+        throw new SourceError(loc, 'point out of range for encoding');
+      }
+      w.write(coord);
     }
-    w.write(x, y, z);
     names.set(name, i);
   }
   return names;

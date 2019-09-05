@@ -5,7 +5,7 @@
 import { Opcode } from './defs';
 import { gl } from '../lib/global';
 import { AssertionError } from '../debug/debug';
-import { dataMax } from '../lib/data.encode';
+import { dataMax, decodeExponential } from '../lib/data.encode';
 import { clamp } from '../lib/util';
 
 /** A loaded model. */
@@ -44,7 +44,8 @@ const debugColors = [
 /** Load a model from a binary stream. */
 export function loadModel(data: Uint8Array): Model {
   const maxSize = 1000;
-  let pos = 4 + data[0] * 3;
+  let pos = 7 + data[0] * 3;
+  const scale = new Float32Array(data.slice(4, 7)).map(decodeExponential);
   const posData = new Float32Array(maxSize);
   const colorData = new Uint32Array(maxSize);
   const indexData = new Uint16Array(maxSize);
@@ -94,7 +95,8 @@ export function loadModel(data: Uint8Array): Model {
               throw new AssertionError(`point out of range: ${index}`);
             }
             for (let axis = 0; axis < 3; axis++) {
-              let value = data[4 + index * 3 + axis]; // - data[j + 1];
+              let value =
+                scale[axis] * (data[7 + index * 3 + axis] - data[axis + 1]);
               if ((flags ^ reflection) & (1 << axis)) {
                 value = -value;
               }

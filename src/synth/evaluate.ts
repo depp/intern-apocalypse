@@ -3,7 +3,7 @@
  */
 
 import * as data from './data';
-import { dataMax } from '../lib/data.encode';
+import { toDataClamp } from '../lib/data.encode';
 import { AssertionError } from '../debug/debug';
 import { SExpr, ListExpr, NumberExpr, prefixes } from '../lib/sexpr';
 import { SourceError, SourceSpan } from '../lib/sourcepos';
@@ -142,18 +142,6 @@ function getNumber(expr: NumberExpr): ConstantValue {
       );
   }
   return constantValue(expr, value, units);
-}
-
-/** Quantize and clamp a number for inclusion in the data stream. */
-function toData(x: number): number {
-  const y = Math.round(x);
-  if (y < 0) {
-    return 0;
-  } else if (y > dataMax) {
-    return dataMax;
-  } else {
-    return y;
-  }
 }
 
 /** Evaluate a Lisp expression, returning node graph. */
@@ -331,7 +319,7 @@ function castToPhase(name: string, value: Value): Node {
       const vnode = createNode(
         value,
         node.num_freq,
-        [toData(data.encodeFrequency(value.value))],
+        [toDataClamp(data.encodeFrequency(value.value))],
         [],
       );
       const frequency = wrapNode(vnode, node.constant);
@@ -404,7 +392,7 @@ defun('note', (expr, args) => {
   const [frequency] = getExactArgs(expr, args, 1);
   const fvalue = getConstant('frequency', frequency, Units.Hertz);
   return nodeValue(
-    createNode(expr, node.num_note, [toData(data.encodeNote(fvalue))], []),
+    createNode(expr, node.num_note, [toDataClamp(data.encodeNote(fvalue))], []),
     Units.Hertz,
     Type.Scalar,
   );
@@ -456,7 +444,7 @@ defun('lowPass2', (expr, args) => {
     createNode(
       expr,
       node.lowPass2,
-      [toData(data.encodeExponential(1 / qval))],
+      [toDataClamp(data.encodeExponential(1 / qval))],
       [
         getAnyBuffer('input', input),
         castToBuffer('frequency', frequency, Units.Hertz),
@@ -555,7 +543,7 @@ defun('mix', (expr, args) => {
     output = createNode(
       expr,
       node.mix,
-      [toData(data.encodeExponential(gain))],
+      [toDataClamp(data.encodeExponential(gain))],
       [output, getBuffer(`audio${i}`, args[i * 2 + 1], Units.Volt)],
     );
   }
@@ -577,7 +565,7 @@ defun('phase-mod', (expr, args) => {
     output = createNode(
       expr,
       node.mix,
-      [toData(data.encodeExponential(amount))],
+      [toDataClamp(data.encodeExponential(amount))],
       [output, mod],
     );
   }
@@ -652,7 +640,7 @@ define('envelope', expr => {
 
 defenv('set', (expr, args) => {
   let [valueValue] = getExactArgs(expr, args, 1);
-  const valueParam = toData(
+  const valueParam = toDataClamp(
     data.encodeLinear(getConstant('value', valueValue, Units.None)),
   );
   return createNode(expr, node.env_set, [valueParam], []);
@@ -660,10 +648,10 @@ defenv('set', (expr, args) => {
 
 defenv('lin', (expr, args) => {
   let [timeValue, valueValue] = getExactArgs(expr, args, 2);
-  const timeParam = toData(
+  const timeParam = toDataClamp(
     data.encodeExponential(getConstant('time', timeValue, Units.Second)),
   );
-  const valueParam = toData(
+  const valueParam = toDataClamp(
     data.encodeLinear(getConstant('value', valueValue, Units.None)),
   );
   return createNode(expr, node.env_lin, [timeParam, valueParam], []);
@@ -671,7 +659,7 @@ defenv('lin', (expr, args) => {
 
 defenv('delay', (expr, args) => {
   let [timeValue] = getExactArgs(expr, args, 1);
-  const timeParam = toData(
+  const timeParam = toDataClamp(
     data.encodeExponential(getConstant('time', timeValue, Units.Second)),
   );
   return createNode(expr, node.env_delay, [timeParam], []);
