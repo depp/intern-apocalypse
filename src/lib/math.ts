@@ -28,7 +28,7 @@ export function vector(x: number, y: number): Vector {
 }
 
 /** The zero vector. */
-export const zeroVector = vector(0, 0);
+export const zeroVector: Readonly<Vector> = vector(0, 0);
 
 /** Multiply a vector by a scalar. */
 export function scaleVector(u: Readonly<Vector>, scale: number): Vector {
