@@ -7,6 +7,15 @@ export function lerp1D(u: number, v: number, a: number): number {
   return u + a * (v - u);
 }
 
+/** Get the canonical angle, in the range -Math.PI to +Math.PI. */
+export function canonicalAngle(angle: number): number {
+  angle %= 2 * Math.PI;
+  if (Math.abs(angle) > Math.PI) {
+    angle -= 2 * Math.PI * Math.sign(angle);
+  }
+  return angle;
+}
+
 /** 2D vector. */
 export interface Vector {
   x: number;

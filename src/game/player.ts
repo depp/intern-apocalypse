@@ -3,13 +3,20 @@
  */
 
 import { Button, buttonAxis } from '../lib/input';
-import { Vector, vector, lengthSquared, scaleVector } from '../lib/math';
+import {
+  Vector,
+  vector,
+  lengthSquared,
+  scaleVector,
+  canonicalAngle,
+} from '../lib/math';
 import { frameDT } from './time';
 import { walk } from './walk';
 import { entities } from './world';
 import { ModelInstance, modelInstances } from './model';
 import { ModelAsset } from '../model/models';
 import { playerSettings } from '../debug/controls';
+import { clamp } from '../lib/util';
 
 /**
  * Current 2D position of the player.
@@ -41,7 +48,11 @@ export function spawnPlayer(): void {
       pos[0] = playerPos.x;
       pos[1] = playerPos.y;
       if (magSquared) {
-        model.angle = Math.atan2(walkVector.y, walkVector.x);
+        const targetAngle = Math.atan2(walkVector.y, walkVector.x);
+        let deltaAngle = canonicalAngle(targetAngle - model.angle);
+        const turnAmount = playerSettings.turnSpeed * frameDT;
+        deltaAngle = clamp(deltaAngle, -turnAmount, turnAmount);
+        model.angle = canonicalAngle(model.angle + deltaAngle);
       }
     },
   });
