@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import { BuildAction, BuildContext, BuildError } from './action';
 import { soundsDataPath } from './audio.build';
 import { BuildArgs } from './config';
+import { modelDataPath } from './model.build';
 import { generatedHeader } from './util';
 import { shaderDataPath } from './shader';
 
@@ -18,6 +19,7 @@ interface Source {
 const sources: Source[] = [
   { name: 'shader', filepath: shaderDataPath },
   { name: 'sound', filepath: soundsDataPath },
+  { name: 'model', filepath: modelDataPath },
 ];
 
 export const dataPath = 'build/data.json';

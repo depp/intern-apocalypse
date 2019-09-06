@@ -20,7 +20,7 @@ import { encode } from '../src/lib/data.encode';
 import { AssertionError } from '../src/debug/debug';
 
 const defsFile = 'src/model/models.ts';
-const dataFile = 'build/models.js';
+export const modelDataPath = 'build/models.json';
 
 interface ModelInfo {
   name: string;
@@ -70,9 +70,6 @@ function generateDefs(models: ModelInfo[]): string {
   }
   out += '}\n';
   out += '\n';
-  out += '/** Loaded models. */\n';
-  out += 'export const models: (Model | null)[] = [];\n';
-  out += '\n';
   out += '/** Get list of model filenames, in order. */\n';
   out += 'export function getModelNames(): string[] {\n';
   out += `  return ${JSON.stringify(models.map(m => m.filename))};\n`;
@@ -112,16 +109,7 @@ async function generateData(models: ModelInfo[]): Promise<string | null> {
     data += ' ';
     data += item;
   }
-  let out = '';
-  out += generatedHeader;
-  out += "import { decode } from '../lib/data.encode';\n";
-  out += "import { loadModel } from './model';\n";
-  out += 'const data = ';
-  out += JSON.stringify(data.substring(1));
-  out += ';\n';
-  out +=
-    "export let models = data.split(' ').map(item => loadModel(decode(item)));\n";
-  return out;
+  return JSON.stringify([data.substring(1)]);
 }
 
 /** Generate the model definitions file. */
@@ -140,7 +128,7 @@ async function generateSources(
       if (text == null) {
         return false;
       }
-      await fs.promises.writeFile(dataFile, text, 'utf8');
+      await fs.promises.writeFile(modelDataPath, text, 'utf8');
       return true;
     })();
   }
@@ -171,7 +159,7 @@ class PackModels implements BuildAction {
   get outputs(): readonly string[] {
     const outputs = [defsFile];
     if (this.config == Config.Release) {
-      outputs.push(dataFile);
+      outputs.push(modelDataPath);
     }
     return outputs;
   }

@@ -6,3 +6,6 @@ export const shaderOffset: number = -1;
 
 /** The offset for sounds in the bundled data. */
 export const soundOffset: number = -1;
+
+/** The offset for models in the bundled data. */
+export const modelOffset: number = -1;

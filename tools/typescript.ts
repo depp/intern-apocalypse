@@ -269,7 +269,6 @@ class CompileTS implements BuildAction {
       const copies: [string, string][] = [
         [minShaderDefsPath, 'build/src/render/shaders.js'],
         [loaderPath, 'build/src/lib/loader.js'],
-        ['build/models.js', 'build/src/model/models.js'],
       ];
       await Promise.all(
         copies.map(async ([src, dest]) => {

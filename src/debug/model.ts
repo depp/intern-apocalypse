@@ -1,6 +1,6 @@
 import { getFile, watchFiles } from './files';
-import { loadModel, unloadModel, Model } from '../model/model';
-import { models, getModelNames } from '../model/models';
+import { loadModel, unloadModel, Model, models } from '../model/model';
+import { getModelNames } from '../model/models';
 import { convertModel } from '../model/convert';
 import { SourceError, SourceText } from '../lib/sourcepos';
 

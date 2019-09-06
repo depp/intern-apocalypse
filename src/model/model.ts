@@ -3,11 +3,12 @@
  */
 
 import { Opcode } from './defs';
-import { gl } from '../lib/global';
+import { gl, bundledData } from '../lib/global';
 import { AssertionError } from '../debug/debug';
-import { dataMax, decodeExponential } from '../lib/data.encode';
+import { dataMax, decodeExponential, decode } from '../lib/data.encode';
 import { clamp } from '../lib/util';
 import { createNormals } from './normal';
+import { modelOffset } from '../lib/loader';
 
 /** A loaded model. */
 export interface Model {
@@ -146,4 +147,12 @@ export function unloadModel(model: Model): void {
   gl.deleteBuffer(model.color);
   gl.deleteBuffer(model.index);
   gl.deleteBuffer(model.normal);
+}
+
+/** Loaded models. */
+export let models: (Model | null)[] = [];
+
+/** Load all models embedded in the release build. */
+export function loadModels(): void {
+  models = bundledData[modelOffset].split(' ').map(x => loadModel(decode(x)));
 }

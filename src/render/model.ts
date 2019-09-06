@@ -6,7 +6,7 @@ import { cameraMatrix } from '../game/camera';
 import { gl } from '../lib/global';
 import { modelInstances } from '../game/model';
 import { model as modelShader, Attribute } from './shaders';
-import { models } from '../model/models';
+import { models } from '../model/model';
 
 /**
  * Render all models in the level.

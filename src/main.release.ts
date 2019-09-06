@@ -4,6 +4,7 @@
 import { initialize, main } from './main';
 import { loadShaders } from './render/shaders';
 import { loadSounds } from './audio/audio';
+import { loadModels } from './model/model';
 import { gl } from './lib/global';
 
 /**
@@ -19,6 +20,7 @@ function mainRelease(curTimeMS: DOMHighResTimeStamp): void {
 if (gl) {
   loadShaders();
   loadSounds();
+  loadModels();
   initialize();
   requestAnimationFrame(mainRelease);
 }
