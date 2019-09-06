@@ -16,6 +16,7 @@ export const enum Button {
   Right = 'r',
   Backward = 'b',
   Forward = 'f',
+  Action = 'a',
 }
 
 /**
@@ -31,6 +32,8 @@ export const enum Button {
  * See: https://www.w3.org/TR/uievents/
  *
  * See: https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent/code
+ *
+ * For constants, see: https://www.w3.org/TR/uievents-code/
  */
 const buttonBindings: Record<string, Button> = {
   // WASD
@@ -44,6 +47,9 @@ const buttonBindings: Record<string, Button> = {
   'ArrowLeft': Button.Left,
   'ArrowDown': Button.Backward,
   'ArrowRight': Button.Right,
+
+  // Action / attack
+  'Space': Button.Action,
 };
 
 /**
@@ -74,7 +80,7 @@ export const buttonState: ButtonRecord<number> = {} as ButtonRecord<number>;
 
 /** Set all buttons in the record to 0. */
 function zeroButtons(buttons: ButtonRecord<number>): void {
-  for (const c of 'lrbf') {
+  for (const c of 'lrbfa') {
     buttons[c as Button] = 0;
   }
 }

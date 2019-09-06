@@ -42,7 +42,7 @@ function getSoundBuffer(index: number): AudioBuffer | null {
 }
 
 /** Play the sound with the given index. */
-function playSound(index: number): void {
+export function playSound(index: number): void {
   if (!audioCtx) {
     return;
   }

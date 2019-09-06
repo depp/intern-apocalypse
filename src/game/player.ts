@@ -2,7 +2,7 @@
  * Player control.
  */
 
-import { Button, buttonAxis } from '../lib/input';
+import { Button, buttonAxis, buttonPress } from '../lib/input';
 import {
   vector,
   lengthSquared,
@@ -25,6 +25,8 @@ import {
   rotateMatrixFromDirection,
 } from '../lib/matrix';
 import { setCameraTarget } from './camera';
+import { playSound } from '../audio/audio';
+import { Sounds } from '../audio/sounds';
 
 /** Spawn the player in the level. */
 export function spawnPlayer(): void {
@@ -41,14 +43,30 @@ export function spawnPlayer(): void {
   };
   let angle = 0;
   modelInstances.push(model, swordModel);
+
+  // Amount of time into attack.
+  let attackTime = -1;
+
   entities.push({
     update() {
+      if (attackTime >= 0) {
+        attackTime += frameDT;
+        if (attackTime > playerSettings.attackTime) {
+          attackTime = -1;
+        }
+      } else if (buttonPress[Button.Action]) {
+        attackTime = 0;
+        playSound(Sounds.Swoosh);
+      }
+
+      // Update player position.
       let walkVector = vector(
         buttonAxis(Button.Left, Button.Right),
         buttonAxis(Button.Backward, Button.Forward),
       );
       const magSquared = lengthSquared(walkVector);
       if (magSquared > 1) {
+        // Maximum speed the same in all directions (no diagonal speed boost).
         walkVector = scaleVector(walkVector, 1 / Math.sqrt(magSquared));
       }
       const distance = playerSettings.speed * frameDT;
@@ -60,15 +78,33 @@ export function spawnPlayer(): void {
         deltaAngle = clamp(deltaAngle, -turnAmount, turnAmount);
         angle = canonicalAngle(angle + deltaAngle);
       }
+
+      // Update camera position.
       setCameraTarget(pos);
+
+      // Set player model transform.
       identityMatrix(transform);
       translateMatrix(transform, [pos.x, pos.y]);
       rotateMatrixFromAngle(transform, Axis.Z, angle + 0.5 * Math.PI);
       rotateMatrixFromDirection(transform, Axis.X, 0, 1);
+
+      // Set sword model transform.
       swordTransform.set(transform);
-      translateMatrix(swordTransform, [-0.4, 0.5, 0]);
-      rotateMatrixFromDirection(swordTransform, Axis.X, 1, 1);
-      rotateMatrixFromDirection(swordTransform, Axis.Y, 1, 1);
+      let frac = -1;
+      let blend = 0;
+      if (attackTime >= 0) {
+        frac = 2 * (attackTime / playerSettings.attackTime) - 1;
+        blend = Math.min(2 * (1 - Math.abs(frac)), 1);
+      }
+      translateMatrix(swordTransform, [-0.4, 0.5, 0.5 - 0.5 * Math.abs(frac)]);
+      rotateMatrixFromDirection(swordTransform, Axis.X, 1 - blend, 1);
+      rotateMatrixFromDirection(
+        swordTransform,
+        Axis.Z,
+        1 - blend * Math.abs(frac),
+        -2 * blend * frac,
+      );
+      rotateMatrixFromDirection(swordTransform, Axis.Y, 1, 1 - blend);
     },
   });
 }
