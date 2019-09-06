@@ -7,7 +7,7 @@ symmetry xz
 p u0 4 8 2
 p u1 7 0 2
 p u2 5 0 2
-p u3 3 4 3
+p u3 3 4 4
 
 color 6e3a4d
 # front
@@ -23,13 +23,13 @@ f u0 u1 u1.z u0.z
 f u0.x u0 u0.z u0.zx
 
 # Middle
-p m0 3 0 3
+p m0 3 0 4
 
 # Lower body
-p l0 3 -1 3
+p l0 3 -1 4
 p l1 4 -9 2
 p l2 2 -9 2
-p l3 0 -2 3
+p l3 0 -2 4
 
 color bf8726
 f l3 l0 m0 m0.x l0.x
