@@ -29,7 +29,7 @@ function emitActions(ctx: BuildContext) {
     '.vert',
   ]);
   packShaders(ctx, {
-    inputs: ['shader/programs.json', ...shaderSources],
+    inputs: shaderSources,
   });
   const modelSources = ctx.listFilesWithExtensions('model', ['.txt']);
   packModels(ctx, {
