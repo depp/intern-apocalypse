@@ -1,0 +1,53 @@
+scale 1/16
+origin 0 -15 0
+symmetry xz
+
+# sqrt(1/2) is about 5/7
+
+# Eyeball
+p e0 0 7 0
+p e1 0 5 5
+p e2 5 5 0
+p e3 0 0 7
+p e4 5 0 5
+p e5 7 0 0
+p e6 0 -5 5
+p e7 5 -5 0
+p e8 0 -6 2
+p e9 2 -6 0
+
+color f7f2c3
+f e0 e1 e2
+f e1 e4 e2
+f e1 e3 e4
+f e2 e4 e5
+f e3 e6 e4
+f e4 e6 e7
+f e4 e7 e5
+f e7 e6 e8 e9
+
+# Stalk
+p s0 0 -10 3
+p s1 3 -10 0
+p s2 0 -13 3
+p s3 3 -13 0
+p s4 6 -2 8
+p s5 8 -2 6
+p s6 6 -5 8
+p s7 8 -5 6
+p s8 9 -1 9
+p s9 8 -15 8
+
+color 4ad451
+f e9 e8 s0 s1 # stalk
+f s3 s2 s3.xz s2.xz # bottom
+f s1 s0 s4 s5 # first segment, top
+f s0 s2 s6 s4 # first segment, left
+f s3 s1 s5 s7 # first segment, right
+f s2 s3 s7 s6 # first segment, bottom
+f s5 s4 s8 # knee top
+# f s6 s8 s4 # knee left
+# f s5 s8 s7 # knee right
+f s8 s4 s6 s9 # second segment, left
+f s7 s5 s8 s9 # second segment, right
+f s6 s7 s9 # second segment, back

@@ -4,6 +4,7 @@ import { Model } from './model';
 
 /** Model asset identifiers. */
 export const enum ModelAsset {
+  Eyestalk,
   Person,
   Sword,
 }
@@ -13,5 +14,5 @@ export const models: (Model | null)[] = [];
 
 /** Get list of model filenames, in order. */
 export function getModelNames(): string[] {
-  return ['model/person.txt', 'model/sword.txt'];
+  return ['model/eyestalk.txt', 'model/person.txt', 'model/sword.txt'];
 }
