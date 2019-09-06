@@ -30,6 +30,7 @@ function update(shader: Shader): void {
   if (version == shader.version) {
     return;
   }
+  console.log(`Loading shader ${shader.spec.name}`);
   let prog: any;
   try {
     prog = compileShader(
