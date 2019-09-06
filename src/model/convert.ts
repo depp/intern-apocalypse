@@ -310,7 +310,7 @@ interface Bounds {
 /** Get the bounds of points along a given axes. */
 function bounds1(points: Point[], axis: number): Bounds {
   let min = 0;
-  let max = 1;
+  let max = 0;
   if (points.length > 0) {
     min = max = points[0].coords[axis];
     for (let i = 1; i < points.length; i++) {
@@ -326,7 +326,7 @@ function bounds1(points: Point[], axis: number): Bounds {
 function bounds(points: Point[]): Bounds[] {
   return Array(3)
     .fill(0)
-    .map(axis => bounds1(points, axis));
+    .map((_, axis) => bounds1(points, axis));
 }
 
 /** Map from point names to indexes. */
