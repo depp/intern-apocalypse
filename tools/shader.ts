@@ -3,7 +3,6 @@
  */
 
 import * as fs from 'fs';
-import * as path from 'path';
 
 import { BuildAction, BuildContext } from './action';
 import { BuildArgs, Config } from './config';
@@ -12,18 +11,22 @@ import { readPrograms, programSources } from './shader.programs';
 import { emitLoader, emitReleaseData } from './shader.emit';
 import { prettifyTypeScript } from './util';
 
-const dirname = 'shader';
+const shaderDirPath = 'shader';
+const programSpecPath = 'shader/programs.json';
+const uniformSpecPath = 'build/uniforms.json';
+const shaderDefsPath = 'src/render/shaders.ts';
+const shaderDataPath = 'build/shaders.js';
 
 async function generateLoader(config: Config): Promise<void> {
-  const programs = await readPrograms(path.join(dirname, 'programs.json'));
+  const programs = await readPrograms(programSpecPath);
   const sources = programSources(programs);
-  const code = await loadShaders(dirname, sources);
+  const code = await loadShaders(shaderDirPath, sources);
   const out = prettifyTypeScript(emitLoader(programs, code));
-  let out1 = fs.promises.writeFile('src/render/shaders.ts', out, 'utf8');
+  let out1 = fs.promises.writeFile(shaderDefsPath, out, 'utf8');
   if (config == Config.Release) {
     const { shaders, uniforms } = emitReleaseData(programs, code);
-    const out2 = fs.promises.writeFile('build/shaders.js', shaders, 'utf8');
-    const out3 = fs.promises.writeFile('build/uniforms.json', uniforms, 'utf8');
+    const out2 = fs.promises.writeFile(shaderDataPath, shaders, 'utf8');
+    const out3 = fs.promises.writeFile(uniformSpecPath, uniforms, 'utf8');
     await out2;
     await out3;
   }
@@ -44,12 +47,12 @@ class PackShaders implements BuildAction {
     return 'PackShaders';
   }
   get inputs(): readonly string[] {
-    return this.params.inputs;
+    return [programSpecPath, ...this.params.inputs];
   }
   get outputs(): readonly string[] {
-    const outputs = ['src/render/shaders.ts'];
+    const outputs = [shaderDefsPath];
     if (this.config == Config.Release) {
-      outputs.push('build/shaders.js', 'build/uniforms.json');
+      outputs.push(shaderDataPath, uniformSpecPath);
     }
     return outputs;
   }
