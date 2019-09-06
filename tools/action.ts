@@ -268,6 +268,12 @@ export class Builder {
     await watcher.subscribe('shader', expr, files =>
       this.didChange('shader', files),
     );
+    await watcher.subscribe('model', ['suffix', 'txt'], files =>
+      this.didChange('model', files),
+    );
+    await watcher.subscribe('audio', ['suffix', 'lisp'], files =>
+      this.didChange('audio', files),
+    );
     setTimeout(() => this.watchLoop(), 100);
   }
 
