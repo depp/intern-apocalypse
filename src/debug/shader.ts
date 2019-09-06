@@ -1,7 +1,6 @@
 import { getFile, watchFiles } from './files';
 import { ShaderError, compileShader, ShaderSpec } from '../render/shader';
 import { getShaderSpecs } from '../render/shaders';
-import { gl } from '../lib/global';
 
 enum State {
   Empty,
@@ -31,9 +30,9 @@ function update(shader: Shader): void {
     return;
   }
   console.log(`Loading shader ${shader.spec.name}`);
-  let prog: any;
   try {
-    prog = compileShader(
+    compileShader(
+      shader.spec.object,
       shader.spec.uniforms,
       shader.spec.attributes,
       vertex.data,
@@ -50,11 +49,6 @@ function update(shader: Shader): void {
     shader.version = version;
     return;
   }
-  const oldProg = shader.spec.object.program;
-  if (oldProg) {
-    gl.deleteProgram(oldProg);
-  }
-  Object.assign(shader.spec.object, prog);
   shader.state = State.Ok;
   shader.version = version;
 }
@@ -69,6 +63,13 @@ function filesChanged(): void {
 /** Compile shaders from data files received over the web socket. */
 export function watchShaders(): void {
   for (const spec of getShaderSpecs()) {
+    // Fill in unloaded version of shader.
+    const { object, uniforms } = spec;
+    object.program = null;
+    for (const name of uniforms) {
+      object[name] = null;
+    }
+    // Record shader to load dynamically.
     shaders.push({
       spec,
       state: State.Empty,

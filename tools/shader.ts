@@ -6,31 +6,47 @@ import * as fs from 'fs';
 
 import { BuildAction, BuildContext } from './action';
 import { BuildArgs, Config } from './config';
-import { loadShaders } from './shader.syntax';
-import { readPrograms, programSources } from './shader.programs';
-import { emitLoader, emitReleaseData } from './shader.emit';
-import { prettifyTypeScript } from './util';
+import { emitDefinitions, emitUniformMap } from './shader.emit';
+import { minifyShaders } from './shader.minify';
+import { readShaderPrograms } from './shader.programs';
 
-const shaderDirPath = 'shader';
 const programSpecPath = 'shader/programs.json';
-const uniformSpecPath = 'build/uniforms.json';
 const shaderDefsPath = 'src/render/shaders.ts';
-const shaderDataPath = 'build/shaders.js';
+const uniformMapPath = 'build/uniforms.json';
+export const minShaderDefsPath = 'build/shaders.js';
+export const shaderDataPath = 'build/shader.json';
 
 async function generateLoader(config: Config): Promise<void> {
-  const programs = await readPrograms(programSpecPath);
-  const sources = programSources(programs);
-  const code = await loadShaders(shaderDirPath, sources);
-  const out = prettifyTypeScript(emitLoader(programs, code));
-  let out1 = fs.promises.writeFile(shaderDefsPath, out, 'utf8');
+  let promises: Promise<void>[] = [];
+  let programs = await readShaderPrograms(programSpecPath);
+  promises.push(
+    fs.promises.writeFile(
+      shaderDefsPath,
+      emitDefinitions(programs, 'source'),
+      'utf8',
+    ),
+  );
   if (config == Config.Release) {
-    const { shaders, uniforms } = emitReleaseData(programs, code);
-    const out2 = fs.promises.writeFile(shaderDataPath, shaders, 'utf8');
-    const out3 = fs.promises.writeFile(uniformSpecPath, uniforms, 'utf8');
-    await out2;
-    await out3;
+    programs = minifyShaders(programs);
+    promises.push(
+      fs.promises.writeFile(
+        minShaderDefsPath,
+        emitDefinitions(programs, 'release'),
+        'utf8',
+      ),
+    );
+    promises.push(
+      fs.promises.writeFile(uniformMapPath, emitUniformMap(programs), 'utf8'),
+    );
+    const sources: string[] = [];
+    for (const { source, index } of programs.shaders.values()) {
+      sources[index] = source;
+    }
+    promises.push(
+      fs.promises.writeFile(shaderDataPath, JSON.stringify(sources), 'utf8'),
+    );
   }
-  await out1;
+  await Promise.all(promises);
 }
 
 /**
@@ -52,7 +68,7 @@ class PackShaders implements BuildAction {
   get outputs(): readonly string[] {
     const outputs = [shaderDefsPath];
     if (this.config == Config.Release) {
-      outputs.push(shaderDataPath, uniformSpecPath);
+      outputs.push(minShaderDefsPath, uniformMapPath, shaderDataPath);
     }
     return outputs;
   }
@@ -79,8 +95,12 @@ export function packShaders(
 }
 
 async function main(): Promise<void> {
+  const program = require('commander');
+  program.option('--release', 'show release version');
+  program.parse(process.argv);
+  const config = program.release ? Config.Release : Config.Debug;
   try {
-    await generateLoader(Config.Release);
+    await generateLoader(config);
   } catch (e) {
     console.error(e);
     process.exit(1);

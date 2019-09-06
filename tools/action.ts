@@ -162,6 +162,20 @@ function delay(timeMS: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, timeMS));
 }
 
+/** Make parent directories for a set of output files. */
+async function makeParentDirs(filenames: readonly string[]): Promise<void> {
+  const dirs = new Set<string>();
+  for (const filename of filenames) {
+    const dir = path.dirname(filename);
+    if (!dirs.has(dir)) {
+      await fs.promises.mkdir(dir, { recursive: true });
+      for (let cur = dir; !dirs.has(cur); cur = path.dirname(cur)) {
+        dirs.add(cur);
+      }
+    }
+  }
+}
+
 /**
  * Builder for running build steps when necessary.
  */
@@ -375,6 +389,7 @@ export class Builder {
     this.actionCache.delete(name);
     let success: boolean;
     try {
+      await makeParentDirs(outputs);
       success = await action.execute(this.config);
     } catch (e) {
       if (e instanceof BuildError) {

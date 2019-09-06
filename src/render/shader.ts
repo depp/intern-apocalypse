@@ -29,7 +29,7 @@ export interface ShaderSpec {
   /** List of uniforms. */
   readonly uniforms: readonly string[];
   /** Object containing the program and uniforms locations. */
-  readonly object: ShaderProgram;
+  readonly object: ShaderProgram & any;
 }
 
 // Note: The attribs and uniforms are ArrayLike<string> & Iterable<string>
@@ -46,33 +46,14 @@ export class ShaderError extends Error {
 }
 
 /** Compile and link a WebGL shader program. */
-export function compileShader(uniforms: StringArray): any;
 export function compileShader(
+  object: ShaderProgram & any,
   uniforms: StringArray,
   attribs: StringArray,
   vertex: string,
   fragment: string,
-  programName: string,
-): any;
-export function compileShader(
-  uniforms: StringArray,
-  attribs?: StringArray | undefined,
-  vertex?: string | undefined,
-  fragment?: string | undefined,
   programName?: string | undefined,
-): any {
-  // Stub object for debug builds.
-  if (isDebug && attribs == null) {
-    const obj: any = { program: null };
-    for (const name of uniforms) {
-      obj[name] = null;
-    }
-    return obj;
-  }
-  if (attribs == null) {
-    throw new AssertionError('null attribs');
-  }
-
+): void {
   // Compile and link the shader.
   const program = gl.createProgram();
   if (!program) {
@@ -96,8 +77,9 @@ export function compileShader(
         );
         gl.deleteShader(shader);
         gl.deleteProgram(program);
+        return;
       }
-      return { program: null };
+      throw new Error('shader error');
     }
     gl.attachShader(program, shader);
     gl.deleteShader(shader);
@@ -115,8 +97,9 @@ export function compileShader(
           gl.getProgramInfoLog(program),
       );
       gl.deleteProgram(program);
+      return;
     }
-    return { program: null };
+    throw new Error('shader error');
   }
 
   if (isDebug) {
@@ -159,11 +142,15 @@ export function compileShader(
     }
   }
 
-  const obj: any = { program };
+  if (isDebug) {
+    if (object.program != null) {
+      gl.deleteProgram(object.program);
+    }
+  }
+  object.program = program;
   for (const name of uniforms) {
-    obj[name] =
+    object[name] =
       gl.getUniformLocation(program, name) ||
       gl.getUniformLocation(program, name + '[0]');
   }
-  return obj;
 }

@@ -2,9 +2,6 @@
  * Functions for working with GLSL shader syntax.
  */
 
-import * as fs from 'fs';
-import * as path from 'path';
-
 import { Token } from 'glsl-tokenizer/string';
 import { Node } from 'glsl-parser/direct';
 import tokenString = require('glsl-tokenizer/string');
@@ -219,37 +216,4 @@ export class Shader {
     }
     return out;
   }
-}
-
-/**
- * Load all of the given shaders.
- */
-export async function loadShaders(
-  dirname: string,
-  sources: string[],
-): Promise<Map<string, Shader>> {
-  const texts = new Map<string, Promise<string>>();
-  function readText(name: string): Promise<string> {
-    let text = texts.get(name);
-    if (text == null) {
-      text = fs.promises.readFile(path.join(dirname, name), 'utf8');
-      texts.set(name, text);
-    }
-    return text;
-  }
-  const set = new Set<string>();
-  const shaders = new Map<string, Shader>();
-  const promises: Promise<void>[] = [];
-  for (const name of sources) {
-    if (!shaders.has(name)) {
-      set.add(name);
-      promises.push(
-        (async () => {
-          shaders.set(name, new Shader(await readText(name)));
-        })(),
-      );
-    }
-  }
-  await Promise.all(promises);
-  return shaders;
 }

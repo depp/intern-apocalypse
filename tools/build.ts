@@ -11,6 +11,7 @@ import { packAudio } from './audio.build';
 import { Config, BuildArgs } from './config';
 import { evalHTML } from './html';
 import { projectName, sizeTarget } from './info';
+import { createLoader } from './loader';
 import { packModels } from './model.build';
 import { rollupJS } from './rollup';
 import { serve } from './server';
@@ -39,6 +40,9 @@ function emitActions(ctx: BuildContext) {
   packAudio(ctx, {
     inputs: audioSources,
   });
+  if (ctx.config.config == Config.Release) {
+    createLoader(ctx, {});
+  }
   const tsSources = ctx.listFilesWithExtensions('src', ['.ts'], recursive);
   compileTS(ctx, {
     outDir: 'build/src',

@@ -1,8 +1,9 @@
 /**
  * Entry point for release builds.
  */
-import { gl } from './lib/global';
 import { initialize, main } from './main';
+import { loadShaders } from './render/shaders';
+import { gl } from './lib/global';
 
 /**
  * Main update loop for debug builds.
@@ -15,6 +16,7 @@ function mainRelease(curTimeMS: DOMHighResTimeStamp): void {
 }
 
 if (gl) {
+  loadShaders();
   initialize();
   requestAnimationFrame(mainRelease);
 }

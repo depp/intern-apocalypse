@@ -11,6 +11,7 @@ import * as ts from 'typescript';
 import { BuildContext, BuildAction } from './action';
 import { projectRoot, pathWithExt } from './util';
 import { Config, BuildArgs } from './config';
+import { minShaderDefsPath } from './shader';
 
 /** Print TypeScript diagnostic messages. */
 function logTSDiagnostics(diagnostics: readonly ts.Diagnostic[]): void {
@@ -265,7 +266,7 @@ class CompileTS implements BuildAction {
     }
     if (config.config == Config.Release) {
       const copies: [string, string][] = [
-        ['build/shaders.js', 'build/src/render/shaders.js'],
+        [minShaderDefsPath, 'build/src/render/shaders.js'],
         ['build/models.js', 'build/src/model/models.js'],
         ['build/sounds.js', 'build/src/audio/sounds.js'],
       ];

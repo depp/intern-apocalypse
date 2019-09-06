@@ -9,6 +9,7 @@ import { BuildArgs, Config } from './config';
 
 import * as Handlebars from 'handlebars';
 import * as htmlMinifierTypes from 'html-minifier'; // Only load if needed.
+import { dataPath } from './loader';
 
 /** Escape JavaScript for embedding in script tag. */
 function inlineJavaScript(js: string): Handlebars.SafeString {
@@ -70,6 +71,7 @@ class EvalHTML implements BuildAction {
   async execute(config: BuildArgs): Promise<boolean> {
     const { params } = this;
     const scriptSrc = fs.promises.readFile(params.script, 'utf8');
+    const dataSrc = fs.promises.readFile(dataPath, 'utf8');
     let templateSrc = await fs.promises.readFile(params.template, 'utf8');
     if (config.config == Config.Release) {
       templateSrc = minifyHTML(templateSrc);
@@ -77,7 +79,8 @@ class EvalHTML implements BuildAction {
     const templateFn = Handlebars.compile(templateSrc);
     const result = templateFn({
       title: params.title,
-      script: inlineJavaScript(await scriptSrc),
+      script: inlineJavaScript((await scriptSrc).trimEnd()),
+      data: inlineJavaScript(await dataSrc),
     });
     await fs.promises.writeFile(params.output, result, 'utf8');
     return true;
