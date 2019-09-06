@@ -257,13 +257,14 @@ export class Builder {
 
   /** Build the targets asynchronously, and rebuild them as inputs change. */
   async watch(watcher: Watcher): Promise<void> {
-    await watcher.subscribe('src', ['match', '*.ts'], files =>
+    await watcher.subscribe('src', ['suffix', 'ts'], files =>
       this.didChange('src', files),
     );
     if (this.config.config == Config.Release) {
       await watcher.subscribe(
         'shader',
-        ['anyof', ['match', '*.frag'], ['match', '*.vert']],
+        // TODO: Watchman 5.0 has simpler query syntax.
+        ['anyof', ['suffix', 'frag'], ['suffix', 'vert']],
         files => this.didChange('shader', files),
       );
     }

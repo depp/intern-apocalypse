@@ -163,13 +163,14 @@ async function sendDataFiles(ws: WebSocket, watcher: Watcher): Promise<void> {
   const handles = [
     await watcher.subscribe(
       'shader',
-      ['anyof', ['match', '*.vert'], ['match', '*.frag']],
+      // TODO: Watchman 5.0 has simpler query syntax.
+      ['anyof', ['suffix', 'vert'], ['suffix', 'frag']],
       files => onChange('shader', files),
     ),
-    await watcher.subscribe('model', ['match', '*.txt'], files =>
+    await watcher.subscribe('model', ['suffix', 'txt'], files =>
       onChange('model', files),
     ),
-    await watcher.subscribe('audio', ['match', '*.lisp'], files =>
+    await watcher.subscribe('audio', ['suffix', 'lisp'], files =>
       onChange('audio', files),
     ),
   ];
