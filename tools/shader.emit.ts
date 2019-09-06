@@ -49,6 +49,64 @@ function programLoader(
   return { stub, loader };
 }
 
+interface Attribute {
+  /** Name as it appears in shader. */
+  glName: string;
+  /** Enumeration name of the slot. */
+  enumName: string;
+}
+
+/** Get the attribute bindings for a set of programs. */
+function getAttributeBindings(programs: Program[]): (Attribute | null)[] {
+  const rbindings = new Map<string, { index: number; name: string }>();
+  const bindings: (Attribute | null)[] = [];
+  const names: string[] = [];
+  for (const { name, attributes } of programs) {
+    const lname = name.lowerCase;
+    for (let index = 0; index < attributes.length; index++) {
+      const binding = attributes[index];
+      if (binding == null) {
+        continue;
+      }
+      if (!/^a[A-Z][A-Za-z0-9]*$/.test(binding)) {
+        throw new BuildError(
+          `invalid attribute name ${JSON.stringify(binding)}`,
+        );
+      }
+      const otherBinding = rbindings.get(binding);
+      if (otherBinding != null) {
+        if (otherBinding.index != index) {
+          const index2 = otherBinding.index;
+          const name2 = otherBinding.name;
+          throw new BuildError(
+            `cannot bind attribute ${JSON.stringify(binding)} ` +
+              'to two different slots: ' +
+              `${index2} in ${JSON.stringify(name2)}, ` +
+              `${index} in ${JSON.stringify(lname)}`,
+          );
+        }
+        continue;
+      }
+      while (bindings.length <= index) {
+        bindings.push(null);
+      }
+      const other = bindings[index];
+      if (other != null) {
+        const binding2 = other.glName;
+        const name2 = names[index];
+        throw new BuildError(
+          `cannot bind attribute slot ${index} to two different names: ` +
+            `${JSON.stringify(binding2)} in ${JSON.stringify(name2)}, ` +
+            `${JSON.stringify(binding)} in ${JSON.stringify(lname)}`,
+        );
+      }
+      bindings[index] = { glName: binding, enumName: binding.substring(1) };
+      rbindings.set(binding, { index, name: lname });
+    }
+  }
+  return bindings;
+}
+
 /**
  * Emit the loader stubs for GLSL shader programs.
  */
@@ -61,6 +119,8 @@ export function emitLoader(
     decls.set(name, shader.listDeclarations());
   }
 
+  const bindings = getAttributeBindings(programs);
+
   let stubs = '';
   let loaders = '';
   for (const program of programs) {
@@ -72,12 +132,29 @@ export function emitLoader(
     loaders += loader;
   }
 
-  let out =
-    generatedHeader +
-    "import { compileShader, ShaderProgram, ShaderSpec } from './shader';\n" +
-    '\n';
+  let out = '';
+  out += generatedHeader;
+  out +=
+    "import { compileShader, ShaderProgram, ShaderSpec } from './shader';\n";
+
+  // Attribute enum
+  out += '\n';
+  out += '/** Shader program attribute bindings. */\n';
+  out += 'export const enum Attribute {\n';
+  for (let i = 0; i < bindings.length; i++) {
+    const attribute = bindings[i];
+    if (attribute != null) {
+      out += `  ${attribute.enumName} = ${i},\n`;
+    }
+  }
+  out += '}\n';
+  out += '\n';
+
+  // Object stubs
   out += stubs;
   out += '\n';
+
+  // Specs for debug hot-load
   out += 'export function getShaderSpecs(): ShaderSpec[] {\n';
   out += '  return [\n';
   for (const line of loaders.split('\n')) {
@@ -148,32 +225,7 @@ export function emitReleaseData(
   code: ReadonlyMap<string, Shader>,
 ): ReleaseData {
   // Get attribute bindings for each vertex shader.
-  const attributeBindings = new Map<string, (string | null)[]>();
-  let maxAttribs = 0;
-  for (const program of programs) {
-    const { vertex, attributes } = program;
-    maxAttribs = Math.max(maxAttribs, attributes.length);
-    let bindings = attributeBindings.get(vertex);
-    if (!bindings) {
-      attributeBindings.set(vertex, Array.from(attributes));
-    } else {
-      for (let i = 0; i < attributes.length; i++) {
-        const oldName = bindings[i];
-        const newName = attributes[i];
-        if (newName == null) {
-          continue;
-        }
-        if (oldName && newName && oldName != newName) {
-          throw new Error(
-            `cannot bind attribute ${i} to both ` +
-              `${JSON.stringify(oldName)} and ` +
-              `${JSON.stringify(newName)}`,
-          );
-        }
-        bindings[i] = oldName || newName;
-      }
-    }
-  }
+  const bindings = getAttributeBindings(programs);
 
   // Collect all identifiers used in all programs, except 'main'.
   const attributeSet = new Set<string>();
@@ -226,25 +278,31 @@ export function emitReleaseData(
   // Generate new, short identifiers. We use the same mapping across all files,
   // except for attributes, to make varyings work and improve compression.
   const gen = identgen();
-  const attrMap = Array(maxAttribs)
-    .fill(0)
-    .map(() => gen());
   const identMap = new Map<string, string>();
+  const attributeSlots: string[] = [];
+  for (let i = 0; i < bindings.length; i++) {
+    const shortName = gen();
+    attributeSlots.push(shortName);
+    const binding = bindings[i];
+    if (binding != null) {
+      identMap.set(binding.glName, shortName);
+    }
+  }
   const uniformMap = new Map<string, string>();
   for (const [name] of identList) {
-    if (uniformSet.has(name)) {
+    if (uniformSet.has(name) && !identMap.has(name)) {
       const ident = gen();
       identMap.set(name, ident);
       uniformMap.set(name, ident);
     }
   }
   for (const [name] of identList) {
-    if (localSet.has(name)) {
+    if (localSet.has(name) && !identMap.has(name)) {
       identMap.set(name, gen());
     }
   }
   for (const [name] of identList) {
-    if (attributeSet.has(name)) {
+    if (attributeSet.has(name) && !identMap.has(name)) {
       identMap.set(name, gen());
     }
   }
@@ -252,18 +310,7 @@ export function emitReleaseData(
   // Emit new code.
   const minCode = new Map<string, string>();
   for (const [name, shader] of code.entries()) {
-    let localIdentMap = identMap;
-    const bindings = attributeBindings.get(name);
-    if (bindings) {
-      localIdentMap = new Map(localIdentMap);
-      for (let i = 0; i < bindings.length; i++) {
-        const attribute = bindings[i];
-        if (attribute != null) {
-          localIdentMap.set(attribute, attrMap[i]);
-        }
-      }
-    }
-    const minText = shader.emitMinified(localIdentMap);
+    const minText = shader.emitMinified(identMap);
     minCode.set(name, minText);
   }
 
@@ -291,7 +338,7 @@ export function emitReleaseData(
       }
       return id;
     });
-    const bindings = program.attributes.map((_, i) => attrMap[i]);
+    const bindings = program.attributes.map((_, i) => attributeSlots[i]);
     shaders += `export let ${program.name.lowerCase} = compileShader(`;
     shaders += encodeStrings(uniforms);
     shaders += ', ';

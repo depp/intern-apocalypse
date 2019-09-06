@@ -1,6 +1,13 @@
 /* This code is automatically generated. */
 import { compileShader, ShaderProgram, ShaderSpec } from './shader';
 
+/** Shader program attribute bindings. */
+export const enum Attribute {
+  Pos = 0,
+  Color = 1,
+  Normal = 2,
+}
+
 export interface LevelProgram extends ShaderProgram {
   ModelViewProjection: WebGLUniformLocation | null;
 }
