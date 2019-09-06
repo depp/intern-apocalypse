@@ -14,6 +14,12 @@ import { Watcher, FileInfo } from './watch';
 export { recursive };
 
 /**
+ * A build error class, distinct from Error. Can be thrown by actions. Unlike
+ * Error, it will be printed without a stack trace.
+ */
+export class BuildError extends Error {}
+
+/**
  * A build action which can be run through a BuildContext.
  */
 export interface BuildAction {
@@ -371,7 +377,11 @@ export class Builder {
     try {
       success = await action.execute(this.config);
     } catch (e) {
-      console.error(e);
+      if (e instanceof BuildError) {
+        console.error(e.message);
+      } else {
+        console.error(e);
+      }
       success = false;
     }
     // It is OK if the outputs are not created. Actions must deal with this.

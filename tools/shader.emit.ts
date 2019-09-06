@@ -5,6 +5,7 @@
 import { Program } from './shader.programs';
 import { Declarations, Shader } from './shader.syntax';
 import { generatedHeader } from './util';
+import { BuildError } from './action';
 
 interface Output {
   stub: string;
@@ -17,11 +18,11 @@ function programLoader(
 ): Output {
   const vdecls = decls.get(program.vertex);
   if (vdecls == null) {
-    throw new Error(`missing vertex decls: ${program.vertex}`);
+    throw new BuildError(`missing vertex decls: ${program.vertex}`);
   }
   const fdecls = decls.get(program.fragment);
   if (fdecls == null) {
-    throw new Error(`missing vertex decls: ${program.vertex}`);
+    throw new BuildError(`missing vertex decls: ${program.vertex}`);
   }
   const tname = program.name.upperCase + 'Program';
   const uniforms = Array.from(new Set(vdecls.uniforms.concat(fdecls.uniforms)));
@@ -199,7 +200,7 @@ export function emitReleaseData(
   for (const name of attributeSet) {
     if (uniformSet.has(name)) {
       // Can't do renaming if this is true.
-      throw new Error(
+      throw new BuildError(
         `name ${JSON.stringify(name)} is both attribute and uniform`,
       );
     }
