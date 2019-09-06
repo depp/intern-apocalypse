@@ -1,5 +1,6 @@
 import { getFile, watchFiles } from './files';
-import { sounds, getSoundNames } from '../audio/sounds';
+import { sounds } from '../audio/audio';
+import { getSoundNames } from '../audio/sounds';
 import { SourceError, SourceText } from '../lib/sourcepos';
 import { parseSExpr } from '../lib/sexpr';
 import { evaluateProgram } from '../synth/evaluate';

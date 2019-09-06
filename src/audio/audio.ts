@@ -3,9 +3,13 @@
  */
 
 import { runProgram, sampleRate } from '../synth/engine';
-import { sounds, Sounds } from './sounds';
+import { Sounds } from './sounds';
 import { AssertionError } from '../debug/debug';
+import { bundledData } from '../lib/global';
+import { soundOffset } from '../lib/loader';
+import { decode } from '../lib/data.encode';
 
+export let sounds: (Uint8Array | null)[] = [];
 const buffers: AudioBuffer[] = [];
 
 let audioCtx: AudioContext | undefined | false;
@@ -67,6 +71,11 @@ function canvasClick(): void {
 /**
  * Start the audio subsystem.
  */
-export function startAudio() {
+export function startAudio(): void {
   window.addEventListener('click', canvasClick);
+}
+
+/** Load the sound data files. */
+export function loadSounds(): void {
+  sounds = bundledData[soundOffset].split(' ').map(decode);
 }

@@ -1,6 +1,6 @@
 /* This code is automatically generated. */
 import { compileShader, ShaderProgram, ShaderSpec } from './shader';
-import { data } from '../lib/global';
+import { bundledData } from '../lib/global';
 import { shaderOffset } from '../lib/loader';
 
 /** Shader program attribute bindings. */
@@ -48,16 +48,16 @@ export function loadShaders(): void {
     level,
     ['ModelViewProjection'],
     ['aPos', 'aColor'],
-    data[shaderOffset + 1],
-    data[shaderOffset + 0],
+    bundledData[shaderOffset + 1],
+    bundledData[shaderOffset + 0],
     'level',
   );
   compileShader(
     model,
     ['Model', 'ViewProjection'],
     ['aPos', 'aColor', 'aNormal'],
-    data[shaderOffset + 3],
-    data[shaderOffset + 2],
+    bundledData[shaderOffset + 3],
+    bundledData[shaderOffset + 2],
     'model',
   );
 }

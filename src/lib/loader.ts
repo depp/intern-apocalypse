@@ -2,4 +2,7 @@
 // for release builds.
 
 /** The offset for shaders in the bundled data. */
-export const shaderOffset: number = 0;
+export const shaderOffset: number = -1;
+
+/** The offset for sounds in the bundled data. */
+export const soundOffset: number = -1;

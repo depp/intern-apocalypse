@@ -22,7 +22,7 @@ import { evaluateProgram } from '../src/synth/evaluate';
 import { emitCode } from '../src/synth/node';
 
 const defsFile = 'src/audio/sounds.ts';
-const dataFile = 'build/sounds.js';
+export const soundsDataPath = 'build/sounds.json';
 
 interface SoundInfo {
   name: string;
@@ -70,9 +70,6 @@ function generateDefs(sounds: SoundInfo[]): string {
   }
   out += '}\n';
   out += '\n';
-  out += '/** Loaded sounds. */\n';
-  out += 'export const sounds: (Uint8Array | null)[] = [];\n';
-  out += '\n';
   out += '/** Get list of sound filenames, in order. */\n';
   out += 'export function getSoundNames(): string[] {\n';
   out += `  return ${JSON.stringify(sounds.map(m => m.filename))};\n`;
@@ -114,14 +111,7 @@ async function generateData(sounds: SoundInfo[]): Promise<string | null> {
     data += ' ';
     data += item;
   }
-  let out = '';
-  out += generatedHeader;
-  out += "import { decode } from '../lib/data.encode';\n";
-  out += 'const data = ';
-  out += JSON.stringify(data.substring(1));
-  out += ';\n';
-  out += "export let sounds = data.split(' ').map(decode);\n";
-  return out;
+  return JSON.stringify([data.substring(1)]);
 }
 
 /** Generate the audio definitions file. */
@@ -140,7 +130,7 @@ async function generateSources(
       if (text == null) {
         return false;
       }
-      await fs.promises.writeFile(dataFile, text, 'utf8');
+      await fs.promises.writeFile(soundsDataPath, text, 'utf8');
       return true;
     })();
   }
@@ -172,7 +162,7 @@ class PackAudio implements BuildAction {
   get outputs(): readonly string[] {
     const outputs = [defsFile];
     if (this.config == Config.Release) {
-      outputs.push(dataFile);
+      outputs.push(soundsDataPath);
     }
     return outputs;
   }

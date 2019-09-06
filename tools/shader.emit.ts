@@ -44,7 +44,7 @@ export function emitDefinitions(
   } else {
     out += "import { compileShader } from './shader';\n";
   }
-  out += "import { data } from '../lib/global';\n";
+  out += "import { bundledData } from '../lib/global';\n";
   out += "import { shaderOffset } from '../lib/loader';\n";
 
   if (mode == 'source') {
@@ -119,8 +119,8 @@ export function emitDefinitions(
       name,
       encodeStrings(program.uniforms),
       encodeStrings(program.attributes),
-      `data[shaderOffset + ${vertex.index}]`,
-      `data[shaderOffset + ${fragment.index}]`,
+      `bundledData[shaderOffset + ${vertex.index}]`,
+      `bundledData[shaderOffset + ${fragment.index}]`,
     ];
     if (mode == 'source') {
       args.push(JSON.stringify(name));

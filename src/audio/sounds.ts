@@ -9,9 +9,6 @@ export const enum Sounds {
   Swoosh,
 }
 
-/** Loaded sounds. */
-export const sounds: (Uint8Array | null)[] = [];
-
 /** Get list of sound filenames, in order. */
 export function getSoundNames(): string[] {
   return [

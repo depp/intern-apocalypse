@@ -5,6 +5,7 @@
 import * as fs from 'fs';
 
 import { BuildAction, BuildContext, BuildError } from './action';
+import { soundsDataPath } from './audio.build';
 import { BuildArgs } from './config';
 import { generatedHeader } from './util';
 import { shaderDataPath } from './shader';
@@ -14,10 +15,13 @@ interface Source {
   filepath: string;
 }
 
-const sources: Source[] = [{ name: 'shader', filepath: shaderDataPath }];
+const sources: Source[] = [
+  { name: 'shader', filepath: shaderDataPath },
+  { name: 'sound', filepath: soundsDataPath },
+];
 
 export const dataPath = 'build/data.json';
-const loaderPath = 'build/src/lib/loader.js';
+export const loaderPath = 'build/loader.js';
 
 interface LoadedSource extends Source {
   data: string[];
@@ -51,7 +55,7 @@ class CreateLoader implements BuildAction {
     return sources.map(({ filepath }) => filepath);
   }
   get outputs(): readonly string[] {
-    return [loaderPath, loaderPath + '.map'];
+    return [dataPath, loaderPath];
   }
 
   /** Build the bundled JavaScript code. */

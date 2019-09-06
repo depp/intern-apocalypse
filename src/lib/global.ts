@@ -6,7 +6,7 @@ import { isDebug } from '../debug/debug';
  */
 
 /** All data bundled with the release builds of the game. */
-export const data: string[] = isDebug
+export const bundledData: string[] = isDebug
   ? []
   : JSON.parse((document.getElementById('d') as HTMLScriptElement).text);
 
