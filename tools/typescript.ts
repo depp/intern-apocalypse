@@ -273,6 +273,13 @@ class CompileTS implements BuildAction {
         copies.map(async ([src, dest]) => {
           const bytes = await fs.promises.readFile(src);
           await fs.promises.writeFile(dest, bytes);
+          try {
+            await fs.promises.unlink(dest + '.map');
+          } catch (e) {
+            if (e.code != 'ENOENT') {
+              throw e;
+            }
+          }
         }),
       );
     }
