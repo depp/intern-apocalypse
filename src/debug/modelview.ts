@@ -4,7 +4,7 @@ import { modelInstances, ModelInstance } from '../game/model';
 import { renderModels } from '../render/model';
 import {
   matrixNew,
-  identityMatrix,
+  setIdentityMatrix,
   rotateMatrixFromAngle,
   Axis,
   scaleMatrix,
@@ -24,7 +24,7 @@ function render(curTimeMS: DOMHighResTimeStamp): void {
   updateCamera();
   const t = curTimeMS * 1e-3;
   const { transform } = model;
-  identityMatrix(transform);
+  setIdentityMatrix(transform);
   rotateMatrixFromAngle(transform, Axis.Z, t);
   rotateMatrixFromAngle(transform, Axis.X, 0.7 * t);
   scaleMatrix(transform, [3, 3, 3]);

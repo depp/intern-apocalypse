@@ -18,7 +18,7 @@ import { playerSettings } from '../lib/settings';
 import { clamp } from '../lib/util';
 import {
   matrixNew,
-  identityMatrix,
+  setIdentityMatrix,
   translateMatrix,
   Axis,
   rotateMatrixFromAngle,
@@ -83,7 +83,7 @@ export function spawnPlayer(): void {
       setCameraTarget(pos);
 
       // Set player model transform.
-      identityMatrix(transform);
+      setIdentityMatrix(transform);
       translateMatrix(transform, [pos.x, pos.y]);
       rotateMatrixFromAngle(transform, Axis.Z, angle + 0.5 * Math.PI);
       rotateMatrixFromDirection(transform, Axis.X, 0, 1);
