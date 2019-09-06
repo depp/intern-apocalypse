@@ -260,14 +260,14 @@ export class Builder {
     await watcher.subscribe('src', ['suffix', 'ts'], files =>
       this.didChange('src', files),
     );
+    let expr: any = ['name', 'programs.json'];
     if (this.config.config == Config.Release) {
-      await watcher.subscribe(
-        'shader',
-        // TODO: Watchman 5.0 has simpler query syntax.
-        ['anyof', ['suffix', 'frag'], ['suffix', 'vert']],
-        files => this.didChange('shader', files),
-      );
+      // TODO: Watchman 5.0 has simpler query syntax.
+      expr = ['anyof', expr, ['suffix', 'frag'], ['suffix', 'vert']];
     }
+    await watcher.subscribe('shader', expr, files =>
+      this.didChange('shader', files),
+    );
     setTimeout(() => this.watchLoop(), 100);
   }
 
