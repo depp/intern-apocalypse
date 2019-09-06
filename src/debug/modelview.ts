@@ -26,7 +26,7 @@ function render(curTimeMS: DOMHighResTimeStamp): void {
   const { transform } = model;
   identityMatrix(transform);
   rotateMatrixFromAngle(transform, Axis.Z, t);
-  rotateMatrixFromAngle(transform, Axis.X, t);
+  rotateMatrixFromAngle(transform, Axis.X, 0.7 * t);
   scaleMatrix(transform, [3, 3, 3]);
   gl.clearColor(0.5, 0.5, 0.5, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
