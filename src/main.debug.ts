@@ -2,6 +2,11 @@
  * Entry point for debug builds.
  */
 
+import { parseHash, hashVariables } from './debug/hash';
+
+// Do this *very* first, so other modules can use variables defined in the hash.
+parseHash();
+
 import { openWebSocket } from './debug/socket';
 
 // Do this first, before any other modules get initialized (they might throw).
@@ -14,6 +19,7 @@ import { watchShaders } from './debug/shader';
 import { gl } from './lib/global';
 import { initialize, main } from './main';
 import { watchSounds } from './debug/audio';
+import { runModelView } from './debug/modelview';
 
 /**
  * Main update loop for debug builds.
@@ -34,11 +40,21 @@ function mainDebug(curTimeMS: DOMHighResTimeStamp): void {
   }
 }
 
-if (gl) {
+function start(): void {
+  if (!gl) {
+    return;
+  }
   watchShaders();
   watchModels();
   watchSounds();
   startDebugGUI();
+  const model = hashVariables.get('model');
+  if (model != null) {
+    runModelView(model);
+    return;
+  }
   initialize();
   requestAnimationFrame(mainDebug);
 }
+
+start();

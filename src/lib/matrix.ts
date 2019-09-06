@@ -108,7 +108,7 @@ export function translateMatrix(out: Matrix, value: ArrayLike<number>): void {
 export function scaleMatrix(out: Matrix, scale: number[]): void {
   identityMatrix(scratchMatrix2);
   for (let i = 0; i < scale.length; i++) {
-    out[i * 5] = scale[i];
+    scratchMatrix2[i * 5] = scale[i];
   }
   matrixMultiply(out, out, scratchMatrix2);
 }
