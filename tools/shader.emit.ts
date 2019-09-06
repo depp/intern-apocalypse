@@ -39,7 +39,8 @@ function programLoader(
   loader += `  name: ${JSON.stringify(program.name.lowerCase)},\n`;
   loader += `  vertex: ${JSON.stringify(program.vertex)},\n`;
   loader += `  fragment: ${JSON.stringify(program.fragment)},\n`;
-  loader += `  attributes: ${JSON.stringify(program.attributes)},\n`;
+  const attributes = program.attributes.map(x => (x == null ? '' : x));
+  loader += `  attributes: ${JSON.stringify(attributes)},\n`;
   loader += `  uniforms: ${JSON.stringify(uniforms)},\n`;
   loader += `  object: ${program.name.lowerCase},\n`;
   loader += '},\n';
@@ -146,7 +147,7 @@ export function emitReleaseData(
   code: ReadonlyMap<string, Shader>,
 ): ReleaseData {
   // Get attribute bindings for each vertex shader.
-  const attributeBindings = new Map<string, string[]>();
+  const attributeBindings = new Map<string, (string | null)[]>();
   let maxAttribs = 0;
   for (const program of programs) {
     const { vertex, attributes } = program;
@@ -158,6 +159,9 @@ export function emitReleaseData(
       for (let i = 0; i < attributes.length; i++) {
         const oldName = bindings[i];
         const newName = attributes[i];
+        if (newName == null) {
+          continue;
+        }
         if (oldName && newName && oldName != newName) {
           throw new Error(
             `cannot bind attribute ${i} to both ` +
@@ -252,7 +256,10 @@ export function emitReleaseData(
     if (bindings) {
       localIdentMap = new Map(localIdentMap);
       for (let i = 0; i < bindings.length; i++) {
-        localIdentMap.set(bindings[i], attrMap[i]);
+        const attribute = bindings[i];
+        if (attribute != null) {
+          localIdentMap.set(attribute, attrMap[i]);
+        }
       }
     }
     const minText = shader.emitMinified(localIdentMap);

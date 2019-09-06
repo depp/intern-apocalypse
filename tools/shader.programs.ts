@@ -11,7 +11,7 @@ export interface Program {
   /** Filename of the fragment shader. */
   fragment: string;
   /** List of attributes to use, in order. */
-  attributes: readonly string[];
+  attributes: readonly (string | null)[];
 }
 
 /** Read shader programs. */
@@ -51,7 +51,7 @@ export async function readPrograms(filename: string): Promise<Program[]> {
       throw new Error('invalid attributes value');
     }
     for (const attr of attributes) {
-      if (typeof attr != 'string') {
+      if (typeof attr != 'string' && attr !== null) {
         throw new Error('invalid attribute');
       }
     }

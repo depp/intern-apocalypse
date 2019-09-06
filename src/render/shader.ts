@@ -24,7 +24,7 @@ export interface ShaderSpec {
   readonly vertex: string;
   /** The fragment shader filename. */
   readonly fragment: string;
-  /** List of attributes to use, in order. */
+  /** List of attributes to use, in order. An empty string is an empty slot. */
   readonly attributes: readonly string[];
   /** List of uniforms. */
   readonly uniforms: readonly string[];
@@ -103,7 +103,9 @@ export function compileShader(
     gl.deleteShader(shader);
   }
   for (let i = 0; i < attribs.length; i++) {
-    gl.bindAttribLocation(program, i, attribs[i]);
+    if (!isDebug || attribs[i] != '') {
+      gl.bindAttribLocation(program, i, attribs[i]);
+    }
   }
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
@@ -120,6 +122,7 @@ export function compileShader(
   if (isDebug) {
     // Print warnings for extra attributes.
     const anames = new Set<string>(attribs);
+    anames.delete(' ');
     const aexist = new Set<string>();
     const acount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
     for (let i = 0; i < acount; i++) {
