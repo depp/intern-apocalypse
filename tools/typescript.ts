@@ -40,7 +40,7 @@ export interface CompileTSParameters {
  * Transform by changing isDebug in src/debug.ts to false.
  */
 function setIsDebugFalse(): ts.TransformerFactory<ts.SourceFile> {
-  const debugTS = path.join(projectRoot, 'src/debug.ts');
+  const debugTS = path.join(projectRoot, 'src/debug/debug.ts');
   return ctx => {
     return node => {
       if (node.fileName != debugTS) {
