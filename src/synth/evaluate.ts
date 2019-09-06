@@ -434,6 +434,15 @@ defun('sine', (expr, args) => {
   );
 });
 
+defun('noise', (expr, args) => {
+  getExactArgs(expr, args, 0);
+  return nodeValue(
+    createNode(expr, node.noise, [], []),
+    Units.Volt,
+    Type.Buffer,
+  );
+});
+
 defun('lowPass2', (expr, args) => {
   const [input, frequency, q] = getExactArgs(expr, args, 3);
   const qval = getConstant('q', q, Units.None);

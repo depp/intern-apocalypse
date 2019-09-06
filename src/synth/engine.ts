@@ -9,6 +9,7 @@ import {
   decodeNote,
   decodeFrequency,
 } from './data';
+import { Random } from '../lib/random';
 
 // =============================================================================
 // Definitions and auxiliary pure functions
@@ -23,6 +24,9 @@ export const sampleRate = 48000;
 
 /** The number of samples in each buffer. */
 let bufferSize = sampleRate * 2;
+
+/** Random number generator for audio. */
+let random = new Random(9);
 
 /** Synthesizer numeric execution stack. */
 const stack: (number | Float32Array)[] = [];
@@ -144,6 +148,14 @@ export const operators: (() => void)[] = [
       out[i] = Math.sin(2 * Math.PI * out[i]);
     }
     stack.push(out);
+  },
+
+  /** Create a buffer filled with noise. */
+  function noise(): void {
+    const out = pushBuffer();
+    for (let i = 0; i < bufferSize; i++) {
+      out[i] = random.range(-1, 1);
+    }
   },
 
   /** Apply a two-pole low pass filter. */

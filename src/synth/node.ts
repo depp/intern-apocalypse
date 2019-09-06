@@ -169,6 +169,7 @@ export const oscillator = opSimple(
 );
 export const sawtooth = opSimple(opcode.sawtooth, [Type.Buffer], [Type.Buffer]);
 export const sine = opSimple(opcode.sine, [Type.Buffer], [Type.Buffer]);
+export const noise = opSimple(opcode.noise, [], [Type.Buffer]);
 export const lowPass2 = opSimple(
   opcode.lowPass2,
   [Type.Buffer, Type.Buffer],
