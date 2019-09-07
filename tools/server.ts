@@ -39,6 +39,7 @@ const baseFiles: readonly StaticFile[] = [
   { url: '/game.js.map', file: 'build/game.js.map' },
   { url: '/data.json', file: 'build/data.json' },
   { url: '/dat.gui.js', file: 'node_modules/dat.gui/build/dat.gui.min.js' },
+  { url: '/favicon.ico', file: 'misc/favicon.ico' },
 ];
 
 /** Handle requests for /. */
