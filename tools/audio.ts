@@ -5,7 +5,7 @@
 import * as fs from 'fs';
 import * as child_process from 'child_process';
 
-import * as program from 'commander';
+import * as yargs from 'yargs';
 import { file, setGracefulCleanup } from 'tmp-promise';
 
 import { evaluateProgram } from '../src/synth/evaluate';
@@ -22,48 +22,61 @@ import { emitCode } from '../src/synth/node';
 setGracefulCleanup();
 
 interface AudioArgs {
-  output: string;
-  input: string;
+  output: string | null;
+  input: string | null;
   play: boolean;
   disassemble: boolean;
   verbose: boolean;
   loop: boolean;
 }
 
-function parseArgs() {
-  program.option('--output <file>', 'path to output WAVE file');
-  program.option('--play', 'play the audio file');
-  program.option('--disassemble', 'show program disassembly');
-  program.option('--loop', 'play repeatedly as file changes');
-  program.option('-v --verbose', 'verbose logging');
-  program.parse(process.argv);
+/** Parse the command-line arguments. */
+function parseArgs(): AudioArgs {
+  const argv = yargs
+    .options({
+      output: { alias: 'o', type: 'string', desc: 'Output WAVE file' },
+      play: { alias: 'p', type: 'boolean', default: false, desc: 'Play sound' },
+      disassemble: {
+        alias: 'd',
+        type: 'boolean',
+        default: false,
+        desc: 'Show program disassembly',
+      },
+      loop: {
+        alias: 'l',
+        type: 'boolean',
+        default: false,
+        desc: 'Play repeatedly as input changes',
+      },
+      verbose: {
+        alias: 'v',
+        type: 'boolean',
+        default: false,
+        desc: 'Verbose logging',
+      },
+    })
+    .command('$0 [input]', 'Compile an audio script', yargs =>
+      yargs.positional('input', { desc: 'Input audio script' }),
+    )
+    .help()
+    .version(false)
+    .strict().argv;
+  if (argv._.length) {
+    console.error(`unexpected argument ${JSON.stringify(argv._[0])}`);
+    process.exit(2);
+  }
   const args: AudioArgs = {
-    output: '',
-    input: '-',
-    play: false,
-    disassemble: false,
-    verbose: false,
-    loop: false,
+    output: argv.output || null,
+    input: (argv.input as string | undefined) || null,
+    play: argv.play,
+    disassemble: argv.disassemble,
+    verbose: argv.disassemble,
+    loop: argv.loop,
   };
-  for (const arg of Object.keys(args)) {
-    if (arg != 'input' && arg in program) {
-      // @ts-ignore: This is a hack.
-      args[arg] = program[arg];
-    }
-  }
-  if (program.args.length) {
-    if (program.args.length > 1) {
-      console.error(`unexpected argument ${program.args[1]}`);
-      program.exit(2);
-    }
-    args.input = program.args[0];
-  }
-  if (args.loop) {
-    args.play = true;
-    if (args.input == '-') {
-      console.error('cannot read from stdin with --loop');
-      program.exit(2);
-    }
+  console.log(args);
+  if (argv.loop && argv.input == null) {
+    console.error('cannot read from stdin with --loop');
+    process.exit(2);
   }
   return args;
 }
@@ -144,7 +157,8 @@ interface Reader {
 }
 
 function makeReader(args: AudioArgs): Reader {
-  if (args.input == '-') {
+  const { input } = args;
+  if (input == null) {
     return {
       path: '<stdin>',
       read() {
@@ -153,9 +167,9 @@ function makeReader(args: AudioArgs): Reader {
     };
   }
   return {
-    path: args.input,
+    path: input,
     read() {
-      return fs.promises.readFile(args.input, 'utf8');
+      return fs.promises.readFile(input, 'utf8');
     },
   };
 }
@@ -166,11 +180,12 @@ interface Writer {
 }
 
 async function makeWriter(args: AudioArgs): Promise<Writer> {
-  if (args.output != '') {
+  const { output } = args;
+  if (output != null) {
     return {
-      path: args.output,
+      path: output,
       async write(data) {
-        await fs.promises.writeFile(args.output, data);
+        await fs.promises.writeFile(output, data);
       },
     };
   }
