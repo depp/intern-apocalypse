@@ -32,5 +32,5 @@ export const playerSettings = {
   /** Player turning speed, in radians per second. */
   turnSpeed: 20,
   /** Amount of time an attack lasts. */
-  attackTime: 0.5,
+  attackTime: 0.25,
 };

@@ -46,15 +46,22 @@ export function spawnPlayer(): void {
 
   // Amount of time into attack.
   let attackTime = -1;
+  // True if the player has pressed attack and it will take effect at the next
+  // opportunity.
+  let pendingAttack = false;
 
   entities.push({
     update() {
+      if (buttonPress[Button.Action]) {
+        pendingAttack = true;
+      }
       if (attackTime >= 0) {
         attackTime += frameDT;
         if (attackTime > playerSettings.attackTime) {
           attackTime = -1;
         }
-      } else if (buttonPress[Button.Action]) {
+      } else if (pendingAttack) {
+        pendingAttack = false;
         attackTime = 0;
         playSound(Sounds.Swoosh);
       }
