@@ -69,6 +69,8 @@ function emitActions(ctx: BuildContext) {
       output: 'build/InternApocalypse.zip',
       files: new Map([['index.html', 'build/index.html']]),
       sizeTarget,
+      useZopfli: true,
+      date: new Date(2019, 9, 13, 13, 0, 0, 0),
     });
   }
 }
