@@ -25,7 +25,7 @@ async function runInfoZip(
   const tempZip = tempDir + '.zip';
   try {
     await fs.promises.mkdir(tempDir);
-    const args = [path.relative(tempDir, tempZip), '--quiet', '--'];
+    const args = [path.relative(tempDir, tempZip), '-MM', '--quiet', '--'];
     for (const [name, src] of files.entries()) {
       const absSrc = path.join(util.projectRoot, src);
       const absDest = path.join(tempDir, name);
