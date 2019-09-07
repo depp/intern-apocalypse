@@ -135,9 +135,22 @@ export function minifyShaders(shaderPrograms: ShaderPrograms): ShaderPrograms {
     shaders.set(info.filename, info);
   }
 
-  // Fill in uniforms in the programs.
+  // Fill in uniforms and map attributes in the programs.
   const programs: Program[] = [];
   for (const program of shaderPrograms.programs) {
+    const attributes: (string | null)[] = [];
+    for (const attribute of program.attributes) {
+      let short: string | null | undefined;
+      if (attribute) {
+        short = idmap.map.get(attribute);
+        if (short == null) {
+          throw new AssertionError('short == null', { attribute });
+        }
+      } else {
+        short = null;
+      }
+      attributes.push(short);
+    }
     const programUniforms = new Set<string>();
     for (const filename of [program.vertex, program.fragment]) {
       const uniforms = shaderUniforms.get(filename);
@@ -153,7 +166,7 @@ export function minifyShaders(shaderPrograms: ShaderPrograms): ShaderPrograms {
       }
     }
     const uniforms = Array.from(programUniforms).sort();
-    programs.push(Object.assign({}, program, { uniforms }));
+    programs.push(Object.assign({}, program, { attributes, uniforms }));
   }
 
   return {
