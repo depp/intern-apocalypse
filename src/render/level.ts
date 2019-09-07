@@ -136,10 +136,11 @@ export function renderLevel(): void {
   gl.vertexAttribPointer(Attribute.Color, 4, gl.UNSIGNED_BYTE, true, 0, 0);
 
   gl.useProgram(p.program);
-  gl.enable(gl.CULL_FACE);
-  gl.enable(gl.DEPTH_TEST);
   gl.enableVertexAttribArray(Attribute.Pos);
   gl.enableVertexAttribArray(Attribute.Color);
   gl.uniformMatrix4fv(p.ModelViewProjection, false, cameraMatrix);
   gl.drawElements(gl.TRIANGLES, elementCount, gl.UNSIGNED_SHORT, 0);
+
+  gl.disableVertexAttribArray(Attribute.Pos);
+  gl.disableVertexAttribArray(Attribute.Color);
 }

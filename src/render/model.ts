@@ -19,8 +19,6 @@ export function renderModels(): void {
 
   // State
   gl.useProgram(p.program);
-  gl.enable(gl.CULL_FACE);
-  gl.enable(gl.DEPTH_TEST);
 
   for (const instance of modelInstances) {
     const model = models[instance.model];
@@ -56,6 +54,4 @@ export function renderModels(): void {
   gl.disableVertexAttribArray(0);
   gl.disableVertexAttribArray(1);
   gl.disableVertexAttribArray(2);
-  gl.disable(gl.CULL_FACE);
-  gl.disable(gl.DEPTH_TEST);
 }

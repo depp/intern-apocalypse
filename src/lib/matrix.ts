@@ -49,6 +49,10 @@ export function setIdentityMatrix(out: Matrix) {
   out[15] = 1;
 }
 
+/** The identity matrix. */
+export const identityMatrix = matrixNew();
+setIdentityMatrix(identityMatrix);
+
 /** Axes we can rotate the around. */
 export const enum Axis {
   X,

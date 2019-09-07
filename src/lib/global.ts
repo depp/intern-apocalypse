@@ -21,3 +21,5 @@ export const gl = canvas.getContext('webgl', {
 if (!gl) {
   throw new Error('Could not create WebGL context');
 }
+
+gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);

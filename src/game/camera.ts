@@ -13,6 +13,9 @@ import {
 import { Vector, vector, zeroVector, lerp } from '../lib/math';
 import { frameDT } from './time';
 
+/** The view projection matrix for the UI. */
+export const uiMatrix = matrixNew();
+
 /** The current camera target and filter coefficients. */
 let cameraTargetFilter = [zeroVector, zeroVector, zeroVector];
 
@@ -32,6 +35,13 @@ export const cameraMatrix = matrixNew();
  * Update the camera.
  */
 export function updateCamera(): void {
+  // Set up orthographic projection matrix.
+  uiMatrix.fill(0);
+  uiMatrix[0] = canvas.clientHeight / canvas.clientWidth;
+  uiMatrix[5] = 1;
+  uiMatrix[10] = 1;
+  uiMatrix[15] = 1;
+
   const smoothRatio = Math.exp(-cameraSettings.speed * frameDT);
   for (let i = 0; i < 2; i++) {
     cameraTargetFilter[i + 1] = lerp(

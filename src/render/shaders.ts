@@ -7,9 +7,16 @@ import { shaderOffset } from '../lib/loader';
 export const enum Attribute {
   Pos = 0,
   Color = 1,
-  Normal = 2,
+  TexCoord = 2,
+  Normal = 3,
 }
 
+export interface FlatProgram extends ShaderProgram {
+  Model: WebGLUniformLocation | null;
+  Texture: WebGLUniformLocation | null;
+  ViewProjection: WebGLUniformLocation | null;
+}
+export const flat = {} as FlatProgram;
 export interface LevelProgram extends ShaderProgram {
   ModelViewProjection: WebGLUniformLocation | null;
 }
@@ -24,6 +31,14 @@ export const model = {} as ModelProgram;
 export function getShaderSpecs(): ShaderSpec[] {
   return [
     {
+      name: 'flat',
+      vertex: 'model.vert',
+      fragment: 'flat.frag',
+      attributes: ['aPos', 'aColor', 'aTexCoord'],
+      uniforms: ['Model', 'Texture', 'ViewProjection'],
+      object: flat,
+    },
+    {
       name: 'level',
       vertex: 'level.vert',
       fragment: 'level.frag',
@@ -35,7 +50,7 @@ export function getShaderSpecs(): ShaderSpec[] {
       name: 'model',
       vertex: 'model.vert',
       fragment: 'model.frag',
-      attributes: ['aPos', 'aColor', 'aNormal'],
+      attributes: ['aPos', 'aColor', '', 'aNormal'],
       uniforms: ['Model', 'ViewProjection'],
       object: model,
     },
@@ -45,19 +60,27 @@ export function getShaderSpecs(): ShaderSpec[] {
 /** Load all the shaders. */
 export function loadShaders(): void {
   compileShader(
+    flat,
+    ['Model', 'Texture', 'ViewProjection'],
+    ['aPos', 'aColor', 'aTexCoord'],
+    bundledData[shaderOffset + 4],
+    bundledData[shaderOffset + 0],
+    'flat',
+  );
+  compileShader(
     level,
     ['ModelViewProjection'],
     ['aPos', 'aColor'],
+    bundledData[shaderOffset + 2],
     bundledData[shaderOffset + 1],
-    bundledData[shaderOffset + 0],
     'level',
   );
   compileShader(
     model,
     ['Model', 'ViewProjection'],
-    ['aPos', 'aColor', 'aNormal'],
+    ['aPos', 'aColor', '', 'aNormal'],
+    bundledData[shaderOffset + 4],
     bundledData[shaderOffset + 3],
-    bundledData[shaderOffset + 2],
     'model',
   );
 }

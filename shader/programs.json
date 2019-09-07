@@ -1,5 +1,11 @@
 [
   {
+    "name": "flat",
+    "vertex": "model.vert",
+    "fragment": "flat.frag",
+    "attributes": ["aPos", "aColor", "aTexCoord"]
+  },
+  {
     "name": "level",
     "vertex": "level.vert",
     "fragment": "level.frag",
@@ -9,6 +15,6 @@
     "name": "model",
     "vertex": "model.vert",
     "fragment": "model.frag",
-    "attributes": ["aPos", "aColor", "aNormal"]
+    "attributes": ["aPos", "aColor", null, "aNormal"]
   }
 ]
