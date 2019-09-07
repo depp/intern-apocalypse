@@ -8,7 +8,7 @@ import * as path from 'path';
 
 import * as ts from 'typescript';
 
-import { BuildContext, BuildAction } from './action';
+import { BuildContext, BuildAction, BuildError } from './action';
 import { projectRoot, pathWithExt } from './util';
 import { Config, BuildArgs } from './config';
 import { minShaderDefsPath } from './shader';
@@ -192,6 +192,50 @@ async function readUniformMap(): Promise<Map<string, string>> {
   return map;
 }
 
+/** Read OpenGL constant definitions. */
+async function readOpenGLConstants(
+  filename: string,
+): Promise<Map<string, number>> {
+  const source = await fs.promises.readFile(filename, 'utf8');
+  const obj = JSON.parse(source);
+  const result = new Map<string, number>();
+  if (typeof obj != 'object' || Array.isArray(obj)) {
+    throw new BuildError('invalid gl constants');
+  }
+  for (const key of Object.keys(obj)) {
+    const value = obj[key];
+    if (typeof value != 'number') {
+      throw new BuildError(
+        `invalid gl constant for key ${JSON.stringify(key)}`,
+      );
+    }
+    result.set(key, value);
+  }
+  return result;
+}
+
+/** Replace OpenGL constants with their values. */
+function inlineOpenGLConstants(
+  constants: Map<string, number>,
+): ts.TransformerFactory<ts.SourceFile> {
+  return ctx => {
+    const visit: ts.Visitor = node => {
+      if (ts.isPropertyAccessExpression(node)) {
+        const lhs = node.expression;
+        if (ts.isIdentifier(lhs) && lhs.text == 'gl') {
+          const text = node.name.getText();
+          const value = constants.get(text);
+          if (value != null) {
+            return ts.createNumericLiteral(value.toString());
+          }
+        }
+      }
+      return ts.visitEachChild(node, visit, ctx);
+    };
+    return node => ts.visitNode(node, visit);
+  };
+}
+
 /**
  * Build action which compiles TypeScript to JavaScript.
  */
@@ -295,13 +339,15 @@ class CompileTS implements BuildAction {
     if (config.config == Config.Debug) {
       return {};
     }
-    const uniformMap = await readUniformMap();
+    const uniformMap = readUniformMap();
+    const glConstants = readOpenGLConstants('misc/gles2.json');
     return {
       before: [
         setIsDebugFalse(),
         removeAssertions(),
         constToLet(),
-        fixUniforms(uniformMap, checker),
+        fixUniforms(await uniformMap, checker),
+        inlineOpenGLConstants(await glConstants),
       ],
     };
   }
