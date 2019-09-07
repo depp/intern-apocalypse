@@ -1,7 +1,5 @@
 import * as fs from 'fs';
 
-import * as program from 'commander';
-
 import { convertModel } from '../src/model/convert';
 import { SourceError, SourceText } from '../src/lib/sourcepos';
 import { printError } from './source';
@@ -14,17 +12,12 @@ interface ModelArgs {
 
 /** Parse program arguments. */
 function parseArgs(): ModelArgs {
-  program.allowUnknownOption(false);
-  program.parse(process.argv);
-  const args: ModelArgs = {
-    inputs: [],
-  };
-  if (program.args.length < 1) {
+  const inputs = process.argv.slice(2);
+  if (inputs.length == 0) {
     console.error(`expected 1 or more arguments`);
     process.exit(2);
   }
-  args.inputs = program.args;
-  return args;
+  return { inputs };
 }
 
 /** Process a single model. */
