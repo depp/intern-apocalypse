@@ -14,18 +14,19 @@ To build the project,
 
 ```shell
 yarn install
-yarn run build
+yarn run build --config=competition
 ```
 
 This will create two files:
 
 - `build/index.html`: The game, in a self-contained HTML file.
-- `build/InternApocalypse.zip`: The game, packaged for submission to JS13K.
+- `build/InternApocalypse_JS13K.zip`: The game, packaged for submission to JS13K.
 
 ### Build script options
 
-- `--watch`: Rebuild continuously as sources change.
-- `--serve`: Seve the game from a local development server, rebuilding the game as the sources change. This will also stream data files to the game as they change, so the results can be seen without reloading the game.
+- `--config=release`: Build a non-minified version of the game, `build/InternApocalypse_JS13K.zip`.
+- `yarn run build watch`: Rebuild continuously as sources change.
+- `yarn run build serve`: Seve the game from a local development server, rebuilding the game as the sources change. This will also stream data files to the game as they change, so the results can be seen without reloading the game.
 
 ### Checking for Errors
 
@@ -48,8 +49,8 @@ yarn run audio audio/clang.lisp --play
 
 - `--disassemble`: Show the disassembled audio program.
 - `--output=<file>`: Write audio to an output WAVE file.
-- `--play`: Play the resulting audio. Plays in a loop if combined with `--watch`.
-- `--watch`: Watch input and rebuild as it changes.
+- `--play`: Play the resulting audio.
+- `--loop`: Play the audio repeatedly, reloading as the input changes.
 
 ## Models
 
