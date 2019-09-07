@@ -3,25 +3,16 @@
  */
 
 import { Button, buttonAxis, buttonPress } from '../lib/input';
-import {
-  vector,
-  lengthSquared,
-  scaleVector,
-  canonicalAngle,
-} from '../lib/math';
+import { vector, lengthSquared, scaleVector } from '../lib/math';
 import { frameDT } from './time';
-import { walk } from './walk';
 import { entities } from './world';
 import { ModelInstance, modelInstances } from './model';
 import { ModelAsset } from '../model/models';
 import { playerSettings } from '../lib/settings';
-import { clamp } from '../lib/util';
 import {
   matrixNew,
-  setIdentityMatrix,
   translateMatrix,
   Axis,
-  rotateMatrixFromAngle,
   rotateMatrixFromDirection,
 } from '../lib/matrix';
 import { setCameraTarget } from './camera';
@@ -52,6 +43,7 @@ export function spawnPlayer(): void {
 
   entities.push({
     update() {
+      // Update attack state.
       if (buttonPress[Button.Action]) {
         pendingAttack = true;
       }
