@@ -46,3 +46,22 @@ export function startGL(): void {
   }
   gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
 }
+
+/**
+ * Main game states.
+ */
+export const enum State {
+  MainMenu,
+  Game,
+}
+
+/** The current game state. */
+export let currentState: State = State.MainMenu;
+
+/**
+ * Set the current game state. Takes effect on the next frame, the actual
+ * transition is handled by the main loop.
+ */
+export function setState(state: State): void {
+  currentState = state;
+}

@@ -9,15 +9,18 @@ import { spawnPlayer } from './game/player';
 import { render } from './render/render';
 import { updateTime } from './game/time';
 import { updateWorld } from './game/world';
+import { State, currentState, setState } from './lib/global';
+import { startMenu, endMenu } from './render/ui';
 
 /**
  * Initialize game.
  */
 export function initialize(): void {
   startInput();
-  startAudio();
-  spawnPlayer();
 }
+
+/** The game state as of the last frame. */
+let lastState: State | undefined;
 
 /**
  * Main update loop.
@@ -25,8 +28,32 @@ export function initialize(): void {
  * @param curTimeMS Current time in milliseconds.
  */
 export function main(curTimeMS: DOMHighResTimeStamp): void {
+  if (currentState != lastState) {
+    switch (currentState) {
+      case State.MainMenu:
+        startMenu(
+          {
+            click() {
+              startAudio();
+              setState(State.Game);
+            },
+          },
+          {
+            text: 'Internship\nat the\nApocalypse',
+          },
+        );
+        break;
+      case State.Game:
+        endMenu();
+        spawnPlayer();
+        break;
+    }
+    lastState = currentState;
+  }
   updateTime(curTimeMS);
-  updateWorld();
+  if (currentState == State.Game) {
+    updateWorld();
+  }
   updateCamera();
   endFrameInput();
   render();

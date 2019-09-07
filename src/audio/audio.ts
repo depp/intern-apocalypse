@@ -72,7 +72,8 @@ function canvasClick(): void {
  * Start the audio subsystem.
  */
 export function startAudio(): void {
-  window.addEventListener('click', canvasClick);
+  startContext();
+  playSound(Sounds.Clang);
 }
 
 /** Load the sound data files. */

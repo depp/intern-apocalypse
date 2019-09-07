@@ -1,4 +1,4 @@
-import { gl } from '../lib/global';
+import { gl, canvas } from '../lib/global';
 import { AssertionError, isDebug } from '../debug/debug';
 import { flat as flatShader, flat, Attribute } from './shaders';
 import { quad } from './util';
@@ -7,7 +7,17 @@ import { identityMatrix } from '../lib/matrix';
 import { roundUpPow2 } from '../lib/util';
 import { Vector, vector } from '../lib/math';
 
-let hasTitle = false;
+export interface Menu {
+  click?(): void;
+}
+
+export interface MenuItem {
+  text: string;
+}
+
+let currentMenu: Menu | undefined | null;
+let currentItems: MenuItem[] | undefined | null;
+
 let offscreenCanvas!: HTMLCanvasElement;
 let canvasSize!: Vector;
 let textureSize!: Vector;
@@ -16,6 +26,7 @@ let ctx!: CanvasRenderingContext2D;
 let texture: WebGLTexture | null;
 let posBuffer: WebGLBuffer | null;
 let texBuffer: WebGLBuffer | null;
+let elementCount: number | undefined;
 
 /** Initialize the UI renderer. */
 export function initRenderUI(): void {
@@ -39,20 +50,41 @@ function initContext(): void {
   offscreenCanvas.height = textureSize.y;
 }
 
-function makeTitle(): void {
+/** Update the menu graphics data. */
+function updateMenu(): void {
+  if (currentItems == null) {
+    throw new AssertionError('currentMenu == null');
+  }
   initContext();
 
-  const text = 'Internship\nat the\nApocalypse';
-  // Luminari, Palatino, URW Palladio, Palatino Linotype
-  ctx.translate(canvasSize.x / 2, canvasSize.y / 2);
-  ctx.font = 'bold 48px Luminari';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.strokeStyle = '#000';
-  ctx.fillStyle = '#fff';
-  ctx.lineWidth = 6;
-  ctx.strokeText(text, 0, 0);
-  ctx.fillText(text, 0, 0);
+  elementCount = currentItems.length * 6;
+  const pos = new Float32Array(elementCount * 2);
+  const tex = new Float32Array(elementCount * 2);
+  const aspect = canvasSize.x / canvasSize.y;
+  const u1 = canvasSize.x / textureSize.x;
+  const v1 = canvasSize.y / textureSize.y;
+  let off = 0;
+
+  for (const item of currentItems) {
+    ctx.save();
+    ctx.translate(canvasSize.x / 2, canvasSize.y / 2);
+    ctx.font = 'bold 48px Luminari';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.strokeStyle = '#000';
+    ctx.fillStyle = '#fff';
+    ctx.lineWidth = 6;
+    ctx.strokeText(item.text, 0, 0);
+    ctx.fillText(item.text, 0, 0);
+    ctx.restore();
+
+    for (const [i, x, y, u, v] of quad) {
+      pos.set([x * aspect, y], off + i * 2);
+      tex.set([u * u1, v * v1], off + i * 2);
+    }
+
+    off += 12;
+  }
 
   gl.bindTexture(gl.TEXTURE_2D, texture);
   gl.texImage2D(
@@ -66,21 +98,10 @@ function makeTitle(): void {
   gl.generateMipmap(gl.TEXTURE_2D);
   gl.bindTexture(gl.TEXTURE_2D, null);
 
-  const pos = new Float32Array(6 * 2);
-  const tex = new Float32Array(6 * 2);
-  const aspect = canvasSize.x / canvasSize.y;
-  const u1 = canvasSize.x / textureSize.x;
-  const v1 = canvasSize.y / textureSize.y;
-  for (const [i, x, y, u, v] of quad) {
-    pos.set([x * aspect, y], i * 2);
-    tex.set([u * u1, v * v1], i * 2);
-  }
   gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW);
   gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, tex, gl.STATIC_DRAW);
-
-  hasTitle = true;
 }
 
 /**
@@ -92,8 +113,8 @@ export function renderUI(): void {
     return;
   }
 
-  if (!hasTitle) {
-    makeTitle();
+  if (!elementCount) {
+    return;
   }
 
   gl.useProgram(p.program);
@@ -120,11 +141,42 @@ export function renderUI(): void {
   gl.uniform1i(p.Texture, 0);
 
   // Draw
-  gl.drawArrays(gl.TRIANGLES, 0, 6);
+  gl.drawArrays(gl.TRIANGLES, 0, elementCount);
 
   // Cleanup
   gl.disable(gl.BLEND);
   gl.disableVertexAttribArray(Attribute.Pos);
   gl.disableVertexAttribArray(Attribute.TexCoord);
   gl.bindTexture(gl.TEXTURE_2D, null);
+}
+
+/**
+ * Handle a mouse click on the canvas.
+ */
+function menuClick(event: MouseEvent) {
+  event.preventDefault();
+  if (currentMenu == null || currentItems == null) {
+    throw new AssertionError('no menu');
+  }
+  if (currentMenu.click) {
+    currentMenu.click();
+  }
+}
+
+/**
+ * Start displaying a menu.
+ */
+export function startMenu(menu: Menu, ...items: MenuItem[]): void {
+  currentMenu = menu;
+  currentItems = items;
+  updateMenu();
+  canvas.addEventListener('click', menuClick);
+}
+
+/**
+ * Stop displaying any menu.
+ */
+export function endMenu(): void {
+  elementCount = 0;
+  canvas.addEventListener('click', menuClick);
 }
