@@ -15,7 +15,7 @@ describe('encode', () => {
         const x = data[j];
         const y = encoded.charAt(j);
         const z = decoded[j];
-        if (y == "'" || y == '\\') {
+        if (y == '"' || y == '\\') {
           throw new Error(`failed: ${x} => ${JSON.stringify(y)}`);
         }
         if (x != z) {

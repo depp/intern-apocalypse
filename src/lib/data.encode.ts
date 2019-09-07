@@ -20,7 +20,7 @@ export function decode(s: string): Uint8Array {
     (_, i) =>
       s.charCodeAt(i) -
       33 -
-      (((s.charCodeAt(i) > 39) as unknown) as number) -
+      (((s.charCodeAt(i) > 34) as unknown) as number) -
       (((s.charCodeAt(i) > 92) as unknown) as number),
   );
 }
@@ -38,7 +38,7 @@ export function encode(a: Uint8Array): string {
       x =>
         x +
         33 +
-        (((x > 5) as unknown) as number) +
+        (((x > 0) as unknown) as number) +
         (((x > 57) as unknown) as number),
     ),
   );
