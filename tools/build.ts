@@ -148,7 +148,7 @@ function parseArgs(): BuildArgs {
       process.exit(2);
     }
   } else {
-    config = mode == Mode.Serve ? Config.Debug : Config.Release;
+    config = mode == Mode.Serve ? Config.Debug : Config.Competition;
   }
   return {
     config,

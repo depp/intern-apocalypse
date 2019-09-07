@@ -14,7 +14,7 @@ To build the project,
 
 ```shell
 yarn install
-yarn run build --config=competition
+yarn run build
 ```
 
 This will create two files:
