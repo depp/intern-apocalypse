@@ -8,6 +8,13 @@ export enum Config {
   Release,
 }
 
+/** Mode to run the build in. */
+export enum Mode {
+  Build,
+  Watch,
+  Serve,
+}
+
 /**
  * Command-line build arguments.
  */
@@ -15,10 +22,8 @@ export interface BuildArgs {
   /** The build configuration: Debug or Release. */
   config: Config;
 
-  /** If true, serve game over HTTP. */
-  serve: boolean;
-  /** If true, continuously rebuild the game. */
-  watch: boolean;
+  /** Build mode. */
+  mode: Mode;
   /** Hostname for HTTP server. */
   host: string;
   /** Port for HTTP server. */
