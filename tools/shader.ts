@@ -95,12 +95,13 @@ export function packShaders(
 }
 
 async function main(): Promise<void> {
-  const program = require('commander');
-  program.option('--release', 'show release version');
-  program.parse(process.argv);
-  const config = program.release ? Config.Release : Config.Debug;
+  const args = process.argv.slice(2);
+  if (args.length) {
+    console.error(`unexpected argument ${JSON.stringify(args[0])}`);
+    process.exit(2);
+  }
   try {
-    await generateLoader(config);
+    await generateLoader(Config.Release);
   } catch (e) {
     console.error(e);
     process.exit(1);
