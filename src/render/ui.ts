@@ -37,13 +37,15 @@ function makeTitle(): void {
 
   const text = 'Internship\nat the\nApocalypse';
   // Luminari, Palatino, URW Palladio, Palatino Linotype
+  ctx.translate(canvasSize.x / 2, canvasSize.y / 2);
   ctx.font = 'bold 48px Luminari';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillStyle = '#fff';
-  ctx.fillText(text, canvasSize.x / 2, canvasSize.y / 2);
   ctx.strokeStyle = '#000';
-  ctx.strokeText(text, canvasSize.x / 2, canvasSize.y / 2);
+  ctx.fillStyle = '#fff';
+  ctx.lineWidth = 6;
+  ctx.strokeText(text, 0, 0);
+  ctx.fillText(text, 0, 0);
 
   gl.bindTexture(gl.TEXTURE_2D, texture);
   gl.texImage2D(
