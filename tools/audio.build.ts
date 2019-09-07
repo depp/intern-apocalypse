@@ -124,7 +124,7 @@ async function generateSources(
     return false;
   }
   let outData: Promise<boolean> | null = null;
-  if (config == Config.Release) {
+  if (config != Config.Debug) {
     outData = (async () => {
       const text = await generateData(sounds);
       if (text == null) {
@@ -161,7 +161,7 @@ class PackAudio implements BuildAction {
   }
   get outputs(): readonly string[] {
     const outputs = [defsFile];
-    if (this.config == Config.Release) {
+    if (this.config != Config.Debug) {
       outputs.push(soundsDataPath);
     }
     return outputs;

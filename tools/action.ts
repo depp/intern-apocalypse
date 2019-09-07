@@ -281,7 +281,7 @@ export class Builder {
       this.didChange('src', files),
     );
     let expr: any = ['name', 'programs.json'];
-    if (this.config.config == Config.Release) {
+    if (this.config.config != Config.Debug) {
       // TODO: Watchman 5.0 has simpler query syntax.
       expr = ['anyof', expr, ['suffix', 'frag'], ['suffix', 'vert']];
     }

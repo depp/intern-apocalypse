@@ -1,0 +1,9 @@
+body {
+  background: #222;
+}
+
+#g {
+  margin: 0 auto;
+  display: block;
+  z-index: 0;
+}

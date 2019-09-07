@@ -99,15 +99,20 @@ const resolverPlugin: rollup.Plugin = {
 };
 
 /** Create a Rollup plugin for minifying code. */
-function minifyPlugin(): rollup.Plugin {
+function minifyPlugin(config: Config): rollup.Plugin {
   const terser = require('terser') as typeof terserTypes;
   return {
     name: 'Terser',
     renderChunk(input: string): { code: string; map?: rollup.SourceMapInput } {
-      const { code, map } = terser.minify(input, {
+      const options: terserTypes.MinifyOptions = {
         ecma: 9, // 2018
         module: true,
-        compress: {
+        compress: false,
+        mangle: false,
+        sourceMap: true,
+      };
+      if (config == Config.Competition) {
+        options.compress = {
           // @ts-ignore: missing from @types
           booleans_as_integers: true,
           defaults: true,
@@ -118,16 +123,19 @@ function minifyPlugin(): rollup.Plugin {
           toplevel: true,
           unsafe: true,
           unsafe_arrows: true,
-        },
-        mangle: {
+        };
+        options.mangle = {
           properties: {
             keep_quoted: true,
           },
-        },
-        sourceMap: true,
-      });
+        };
+      }
+      let { code, map } = terser.minify(input, options);
       if (!code) {
         throw new Error('terser failed');
+      }
+      if (config == Config.Release) {
+        code = code.trimEnd() + '\n//# sourceMappingURL=game.js.map\n';
       }
       return { code, map };
     },
@@ -186,8 +194,8 @@ class RollupJS implements BuildAction {
       plugins: [resolverPlugin],
       external,
     };
-    if (config.config == Config.Release) {
-      inputOptions.plugins!.push(minifyPlugin());
+    if (config.config != Config.Debug) {
+      inputOptions.plugins!.push(minifyPlugin(config.config));
     }
     const bundle = await rollup.rollup(inputOptions);
     const outputOptions: rollup.OutputOptions = {

@@ -11,9 +11,9 @@ import { level as levelShader, Attribute } from './shaders';
 import { Edge } from '../game/level';
 import { concatArrays } from '../lib/array';
 
-const indexBuf = gl.createBuffer()!; // FIXME: check?
-const posBuf = gl.createBuffer()!;
-const colorBuf = gl.createBuffer()!;
+let indexBuf!: WebGLBuffer | null;
+let posBuf!: WebGLBuffer | null;
+let colorBuf!: WebGLBuffer | null;
 let elementCount: number | undefined;
 
 const random = new Random(9876);
@@ -118,7 +118,13 @@ function createGeometry(): void {
   elementCount = indexData.length;
 }
 
-createGeometry();
+/** Initialize the level renderer. */
+export function initRenderLevel(): void {
+  indexBuf = gl.createBuffer();
+  posBuf = gl.createBuffer();
+  colorBuf = gl.createBuffer();
+  createGeometry();
+}
 
 /**
  * Render the level geometry.

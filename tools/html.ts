@@ -9,7 +9,6 @@ import { BuildArgs, Config } from './config';
 
 import * as Handlebars from 'handlebars';
 import * as htmlMinifierTypes from 'html-minifier'; // Only load if needed.
-import { dataPath } from './loader';
 
 /** Escape JavaScript for embedding in script tag. */
 function inlineJavaScript(js: string): Handlebars.SafeString {
@@ -23,7 +22,9 @@ export interface EvalHTMLParams {
   /** Path to the input HTML template. */
   readonly template: string;
   /** Path to the script to embed in the HTML. */
-  readonly script: string;
+  readonly script?: string;
+  /** Path to the data to embed in the HTML. */
+  readonly data?: string;
   /** Title of the page. */
   readonly title: string;
   /** Output HTML path. */
@@ -61,7 +62,14 @@ class EvalHTML implements BuildAction {
     return `EvalHTML ${this.params.output}`;
   }
   get inputs(): readonly string[] {
-    return [this.params.template, this.params.script];
+    const inputs = [this.params.template];
+    if (this.params.script) {
+      inputs.push(this.params.script);
+    }
+    if (this.params.data) {
+      inputs.push(this.params.data);
+    }
+    return inputs;
   }
   get outputs(): readonly string[] {
     return [this.params.output];
@@ -70,17 +78,24 @@ class EvalHTML implements BuildAction {
   /** Evaluate the HTML template. */
   async execute(config: BuildArgs): Promise<boolean> {
     const { params } = this;
-    const scriptSrc = fs.promises.readFile(params.script, 'utf8');
-    const dataSrc = fs.promises.readFile(dataPath, 'utf8');
+    const { script, data } = params;
+    const scriptSrc = script
+      ? fs.promises
+          .readFile(script, 'utf8')
+          .then(x => inlineJavaScript(x.trim()))
+      : null;
+    const dataSrc = data
+      ? fs.promises.readFile(data, 'utf8').then(inlineJavaScript)
+      : null;
     let templateSrc = await fs.promises.readFile(params.template, 'utf8');
-    if (config.config == Config.Release) {
+    if (config.config == Config.Competition) {
       templateSrc = minifyHTML(templateSrc);
     }
     const templateFn = Handlebars.compile(templateSrc);
     const result = templateFn({
       title: params.title,
-      script: inlineJavaScript((await scriptSrc).trimEnd()),
-      data: inlineJavaScript(await dataSrc),
+      script: await scriptSrc,
+      data: await dataSrc,
     });
     await fs.promises.writeFile(params.output, result, 'utf8');
     return true;

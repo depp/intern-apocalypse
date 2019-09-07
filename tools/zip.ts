@@ -245,7 +245,7 @@ async function makeZopfliZip(
 export interface ZipParameters extends ZopfliOptions {
   readonly output: string;
   readonly files: ReadonlyMap<string, string>;
-  readonly sizeTarget: number;
+  readonly sizeTarget?: number;
   readonly useZopfli?: boolean;
   readonly date?: Date;
 }
@@ -275,13 +275,15 @@ class CreateZip implements BuildAction {
     } else {
       size = await runInfoZip(output, files);
     }
-    const percentSize = ((100 * size) / sizeTarget).toFixed(2);
-    const withinTarget =
-      size <= sizeTarget ? chalk.green('yes') : chalk.red.bold('NO');
-    process.stderr.write(
-      `Zip file size: ${size} (${percentSize}% of target)\n` +
-        `Within size limit: ${withinTarget}\n`,
-    );
+    if (sizeTarget != null) {
+      const percentSize = ((100 * size) / sizeTarget).toFixed(2);
+      const withinTarget =
+        size <= sizeTarget ? chalk.green('yes') : chalk.red.bold('NO');
+      process.stderr.write(
+        `Zip file size: ${size} (${percentSize}% of target)\n` +
+          `Within size limit: ${withinTarget}\n`,
+      );
+    }
     return true;
   }
 }

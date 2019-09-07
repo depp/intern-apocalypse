@@ -27,17 +27,17 @@ interface StaticFile {
   readonly url: string;
   readonly file: string;
   readonly sourceMap?: string;
-  readonly config?: Config;
 }
 
 /**
  * Map from URLs to static file paths.
  */
 const baseFiles: readonly StaticFile[] = [
-  { url: '/live.css', file: 'html/live.css' },
-  { url: '/static', file: 'build/index.html', config: Config.Release },
+  { url: '/debug.css', file: 'html/debug.css' },
+  { url: '/style.css', file: 'html/style.css' },
   { url: '/game.js', file: 'build/game.js', sourceMap: 'game.js.map' },
   { url: '/game.js.map', file: 'build/game.js.map' },
+  { url: '/data.json', file: 'build/data.json' },
   { url: '/dat.gui.js', file: 'node_modules/dat.gui/build/dat.gui.min.js' },
 ];
 
@@ -49,7 +49,7 @@ async function handleRoot(
   next: NextFunction,
 ): Promise<void> {
   try {
-    const source = await fs.promises.readFile('html/live.html', 'utf8');
+    const source = await fs.promises.readFile('html/debug.html', 'utf8');
     const template = Handlebars.compile(source);
     const text = template({
       title: projectName,
@@ -212,11 +212,13 @@ export function serve(options: ServerParameters) {
   const server = http.createServer(app);
   const wss = new WebSocket.Server({ server });
 
-  app.get('/', (res, req, next) => handleRoot(options, res, req, next));
+  if (options.config == Config.Debug) {
+    app.get('/', (res, req, next) => handleRoot(options, res, req, next));
+  } else {
+    app.get('/', staticHandler({ url: '/', file: 'build/index.html' }));
+  }
   for (const file of baseFiles) {
-    if (file.config == null || file.config == options.config) {
-      app.get(file.url, staticHandler(file));
-    }
+    app.get(file.url, staticHandler(file));
   }
   wss.on('connection', ws => handleWebSocket(options, ws));
 

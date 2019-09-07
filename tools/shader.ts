@@ -26,18 +26,20 @@ async function generateLoader(config: Config): Promise<void> {
       'utf8',
     ),
   );
-  if (config == Config.Release) {
-    programs = minifyShaders(programs);
-    promises.push(
-      fs.promises.writeFile(
-        minShaderDefsPath,
-        emitDefinitions(programs, 'release'),
-        'utf8',
-      ),
-    );
-    promises.push(
-      fs.promises.writeFile(uniformMapPath, emitUniformMap(programs), 'utf8'),
-    );
+  if (config != Config.Debug) {
+    if (config == Config.Competition) {
+      programs = minifyShaders(programs);
+      promises.push(
+        fs.promises.writeFile(
+          minShaderDefsPath,
+          emitDefinitions(programs, 'release'),
+          'utf8',
+        ),
+      );
+      promises.push(
+        fs.promises.writeFile(uniformMapPath, emitUniformMap(programs), 'utf8'),
+      );
+    }
     const sources: string[] = [];
     for (const { source, index } of programs.shaders.values()) {
       sources[index] = source;
@@ -67,8 +69,11 @@ class PackShaders implements BuildAction {
   }
   get outputs(): readonly string[] {
     const outputs = [shaderDefsPath];
-    if (this.config == Config.Release) {
-      outputs.push(minShaderDefsPath, uniformMapPath, shaderDataPath);
+    if (this.config != Config.Debug) {
+      outputs.push(shaderDataPath);
+    }
+    if (this.config == Config.Competition) {
+      outputs.push(minShaderDefsPath, uniformMapPath);
     }
     return outputs;
   }

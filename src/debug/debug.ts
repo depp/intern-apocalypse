@@ -2,10 +2,11 @@
  * Debug assertions and logging.
  */
 
-/**
- * True if this is the debug build.
- */
+/** True if this is the debug build. */
 export const isDebug: boolean = true;
+
+/** True if this is the minified competition build. */
+export const isCompetition: boolean = false;
 
 /**
  * Error sublcass for assertion failures.

@@ -13,9 +13,16 @@ let canvasSize!: Vector;
 let textureSize!: Vector;
 let ctx!: CanvasRenderingContext2D;
 
-const texture = gl.createTexture();
-const posBuffer = gl.createBuffer();
-const texBuffer = gl.createBuffer();
+let texture: WebGLTexture | null;
+let posBuffer: WebGLBuffer | null;
+let texBuffer: WebGLBuffer | null;
+
+/** Initialize the UI renderer. */
+export function initRenderUI(): void {
+  texture = gl.createTexture();
+  posBuffer = gl.createBuffer();
+  texBuffer = gl.createBuffer();
+}
 
 /** Initialize the drawing context. Must be called before drawing operations. */
 function initContext(): void {

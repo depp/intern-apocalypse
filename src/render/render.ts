@@ -2,10 +2,19 @@
  * Game renderer.
  */
 
-import { gl } from '../lib/global';
-import { renderLevel } from './level';
+import { gl, startGL } from '../lib/global';
+import { renderLevel, initRenderLevel } from './level';
 import { renderModels } from './model';
-import { renderUI } from './ui';
+import { renderUI, initRenderUI } from './ui';
+
+/**
+ * Initialize the renderer state. Creates the WebGL context.
+ */
+export function initRenderer(): void {
+  startGL();
+  initRenderLevel();
+  initRenderUI();
+}
 
 /**
  * Render the game.

@@ -11,7 +11,7 @@ import { packAudio } from './audio.build';
 import { Config, BuildArgs, Mode } from './config';
 import { evalHTML } from './html';
 import { projectName, sizeTarget } from './info';
-import { createLoader } from './loader';
+import { createLoader, dataPath } from './loader';
 import { packModels } from './model.build';
 import { rollupJS } from './rollup';
 import { serve } from './server';
@@ -41,7 +41,7 @@ function emitActions(ctx: BuildContext) {
   packAudio(ctx, {
     inputs: audioSources,
   });
-  if (ctx.config.config == Config.Release) {
+  if (ctx.config.config != Config.Debug) {
     createLoader(ctx, {});
   }
   const tsSources = ctx.listFilesWithExtensions('src', ['.ts'], recursive);
@@ -59,43 +59,57 @@ function emitActions(ctx: BuildContext) {
     global: 'Game',
     external: [],
   });
-  if (ctx.config.config == Config.Release) {
-    evalHTML(ctx, {
-      output: 'build/index.html',
-      template: 'html/static.html',
-      script: 'build/game.js',
-      title: projectName,
-    });
-    createZip(ctx, {
-      output: 'build/InternApocalypse.zip',
-      files: new Map([['index.html', 'build/index.html']]),
-      sizeTarget,
-      useZopfli: true,
-      date: new Date(2019, 9, 13, 13, 0, 0, 0),
-    });
+  switch (ctx.config.config) {
+    case Config.Release:
+      evalHTML(ctx, {
+        output: 'build/index.html',
+        template: 'html/release.html',
+        title: projectName,
+      });
+      createZip(ctx, {
+        output: 'build/InternApocalypse_Release.zip',
+        files: new Map([
+          ['index.html', 'build/index.html'],
+          ['game.js', 'build/game.js'],
+          ['game.js.map', 'build/game.js.map'],
+          ['data.json', 'build/data.json'],
+          ['style.css', 'html/style.css'],
+        ]),
+      });
+      break;
+    case Config.Competition:
+      evalHTML(ctx, {
+        output: 'build/index.html',
+        template: 'html/competition.html',
+        script: 'build/game.js',
+        data: dataPath,
+        title: projectName,
+      });
+      createZip(ctx, {
+        output: 'build/InternApocalypse_JS13K.zip',
+        files: new Map([['index.html', 'build/index.html']]),
+        sizeTarget,
+        useZopfli: true,
+        date: new Date(2019, 9, 13, 13, 0, 0, 0),
+      });
+      break;
   }
-}
-
-/** Parse an integer command-line option. */
-function parseIntArg(value: any, prev: any): number {
-  return parseInt(value, 10);
-}
-
-/** Parse a build config command-line option. */
-function parseConfig(value: any, prev: any): Config {
-  const s = (value as string).toLowerCase();
-  for (const x in Config) {
-    if (typeof x == 'string' && x.toLowerCase() == s) {
-      return Config[x as keyof typeof Config];
-    }
-  }
-  throw new Error(`unknown config ${JSON.stringify(value)}`);
 }
 
 /** Parse the command-line arguments. */
 function parseArgs(): BuildArgs {
+  const configs = new Map<string, Config>([
+    ['debug', Config.Debug],
+    ['release', Config.Release],
+    ['competition', Config.Competition],
+  ]);
   const argv = yargs
     .options({
+      'config': {
+        type: 'string',
+        choices: Array.from(configs.keys()),
+        desc: 'Build configuration',
+      },
       'show-build-times': {
         type: 'boolean',
         default: false,
@@ -123,8 +137,21 @@ function parseArgs(): BuildArgs {
       ['watch', Mode.Watch],
       ['serve', Mode.Serve],
     ]).get(argv._[0]) || Mode.Build;
+  let config: Config | undefined;
+  if (argv.config) {
+    config = configs.get(argv.config);
+    if (config == null) {
+      throw new AssertionError('unknown config');
+    }
+    if (config == Config.Debug && mode != Mode.Serve) {
+      console.error('debug config can only be used with local server');
+      process.exit(2);
+    }
+  } else {
+    config = mode == Mode.Serve ? Config.Debug : Config.Release;
+  }
   return {
-    config: mode == Mode.Serve ? Config.Debug : Config.Release,
+    config,
     mode,
     host: (argv.host as string) || '',
     port: (argv.port as number) || 0,

@@ -39,9 +39,9 @@ export interface CompileTSParameters {
 }
 
 /**
- * Transform by changing isDebug in src/debug.ts to false.
+ * Transform by changing isDebug and isCompetition in src/debug.ts.
  */
-function setIsDebugFalse(): ts.TransformerFactory<ts.SourceFile> {
+function setFlags(config: Config): ts.TransformerFactory<ts.SourceFile> {
   const debugTS = path.join(projectRoot, 'src/debug/debug.ts');
   return ctx => {
     return node => {
@@ -53,8 +53,15 @@ function setIsDebugFalse(): ts.TransformerFactory<ts.SourceFile> {
         node => {
           if (ts.isVariableStatement(node)) {
             for (const decl of node.declarationList.declarations) {
-              if (decl.name.getText() == 'isDebug') {
-                decl.initializer = ts.createFalse();
+              switch (decl.name.getText()) {
+                case 'isDebug':
+                  decl.initializer = ts.createLiteral(config == Config.Debug);
+                  break;
+                case 'isCompetition':
+                  decl.initializer = ts.createLiteral(
+                    config == Config.Competition,
+                  );
+                  break;
               }
             }
           }
@@ -309,26 +316,27 @@ class CompileTS implements BuildAction {
       logTSDiagnostics(diagnostics);
       return Promise.resolve(false);
     }
-    if (config.config == Config.Release) {
-      const copies: [string, string][] = [
-        [minShaderDefsPath, 'build/src/render/shaders.js'],
-        [loaderPath, 'build/src/lib/loader.js'],
-      ];
-      await Promise.all(
-        copies.map(async ([src, dest]) => {
-          const bytes = await fs.promises.readFile(src);
-          await fs.promises.writeFile(dest, bytes);
-          try {
-            await fs.promises.unlink(dest + '.map');
-          } catch (e) {
-            if (e.code != 'ENOENT') {
-              throw e;
-            }
-          }
-        }),
-      );
+    const copies: [string, string][] = [];
+    if (config.config != Config.Debug) {
+      copies.push([loaderPath, 'build/src/lib/loader.js']);
     }
-    return Promise.resolve(true);
+    if (config.config == Config.Competition) {
+      copies.push([minShaderDefsPath, 'build/src/render/shaders.js']);
+    }
+    await Promise.all(
+      copies.map(async ([src, dest]) => {
+        const bytes = await fs.promises.readFile(src);
+        await fs.promises.writeFile(dest, bytes);
+        try {
+          await fs.promises.unlink(dest + '.map');
+        } catch (e) {
+          if (e.code != 'ENOENT') {
+            throw e;
+          }
+        }
+      }),
+    );
+    return true;
   }
 
   /** Get the TypeScript transformers for this build configuration. */
@@ -339,11 +347,14 @@ class CompileTS implements BuildAction {
     if (config.config == Config.Debug) {
       return {};
     }
+    if (config.config == Config.Release) {
+      return { before: [setFlags(config.config)] };
+    }
     const uniformMap = readUniformMap();
     const glConstants = readOpenGLConstants('misc/gles2.json');
     return {
       before: [
-        setIsDebugFalse(),
+        setFlags(config.config),
         removeAssertions(),
         constToLet(),
         fixUniforms(await uniformMap, checker),

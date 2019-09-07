@@ -20,6 +20,7 @@ import { gl } from './lib/global';
 import { initialize, main } from './main';
 import { watchSounds } from './debug/audio';
 import { runModelView } from './debug/modelview';
+import { initRenderer } from './render/render';
 
 /**
  * Main update loop for debug builds.
@@ -41,9 +42,7 @@ function mainDebug(curTimeMS: DOMHighResTimeStamp): void {
 }
 
 function start(): void {
-  if (!gl) {
-    return;
-  }
+  initRenderer();
   watchShaders();
   watchModels();
   watchSounds();

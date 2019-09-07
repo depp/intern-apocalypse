@@ -2,10 +2,22 @@
  * Build configuration.
  */
 
-/** A build configuration, either debug or release. */
+/** A build configuration, either debug, release, or competition. */
 export enum Config {
+  /**
+   * Debug build, which can only be run locally from the development server.
+   */
   Debug,
+
+  /**
+   * Sane release build, which can be run from a static web server.
+   */
   Release,
+
+  /**
+   * Competition build, with maximum compression, minification, and mangling.
+   */
+  Competition,
 }
 
 /** Mode to run the build in. */

@@ -5,7 +5,8 @@ import { initialize, main } from './main';
 import { loadShaders } from './render/shaders';
 import { loadSounds } from './audio/audio';
 import { loadModels } from './model/model';
-import { gl } from './lib/global';
+import { loadBundledData } from './lib/global';
+import { initRenderer } from './render/render';
 
 /**
  * Main update loop for debug builds.
@@ -17,10 +18,14 @@ function mainRelease(curTimeMS: DOMHighResTimeStamp): void {
   requestAnimationFrame(mainRelease);
 }
 
-if (gl) {
+async function start(): Promise<void> {
+  await loadBundledData();
+  initRenderer();
   loadShaders();
   loadSounds();
   loadModels();
   initialize();
   requestAnimationFrame(mainRelease);
 }
+
+start();
