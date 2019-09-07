@@ -11,6 +11,7 @@ import { updateTime } from './game/time';
 import { updateWorld } from './game/world';
 import { State, currentState, setState } from './lib/global';
 import { startMenu, endMenu } from './render/ui';
+import { spawnMonster } from './game/monster';
 
 /**
  * Initialize game.
@@ -46,6 +47,7 @@ export function main(curTimeMS: DOMHighResTimeStamp): void {
       case State.Game:
         endMenu();
         spawnPlayer();
+        spawnMonster();
         break;
     }
     lastState = currentState;

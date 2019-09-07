@@ -18,7 +18,7 @@ import { clamp } from '../lib/util';
 import { frameDT } from './time';
 
 /** Parameters for a walker. */
-interface WalkerParameters {
+export interface WalkerParameters {
   /** Walking speed, in meters per second. */
   readonly speed: number;
 
