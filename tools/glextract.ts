@@ -3,32 +3,34 @@
  */
 
 import * as fs from 'fs';
-import * as path from 'path';
 
-import * as program from 'commander';
+import * as yargs from 'yargs';
 
 interface GLExtractArgs {
   input: string;
-  output: string;
+  output: string | null;
 }
 
 function parseArgs(): GLExtractArgs {
-  program.option('--output <file>', 'path to output JSON file');
-  program.parse(process.argv);
-  const args: GLExtractArgs = {
-    input: '',
-    output: program.output || '',
-  };
-  if (program.args.length == 0) {
+  const argv = yargs
+    .options({
+      output: { alias: 'o', type: 'string', desc: 'Output JSON file' },
+    })
+    .help()
+    .version(false)
+    .strict().argv;
+  if (argv._.length == 0) {
     console.error('required GL header file argument');
-    program.exit(2);
+    process.exit(2);
   }
-  if (program.args.length > 1) {
-    console.error(`unexpected argument ${program.args[1]}`);
-    program.exit(2);
+  if (argv._.length > 1) {
+    console.error(`unexpected argument ${argv._[1]}`);
+    process.exit(2);
   }
-  args.input = program.args[0];
-  return args;
+  return {
+    input: argv._[0],
+    output: argv.output || null,
+  };
 }
 
 function parseConstants(source: string): Map<string, number> {
@@ -63,7 +65,7 @@ async function main(): Promise<void> {
       obj[key] = value;
     }
     const data = JSON.stringify(obj, null, '  ') + '\n';
-    if (args.output == '') {
+    if (args.output == null) {
       process.stdout.write(data);
     } else {
       await fs.promises.writeFile(args.output, data, 'utf8');
