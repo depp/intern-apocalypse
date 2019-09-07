@@ -27,21 +27,21 @@ import {
 import { setCameraTarget } from './camera';
 import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
+import { createWalker } from './walker';
 
 /** Spawn the player in the level. */
 export function spawnPlayer(): void {
   let pos = vector(0, 0);
-  const transform = matrixNew();
+  const walker = createWalker(pos);
   const swordTransform = matrixNew();
   const model: ModelInstance = {
     model: ModelAsset.Person,
-    transform,
+    transform: walker.transform,
   };
   const swordModel: ModelInstance = {
     model: ModelAsset.Sword,
     transform: swordTransform,
   };
-  let angle = 0;
   modelInstances.push(model, swordModel);
 
   // Amount of time into attack.
@@ -67,36 +67,22 @@ export function spawnPlayer(): void {
       }
 
       // Update player position.
-      let walkVector = vector(
+      let movement = vector(
         buttonAxis(Button.Left, Button.Right),
         buttonAxis(Button.Backward, Button.Forward),
       );
-      const magSquared = lengthSquared(walkVector);
+      const magSquared = lengthSquared(movement);
       if (magSquared > 1) {
         // Maximum speed the same in all directions (no diagonal speed boost).
-        walkVector = scaleVector(walkVector, 1 / Math.sqrt(magSquared));
+        movement = scaleVector(movement, 1 / Math.sqrt(magSquared));
       }
-      const distance = playerSettings.speed * frameDT;
-      pos = walk(pos, scaleVector(walkVector, distance));
-      if (magSquared) {
-        const targetAngle = Math.atan2(walkVector.y, walkVector.x);
-        let deltaAngle = canonicalAngle(targetAngle - angle);
-        const turnAmount = playerSettings.turnSpeed * frameDT;
-        deltaAngle = clamp(deltaAngle, -turnAmount, turnAmount);
-        angle = canonicalAngle(angle + deltaAngle);
-      }
+      walker.update(playerSettings, movement);
 
       // Update camera position.
-      setCameraTarget(pos);
-
-      // Set player model transform.
-      setIdentityMatrix(transform);
-      translateMatrix(transform, [pos.x, pos.y]);
-      rotateMatrixFromAngle(transform, Axis.Z, angle + 0.5 * Math.PI);
-      rotateMatrixFromDirection(transform, Axis.X, 0, 1);
+      setCameraTarget(walker.pos);
 
       // Set sword model transform.
-      swordTransform.set(transform);
+      swordTransform.set(walker.transform);
       let frac = -1;
       let blend = 0;
       if (attackTime >= 0) {
