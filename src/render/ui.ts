@@ -1,9 +1,8 @@
 import { gl, canvas, getMousePos } from '../lib/global';
 import { AssertionError, isDebug } from '../debug/debug';
-import { flatShader, FlatAttrib } from './shaders';
+import { uiShader, UiAttrib } from './shaders';
 import { quad, packColor } from './util';
 import { uiMatrix } from '../game/camera';
-import { identityMatrix } from '../lib/matrix';
 import { roundUpPow2 } from '../lib/util';
 import { Vector, vector, lerp1D } from '../lib/math';
 
@@ -180,7 +179,7 @@ function updateMenu(): void {
  * Render the menu.
  */
 export function renderUI(): void {
-  const p = flatShader;
+  const p = uiShader;
   if (isDebug && !p.program) {
     return;
   }
@@ -194,24 +193,23 @@ export function renderUI(): void {
   gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
   // Attributes
-  gl.enableVertexAttribArray(FlatAttrib.Pos);
+  gl.enableVertexAttribArray(UiAttrib.Pos);
   gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-  gl.vertexAttribPointer(FlatAttrib.Pos, 2, gl.FLOAT, false, 0, 0);
+  gl.vertexAttribPointer(UiAttrib.Pos, 2, gl.FLOAT, false, 0, 0);
 
-  gl.enableVertexAttribArray(FlatAttrib.Color);
+  gl.enableVertexAttribArray(UiAttrib.Color);
   gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  gl.vertexAttribPointer(FlatAttrib.Color, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+  gl.vertexAttribPointer(UiAttrib.Color, 4, gl.UNSIGNED_BYTE, true, 0, 0);
 
-  gl.enableVertexAttribArray(FlatAttrib.TexCoord);
+  gl.enableVertexAttribArray(UiAttrib.TexCoord);
   gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
-  gl.vertexAttribPointer(FlatAttrib.TexCoord, 2, gl.FLOAT, false, 0, 0);
+  gl.vertexAttribPointer(UiAttrib.TexCoord, 2, gl.FLOAT, false, 0, 0);
 
   // Textures
   gl.bindTexture(gl.TEXTURE_2D, texture);
 
   // Uniforms
-  gl.uniformMatrix4fv(p.ViewProjection, false, uiMatrix);
-  gl.uniformMatrix4fv(p.Model, false, identityMatrix);
+  gl.uniformMatrix4fv(p.ModelViewProjection, false, uiMatrix);
   gl.uniform1i(p.Texture, 0);
 
   // Draw
@@ -219,9 +217,9 @@ export function renderUI(): void {
 
   // Cleanup
   gl.disable(gl.BLEND);
-  gl.disableVertexAttribArray(FlatAttrib.Pos);
-  gl.disableVertexAttribArray(FlatAttrib.Color);
-  gl.disableVertexAttribArray(FlatAttrib.TexCoord);
+  gl.disableVertexAttribArray(UiAttrib.Pos);
+  gl.disableVertexAttribArray(UiAttrib.Color);
+  gl.disableVertexAttribArray(UiAttrib.TexCoord);
   gl.bindTexture(gl.TEXTURE_2D, null);
 }
 

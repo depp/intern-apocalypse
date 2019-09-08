@@ -1,8 +1,8 @@
 [
   {
-    "name": "flat",
-    "vertex": "model.vert",
-    "fragment": "flat.frag",
+    "name": "ui",
+    "vertex": "ui.vert",
+    "fragment": "ui.frag",
     "attributes": ["aPos", "aColor", "aTexCoord"]
   },
   {
