@@ -20,6 +20,7 @@ import {
   scaleVector,
 } from '../lib/math';
 import { level } from './world';
+import { colliders } from './entity';
 
 /**
  * Distance we will look backwards to calculate collisions, if we end up on the
@@ -40,9 +41,10 @@ export interface CollisionEdge {
 
 /** A corner for collision testing. */
 interface CollisionCorner {
-  center: Readonly<Vector>;
-  edge0: CollisionEdge;
-  edge1: CollisionEdge;
+  pos: Readonly<Vector>;
+  radius: number;
+  edge0?: CollisionEdge;
+  edge1?: CollisionEdge;
   hit?: Readonly<Vector>;
 }
 
@@ -124,7 +126,7 @@ function testEdge(
       return;
     }
     // Check if we start in front of the edge. Instead of testing from pos, we
-    // start from 'walkerRadius' backwards, in case we have ended up on the
+    // start from a short distance backwards, in case we have ended up on the
     // back side of an edge. This is expected to happen, because the collision
     // resolution will place us directly on an edge, and rounding error should
     // often move us slightly behind the edge.
@@ -153,11 +155,11 @@ function testEdge(
     edgeFrac = 0;
     color = DebugColor.Green;
   } else {
-    const { center } = corner;
+    const { pos, radius } = corner;
     // Solve for the location of collisions along the line. Quadratic formula.
     const a = distanceSquared(vertex1, vertex0);
-    const b = dotSubtract(vertex0, center, vertex1, vertex0);
-    const c = distanceSquared(vertex0, center) - walkerRadius ** 2;
+    const b = 2 * dotSubtract(vertex0, pos, vertex1, vertex0);
+    const c = distanceSquared(vertex0, pos) - radius ** 2;
     const discriminant = b ** 2 - 4 * a * c;
     if (discriminant <= 0) {
       // We don't intersect the edge, or we barely touch it.
@@ -176,9 +178,9 @@ function testEdge(
     }
     startDistance =
       segment.endDistance +
-      (circleMovementPos(center, newStart, direction) -
-        circleMovementPos(center, end, direction)) *
-        walkerRadius;
+      (circleMovementPos(pos, newStart, direction) -
+        circleMovementPos(pos, end, direction)) *
+        radius;
     color = DebugColor.Magenta;
   }
   // At this point, we have a collision.
@@ -227,17 +229,17 @@ function testCorner(
   corner: CollisionCorner,
 ): WalkSegment | undefined {
   const { start, end, edge } = segment;
-  const { center } = corner;
+  const { pos, radius } = corner;
   let startDistance: number;
   let newStart: Readonly<Vector>;
-  if (edge == corner.edge0) {
+  if (edge && edge == corner.edge0) {
     // We slid off an edge, this is the corner.
     if (end != edge.vertex1) {
       return;
     }
     startDistance = segment.endDistance;
     newStart = end;
-  } else if (edge == corner.edge1) {
+  } else if (edge && edge == corner.edge1) {
     // We slid off the other edge.
     if (end != edge.vertex0) {
       return;
@@ -251,8 +253,8 @@ function testCorner(
   } else {
     // Collision test: line vs circle.
     const a = distanceSquared(end, start);
-    const b = 2 * dotSubtract(start, center, end, start);
-    const c = distanceSquared(start, center) - walkerRadius ** 2;
+    const b = 2 * dotSubtract(start, pos, end, start);
+    const c = distanceSquared(start, pos) - radius ** 2;
     const discriminant = b ** 2 - 4 * a * c;
     if (discriminant <= 0) {
       // Circle not touching (or exactly touching) line.
@@ -276,38 +278,45 @@ function testCorner(
   }
   let color = DebugColor.Magenta;
   // The amount sideways of movement that we hit the circle.
-  const side = wedgeSubtract(center, newStart, direction);
+  const side = wedgeSubtract(pos, newStart, direction);
   // The final pos, if we are locked to the circle.
   let newEnd = projectToCircle(
-    madd(newStart, direction, (Math.abs(side) * startDistance) / walkerRadius),
-    center,
-    walkerRadius,
+    madd(newStart, direction, (Math.abs(side) * startDistance) / radius),
+    pos,
+    radius,
   );
   let endDistance = 0;
-  if (dotSubtract(newEnd, center, direction) > 0) {
+  if (dotSubtract(newEnd, pos, direction) > 0) {
     // We slide off the circle before reaching newEnd.
-    const a = Math.sign(side) * walkerRadius;
-    newEnd = vector(center.x - a * direction.y, center.y + a * direction.x);
+    const a = Math.sign(side) * radius;
+    newEnd = vector(pos.x - a * direction.y, pos.y + a * direction.x);
     endDistance =
       startDistance +
-      (circleMovementPos(center, newEnd, direction) -
-        circleMovementPos(center, newStart, direction)) *
-        walkerRadius;
+      (circleMovementPos(pos, newEnd, direction) -
+        circleMovementPos(pos, newStart, direction)) *
+        radius;
     color = DebugColor.Cyan;
   }
-  let edgeVertex = side < 0 ? corner.edge0.vertex1 : corner.edge1.vertex0;
-  if (dotSubtract(newEnd, edgeVertex, direction) > 0) {
+  let edgeVertex: Readonly<Vector> | undefined;
+  if (side < 0 && corner.edge0) {
+    edgeVertex = corner.edge0.vertex1;
+  } else if (side > 0 && corner.edge1) {
+    edgeVertex = corner.edge1.vertex0;
+  }
+  if (edgeVertex && dotSubtract(newEnd, edgeVertex, direction) > 0) {
     // We slide onto an edge before reaching newEnd.
     newEnd = edgeVertex;
     endDistance =
       startDistance +
-      (circleMovementPos(center, newEnd, direction) -
-        circleMovementPos(center, newStart, direction)) *
-        walkerRadius;
+      (circleMovementPos(pos, newEnd, direction) -
+        circleMovementPos(pos, newStart, direction)) *
+        radius;
     color = DebugColor.Blue;
   }
   if (isDebug) {
-    corner.edge1.edge.debugVertexColor = color;
+    if (corner.edge1) {
+      corner.edge1.edge.debugVertexColor = color;
+    }
   }
   return {
     start: newStart,
@@ -337,10 +346,9 @@ export function walk(
   // Due to the way collisions are resolved, the player may be pushed off axis,
   // but will always stay within a circle whose opposite points are the starting
   // point and the target point.
-  const rawEdges = level.findUnpassableEdges(
-    madd(start, movement, 0.5),
-    walkerRadius + 0.5 * movementDistance + 0.1,
-  );
+  const areaCenter = madd(start, movement, 0.5);
+  const areaRadius = walkerRadius + 0.5 * movementDistance + 0.1;
+  const rawEdges = level.findUnpassableEdges(areaCenter, areaRadius);
   let edges: CollisionEdge[] = [];
   for (const edge of rawEdges) {
     const { vertex0, vertex1 } = edge;
@@ -364,11 +372,18 @@ export function walk(
         ) < 0
       ) {
         corners.push({
-          center: edge0.edge.vertex1,
+          pos: edge0.edge.vertex1,
+          radius: walkerRadius,
           edge0,
           edge1,
         });
       }
+    }
+  }
+  for (const entity of colliders) {
+    const { pos, radius } = entity;
+    if (distanceSquared(areaCenter, pos) < (areaRadius + radius) ** 2) {
+      corners.push({ pos, radius: radius + walkerRadius });
     }
   }
   // We start with a path segment under test. On each iteration, we see if that
