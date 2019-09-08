@@ -242,5 +242,5 @@ export function startMenu(menu: Menu, ...items: MenuItem[]): void {
  */
 export function endMenu(): void {
   elementCount = 0;
-  canvas.addEventListener('click', menuClick);
+  canvas.removeEventListener('click', menuClick);
 }
