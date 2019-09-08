@@ -443,26 +443,28 @@ defun('noise', (expr, args) => {
   );
 });
 
-defun('lowPass2', (expr, args) => {
-  const [input, frequency, q] = getExactArgs(expr, args, 3);
-  const qval = getConstant('q', q, Units.None);
-  if (qval < 0.7) {
-    throw new EvaluationError(q, `q is ${qval}, must be >= 0.7`);
-  }
-  return nodeValue(
-    createNode(
-      expr,
-      node.lowPass2,
-      [toDataClamp(data.encodeExponential(1 / qval))],
-      [
-        getAnyBuffer('input', input),
-        castToBuffer('frequency', frequency, Units.Hertz),
-      ],
-    ),
-    input.units,
-    Type.Buffer,
-  );
-});
+['lowPass2', 'highPass2', 'bandPass2'].forEach((name, mode) =>
+  defun(name, (expr, args) => {
+    const [input, frequency, q] = getExactArgs(expr, args, 3);
+    const qval = getConstant('q', q, Units.None);
+    if (qval < 0.7) {
+      throw new EvaluationError(q, `q is ${qval}, must be >= 0.7`);
+    }
+    return nodeValue(
+      createNode(
+        expr,
+        node.stateVariableFilter,
+        [mode, toDataClamp(data.encodeExponential(1 / qval))],
+        [
+          getAnyBuffer('input', input),
+          castToBuffer('frequency', frequency, Units.Hertz),
+        ],
+      ),
+      input.units,
+      Type.Buffer,
+    );
+  }),
+);
 
 defun('saturate', (expr, args) => {
   const [input] = getExactArgs(expr, args, 1);

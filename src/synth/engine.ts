@@ -158,18 +158,23 @@ export const operators: (() => void)[] = [
     }
   },
 
-  /** Apply a two-pole low pass filter. */
-  function lowPass2(): void {
-    const [out, frequency] = getArgs(2);
+  /** Apply a state-variable filter filter. */
+  function stateVariableFilter(): void {
+    const [input, frequency] = getArgs(2);
     let a = 0;
     let b = 0;
+    let c;
+    const mode = readParam();
     const invq = decodeExponential(readParam());
     if (
-      !(out instanceof Float32Array) ||
+      !(input instanceof Float32Array) ||
       !(frequency instanceof Float32Array)
     ) {
       throw new AssertionError('type error');
     }
+    const lp = new Float32Array(bufferSize);
+    const hp = new Float32Array(bufferSize);
+    const bp = new Float32Array(bufferSize);
     for (let i = 0; i < bufferSize; i++) {
       // We oversample the filter, running it twice with a corner frequency
       // scaled by 1/2. Without oversampling, the filter stops working well at
@@ -178,12 +183,13 @@ export const operators: (() => void)[] = [
         ((2 * Math.PI) / sampleRate) * Math.min(frequency[i] / 2, 2e4),
       );
       b += f * a;
-      a += f * (out[i] - b - invq * a);
-      b += f * a;
-      a += f * (out[i] - b - invq * a);
-      out[i] = b;
+      c = input[i] - b - invq * a;
+      a += f * c;
+      lp[i] = b += f * a;
+      hp[i] = c = input[i] - b - invq * a;
+      bp[i] = a += f * c;
     }
-    stack.push(out);
+    stack.push([lp, hp, bp][mode]);
   },
 
   /** Apply saturation distortion to a buffer. */
