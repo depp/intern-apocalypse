@@ -158,6 +158,7 @@ function startGUI(dat: typeof datTypes): void {
   loadSettings();
 
   folder('Layers', debugView, debugViewDefaults, (gui, data) => {
+    gui.add(data, 'slowDown', 1, 10);
     gui.add(data, 'level');
     gui.add(data, 'centroids');
     gui.add(data, 'entities');

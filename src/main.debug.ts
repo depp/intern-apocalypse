@@ -16,11 +16,15 @@ import { startDebugGUI } from './debug/controls';
 import { watchModels } from './debug/model';
 import { renderDebug } from './debug/render';
 import { watchShaders } from './debug/shader';
-import { gl } from './lib/global';
 import { initialize, main } from './main';
 import { watchSounds } from './debug/audio';
 import { runModelView } from './debug/modelview';
 import { initRenderer } from './render/render';
+import { debugView } from './lib/settings';
+
+let counter = 0;
+let lastFrameMS = 0;
+let adjTimeMS = 0;
 
 /**
  * Main update loop for debug builds.
@@ -28,6 +32,22 @@ import { initRenderer } from './render/render';
  * @param curTimeMS Current time in milliseconds.
  */
 function mainDebug(curTimeMS: DOMHighResTimeStamp): void {
+  const { slowDown } = debugView;
+  if (slowDown > 1) {
+    counter += 1;
+    if (counter < debugView.slowDown) {
+      requestAnimationFrame(mainDebug);
+      return;
+    }
+    counter -= debugView.slowDown;
+    if (lastFrameMS == 0) {
+      lastFrameMS = curTimeMS;
+    } else {
+      adjTimeMS += (curTimeMS - lastFrameMS) / debugView.slowDown;
+      lastFrameMS = curTimeMS;
+      curTimeMS = adjTimeMS;
+    }
+  }
   let failed = false;
   try {
     main(curTimeMS);

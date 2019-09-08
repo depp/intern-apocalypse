@@ -4,6 +4,8 @@
 
 /** Settings for debug view. */
 export const debugView = {
+  /** Game slowdown factor. */
+  slowDown: 1,
   level: false,
   centroids: false,
   entities: false,
