@@ -15,15 +15,20 @@ const buffers: AudioBuffer[] = [];
 let audioCtx: AudioContext | undefined | false;
 
 function startContext(): void {
-  if (audioCtx == null) {
-    try {
-      // @ts-ignore
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    } catch (e) {
-      console.error(e);
-      audioCtx = false;
-    }
+  if (audioCtx != null) {
+    return;
   }
+  try {
+    audioCtx = new ((window as any).AudioContext ||
+      (window as any).webkitAudioContext)() as AudioContext;
+  } catch (e) {
+    console.error(e);
+    audioCtx = false;
+    return;
+  }
+  // Play silence. This lets us use the context.
+  const buffer = audioCtx.createBuffer(1, 1000, sampleRate);
+  playBuffer(buffer);
 }
 
 /** Get the buffer containing the given sound. */
@@ -45,6 +50,17 @@ function getSoundBuffer(index: number): AudioBuffer | null {
   return buffer;
 }
 
+/** Play a sound with the given buffer. */
+function playBuffer(buffer: AudioBuffer): void {
+  if (!audioCtx) {
+    throw new AssertionError('audioCtx == null');
+  }
+  const source = audioCtx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(audioCtx.destination);
+  source.start();
+}
+
 /** Play the sound with the given index. */
 export function playSound(index: number): void {
   if (!audioCtx) {
@@ -54,18 +70,7 @@ export function playSound(index: number): void {
   if (!buffer) {
     return;
   }
-  const source = audioCtx.createBufferSource();
-  source.buffer = buffer;
-  source.connect(audioCtx.destination);
-  source.start();
-}
-
-function canvasClick(): void {
-  startContext();
-  if (!audioCtx) {
-    return;
-  }
-  playSound(Sounds.Clang);
+  playBuffer(buffer);
 }
 
 /**
@@ -73,7 +78,6 @@ function canvasClick(): void {
  */
 export function startAudio(): void {
   startContext();
-  playSound(Sounds.Clang);
 }
 
 /** Load the sound data files. */
