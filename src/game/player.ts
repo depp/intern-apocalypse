@@ -108,16 +108,11 @@ export function spawnPlayer(): void {
             });
           }
           const targets = findColliders(pos, radius);
-          let isHit = false;
           for (const target of targets) {
             if (target != this) {
               const direction = normalizeSubtract(target.pos, this.pos);
               target.damage(direction);
-              isHit = true;
             }
-          }
-          if (isHit) {
-            playSound(Sounds.Clang);
           }
         }
         if (attackTime > playerSettings.attackTime) {

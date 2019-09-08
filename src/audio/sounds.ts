@@ -5,6 +5,7 @@ export const enum Sounds {
   Bass,
   Clang,
   Harp,
+  MonsterHit,
   Sweep,
   Swoosh,
 }
@@ -15,6 +16,7 @@ export function getSoundNames(): string[] {
     'audio/bass.lisp',
     'audio/clang.lisp',
     'audio/harp.lisp',
+    'audio/monster_hit.lisp',
     'audio/sweep.lisp',
     'audio/swoosh.lisp',
   ];

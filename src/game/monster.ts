@@ -18,6 +18,8 @@ import {
 } from './entity';
 import { frameDT } from './time';
 import { isDebug } from '../debug/debug';
+import { playSound } from '../audio/audio';
+import { Sounds } from '../audio/sounds';
 
 /** Spawn a monster in the level. */
 export function spawnMonster(): void {
@@ -47,6 +49,7 @@ export function spawnMonster(): void {
       }
     },
     damage(direction: Readonly<Vector>): void {
+      playSound(Sounds.MonsterHit);
       walker.velocity = scaleVector(direction, 12);
       health--;
       if (health <= 0) {
