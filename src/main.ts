@@ -10,8 +10,9 @@ import { render } from './render/render';
 import { updateTime } from './game/time';
 import { updateEntities } from './game/entity';
 import { State, currentState, setState } from './lib/global';
-import { startMenu, endMenu } from './render/ui';
+import { startMenu, pushMenu, endMenu, popMenu } from './render/ui';
 import { spawnMonster } from './game/monster';
+import { Difficulty, setDifficulty } from './game/difficulty';
 
 /**
  * Initialize game.
@@ -24,8 +25,8 @@ export function initialize(): void {
 let lastState: State | undefined;
 
 /** Show the main menu. */
-function startMainMenu(): void {
-  startMenu(
+function pushMainMenu(): void {
+  pushMenu(
     {
       click() {
         startAudio();
@@ -38,15 +39,33 @@ function startMainMenu(): void {
     { space: -12 },
     { text: 'Apocalypse', size: 2 },
     { flexspace: 1 },
-    {
-      text: 'New Game',
-      click() {
-        setState(State.Game);
-      },
-    },
+    { text: 'New Game', click: pushNewGameMenu },
     { flexspace: 1 },
     { text: 'Made for JS13K 2019 by @DietrichEpp', size: 0.5 },
   );
+}
+
+/** Show the new game menu. */
+function pushNewGameMenu(): void {
+  pushMenu(
+    {},
+    { flexspace: 1 },
+    { text: 'Select Difficulty', size: 1.5 },
+    { space: 32 },
+    { text: 'Plucky Comic Relief', click: () => newGame(Difficulty.Easy) },
+    { text: 'Stalwart Hero', click: () => newGame(Difficulty.Normal) },
+    { text: 'Tragic Legend', click: () => newGame(Difficulty.Hard) },
+    { flexspace: 1 },
+    { text: 'Back', click: popMenu },
+  );
+}
+
+/** Start a new game. */
+function newGame(difficulty: Difficulty): void {
+  setState(State.Game);
+  setDifficulty(difficulty);
+  spawnPlayer();
+  spawnMonster();
 }
 
 /**
@@ -58,12 +77,11 @@ export function main(curTimeMS: DOMHighResTimeStamp): void {
   if (currentState != lastState) {
     switch (currentState) {
       case State.MainMenu:
-        startMainMenu();
+        startMenu();
+        pushMainMenu();
         break;
       case State.Game:
         endMenu();
-        spawnPlayer();
-        spawnMonster();
         break;
     }
     lastState = currentState;

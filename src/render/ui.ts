@@ -19,6 +19,12 @@ export interface MenuItem {
   click?(): void;
 }
 
+/** A menu which has been positioned and rendered. */
+interface PositionedMenu extends Menu {
+  items: PositionedMenuItem[];
+  next: PositionedMenu | undefined | null;
+}
+
 /** A menu item which has been positioned. */
 interface PositionedMenuItem extends MenuItem {
   size: number;
@@ -30,8 +36,7 @@ interface PositionedMenuItem extends MenuItem {
   v1: number;
 }
 
-let currentMenu: Menu | undefined | null;
-let currentItems: PositionedMenuItem[] | undefined | null;
+let currentMenu: PositionedMenu | undefined | null;
 
 let offscreenCanvas!: HTMLCanvasElement;
 let canvasSize!: Vector;
@@ -69,16 +74,17 @@ function initContext(): void {
 
 /** Update the menu graphics data. */
 function updateMenu(): void {
-  if (currentItems == null) {
+  if (!currentMenu) {
     throw new AssertionError('currentMenu == null');
   }
+  const items = currentMenu.items;
   initContext();
 
   // Calculate the positions of the menu items.
   let fixspace = 0;
   let flexspace = 0;
   let itemcount = 0;
-  for (const item of currentItems) {
+  for (const item of items) {
     flexspace += item.flexspace;
     if (item.text) {
       itemcount++;
@@ -89,7 +95,7 @@ function updateMenu(): void {
   const flexamt = flexspace && (canvasSize.y - fixspace) / flexspace;
   let ypos = 0;
   let vpos = 0;
-  for (const item of currentItems) {
+  for (const item of items) {
     item.y0 = ypos | 0;
     item.v0 = vpos | 0;
     if (item.text) {
@@ -110,7 +116,7 @@ function updateMenu(): void {
   const vsize = canvasSize.y / textureSize.y;
   let off = 0;
 
-  for (const item of currentItems) {
+  for (const item of items) {
     if (!item.text) {
       continue;
     }
@@ -224,49 +230,61 @@ export function renderUI(): void {
  */
 function menuClick(event: MouseEvent) {
   event.preventDefault();
-  if (currentMenu == null || currentItems == null) {
+  if (currentMenu == null) {
     throw new AssertionError('no menu');
   }
   if (currentMenu.click) {
     currentMenu.click();
   }
   const { y } = getMousePos(event);
-  for (const item of currentItems) {
+  for (const item of currentMenu.items) {
     if (item.click && item.y0 <= y && y < item.y1) {
       item.click();
     }
   }
 }
 
-/**
- * Start displaying a menu.
- */
-export function startMenu(menu: Menu, ...items: MenuItem[]): void {
-  currentMenu = menu;
-  currentItems = [];
-  for (const item of items) {
-    currentItems.push(
-      Object.assign(
-        {
-          size: 1,
-          flexspace: 0,
-          space: 0,
-          y0: 0,
-          y1: 0,
-          v0: 0,
-          v1: 0,
-        },
-        item,
+/** Push a new menu to the top of the stack. */
+export function pushMenu(menu: Menu, ...menuItems: MenuItem[]): void {
+  currentMenu = Object.assign(
+    {
+      items: menuItems.map(item =>
+        Object.assign(
+          {
+            size: 1,
+            flexspace: 0,
+            space: 0,
+            y0: 0,
+            y1: 0,
+            v0: 0,
+            v1: 0,
+          },
+          item,
+        ),
       ),
-    );
-  }
+      next: currentMenu,
+    },
+    menu,
+  );
   updateMenu();
+}
+
+/** Pop the current menu off the top of the stack. */
+export function popMenu(): void {
+  if (currentMenu == null) {
+    throw new AssertionError('currentMenu == null');
+  }
+  currentMenu = currentMenu.next;
+  updateMenu();
+}
+
+/** Start displaying menus. A menu must be pushed afterwards. */
+export function startMenu(): void {
+  currentMenu = null;
   canvas.addEventListener('click', menuClick);
 }
 
-/**
- * Stop displaying any menu.
- */
+/** Stop displaying any menu. */
 export function endMenu(): void {
   elementCount = 0;
   canvas.removeEventListener('click', menuClick);
