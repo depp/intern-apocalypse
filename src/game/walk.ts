@@ -90,12 +90,13 @@ function testEdge(
   edge: CollisionEdge,
 ): WalkSegment | undefined {
   const { vertex0, vertex1 } = edge;
-  const { start, end } = segment;
+  const { start, end, corner } = segment;
   // Position on edge, with vertex0..vertex1 as 0..1.
   let edgeFrac: number;
   let startFraction: number;
   let newStart: Readonly<Vector>;
-  if (!segment.corner) {
+  let color: DebugColor;
+  if (!corner) {
     if (edge == segment.edge) {
       return;
     }
@@ -132,17 +133,58 @@ function testEdge(
     edgeFrac = num2 / denom;
     startFraction = 1 - num1 / denom;
     newStart = lerp(vertex0, vertex1, edgeFrac);
+    color = DebugColor.Yellow;
+  } else if (corner.edge0 == edge) {
+    if (end != edge.vertex1) {
+      return;
+    }
+    startFraction = segment.endFraction;
+    newStart = end;
+    edgeFrac = 1;
+    color = DebugColor.Green;
+  } else if (corner.edge1 == edge) {
+    if (end != edge.vertex0) {
+      return;
+    }
+    startFraction = segment.endFraction;
+    newStart = end;
+    edgeFrac = 0;
+    color = DebugColor.Green;
   } else {
-    // FIXME: implement
-    return;
+    const { center } = corner;
+    // Solve for the location of collisions along the line. Quadratic formula.
+    const a = distanceSquared(vertex1, vertex0);
+    const b = dotSubtract(vertex0, center, vertex1, vertex0);
+    const c = distanceSquared(vertex0, center) - walkerRadius ** 2;
+    const discriminant = b ** 2 - 4 * a * c;
+    if (discriminant <= 0) {
+      // We don't intersect the edge, or we barely touch it.
+      return;
+    }
+    edgeFrac =
+      (-b + segment.slideDirection * Math.sqrt(discriminant)) / (2 * a);
+    if (edgeFrac < 0 || 1 < edgeFrac) {
+      // We miss the edge.
+      return;
+    }
+    newStart = lerp(vertex0, vertex1, edgeFrac);
+    if (dotSubtract(newStart, end, movement) >= 0) {
+      // We leave the arc before hitting the line.
+      return;
+    }
+    startFraction =
+      segment.endFraction +
+      ((circleMovementPos(center, newStart, movement) -
+        circleMovementPos(center, end, movement)) *
+        walkerRadius) /
+        length(movement);
+    color = DebugColor.Magenta;
   }
   // At this point, we have a collision. It just may not be the first collision
   // in the path.
   if (isDebug) {
     if (!edge.edge.debugColor) {
-      edge.edge.debugColor = segment.corner
-        ? DebugColor.Magenta
-        : DebugColor.Yellow;
+      edge.edge.debugColor = color;
     }
   }
   let newEnd: Readonly<Vector>;
@@ -233,13 +275,29 @@ function testCorner(
   }
   let color: DebugColor;
   const offset = wedgeSubtract(center, newStart, movement);
+  const moveLength = length(movement);
   let newEnd = madd(
     newStart,
     movement,
-    Math.abs(offset) / (walkerRadius * length(movement)),
+    Math.abs(offset) / (walkerRadius * moveLength),
   );
-  let endFraction: number;
-  if (dotSubtract(newEnd, center, movement) > 0) {
+  let edgeVertex = offset < 0 ? corner.edge0.vertex1 : corner.edge1.vertex0;
+  let endFraction = 0;
+  if (
+    dotSubtract(edgeVertex, center, movement) < Infinity &&
+    dotSubtract(edgeVertex, newEnd, movement) < 0
+  ) {
+    // We slide off the vertex onto an edge.
+    newEnd = edgeVertex;
+    endFraction =
+      startFraction -
+      ((circleMovementPos(center, newStart, movement) -
+        circleMovementPos(center, edgeVertex, movement)) *
+        walkerRadius) /
+        moveLength;
+    color = DebugColor.Blue;
+  } else if (dotSubtract(newEnd, center, movement) > 0) {
+    // We slide off the vertex into open space.
     const dx = -offset * movement.y;
     const dy = offset * movement.x;
     const a = walkerRadius / Math.hypot(dx, dy);
@@ -247,9 +305,10 @@ function testCorner(
     endFraction =
       startFraction -
       (circleMovementPos(center, newStart, movement) * walkerRadius) /
-        length(movement);
+        moveLength;
     color = DebugColor.Cyan;
   } else {
+    // We stay sliding along the vertex.
     newEnd = projectToCircle(newEnd, center, walkerRadius);
     endFraction = 0;
     color = DebugColor.Magenta;
@@ -257,6 +316,11 @@ function testCorner(
   if (isDebug) {
     if (!corner.edge1.edge.debugVertexColor) {
       corner.edge1.edge.debugVertexColor = color;
+    }
+    if (offset < 0) {
+      corner.edge0.edge.debugColor = DebugColor.Green;
+    } else {
+      corner.edge1.edge.debugColor = DebugColor.Green;
     }
   }
   return {
