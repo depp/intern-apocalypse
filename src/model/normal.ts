@@ -1,46 +1,42 @@
+import { newVector3, getVector3, subVector3, crossVector3 } from './util';
+
 /**
  * Create normals for a model.
- * @param pos Vertex position data, size 3 per vertex.
- * @param index Index array data for triangles.
+ * @param posData Vertex position data, size 3 per vertex.
+ * @param indexData Index array data for triangles.
  */
 export function createNormals(
-  pos: Float32Array,
-  index: Uint16Array,
+  posData: Float32Array,
+  indexData: Uint16Array,
 ): Float32Array {
-  const normals = new Float32Array(pos.length);
-  const vectors = [new Float32Array(3), new Float32Array(3)];
-  const normal = new Float32Array(3);
-  for (let i = 0; i < index.length; i += 3) {
-    for (let j = 0; j < 2; j++) {
-      const i0 = 3 * index[i];
-      const i1 = 3 * index[i + 1 + j];
-      for (let k = 0; k < 3; k++) {
-        vectors[j][k] = pos[i1 + k] - pos[i0 + k];
-      }
-    }
+  const normalData = new Float32Array(posData.length);
+  const vectors = [newVector3(), newVector3(), newVector3()];
+  const [v0, v1, v2] = vectors;
+  for (let offset = 0; offset < indexData.length; offset += 3) {
     for (let j = 0; j < 3; j++) {
-      normal[j] =
-        vectors[0][(j + 1) % 3] * vectors[1][(j + 2) % 3] -
-        vectors[0][(j + 2) % 3] * vectors[1][(j + 1) % 3];
+      getVector3(vectors[j], posData, indexData[offset + j]);
     }
+    subVector3(v1, v1, v0);
+    subVector3(v2, v2, v0);
+    crossVector3(v0, v1, v2);
     for (let j = 0; j < 3; j++) {
-      const i0 = 3 * index[i + j];
+      const i0 = 3 * indexData[offset + j];
       for (let k = 0; k < 3; k++) {
-        normals[i0 + k] += normal[k];
+        normalData[i0 + k] += v0[k];
       }
     }
   }
-  for (let i = 0; i < normals.length; i += 3) {
+  for (let i = 0; i < normalData.length; i += 3) {
     let m = 0;
     for (let j = 0; j < 3; j++) {
-      m += normals[i + j] ** 2;
+      m += normalData[i + j] ** 2;
     }
     if (m > 0) {
       const a = 1 / Math.sqrt(m);
       for (let j = 0; j < 3; j++) {
-        normals[i + j] *= a;
+        normalData[i + j] *= a;
       }
     }
   }
-  return normals;
+  return normalData;
 }

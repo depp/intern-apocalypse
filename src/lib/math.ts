@@ -242,23 +242,3 @@ export function projectToCircle(
     a = radius / Math.hypot(dx, dy);
   return vector(center.x + dx * a, center.y + dy * a);
 }
-
-/** A 3D vector. */
-export type Vector3 = Float32Array;
-
-/** Create a new 3D vector. */
-export function vec3New(): Vector3 {
-  return new Float32Array(3);
-}
-
-/** Compute out = a + b * c. */
-export function vec3MAdd(
-  out: Vector3,
-  a: Vector3,
-  b: Vector3,
-  c: number = 1,
-): void {
-  for (let i = 0; i < 3; i++) {
-    out[i] = a[i] + b[i] * c;
-  }
-}
