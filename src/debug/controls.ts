@@ -160,7 +160,7 @@ function startGUI(dat: typeof datTypes): void {
   folder('Layers', debugView, debugViewDefaults, (gui, data) => {
     gui.add(data, 'level');
     gui.add(data, 'centroids');
-    gui.add(data, 'player');
+    gui.add(data, 'entities');
   });
 
   folder('Camera', cameraSettings, cameraDefaults, (gui, data) => {

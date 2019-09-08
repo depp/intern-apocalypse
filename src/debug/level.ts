@@ -10,6 +10,8 @@ import { Vector } from '../lib/math';
 import { walkerRadius } from '../game/walk';
 import { level } from '../game/world';
 import { getCameraTarget } from '../game/camera';
+import { entities } from '../game/world';
+import { Entity } from '../game/entity';
 
 const edgeInset = 2;
 
@@ -179,13 +181,25 @@ function drawCell(cell: Cell, scale: number): void {
 /**
  * Draw an entity in the level.
  */
-function drawEntity(pos: Vector): void {
-  const { x, y } = pos;
-  ctx.beginPath();
-  ctx.arc(x, y, walkerRadius, 0, 2 * Math.PI);
+function drawEntity(entity: Entity, scale: number): void {
+  const { debugPos, debugArrow } = entity;
+  if (!debugPos) {
+    return;
+  }
 
-  ctx.fillStyle = '#f00';
+  ctx.beginPath();
+  ctx.arc(debugPos.x, debugPos.y, walkerRadius, 0, 2 * Math.PI);
+  ctx.fillStyle = '#800';
   ctx.fill();
+
+  if (debugArrow) {
+    ctx.beginPath();
+    ctx.moveTo(debugPos.x, debugPos.y);
+    ctx.lineTo(debugPos.x + debugArrow.x, debugPos.y + debugArrow.y);
+    ctx.strokeStyle = '#f88';
+    ctx.lineWidth = 4 / scale;
+    ctx.stroke();
+  }
 }
 
 /**
@@ -204,10 +218,12 @@ export function drawLevel(): void {
       drawCell(cell, scale);
     }
   }
-  if (debugView.player) {
-    // drawEntity(playerPos);
-  }
   drawEdges(scale);
+  if (debugView.entities) {
+    for (const entity of entities) {
+      drawEntity(entity, scale);
+    }
+  }
   ctx.restore();
 }
 

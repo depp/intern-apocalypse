@@ -6,7 +6,7 @@
 export const debugView = {
   level: false,
   centroids: false,
-  player: false,
+  entities: false,
 };
 
 /** Settings for the camera. */

@@ -4,6 +4,7 @@ import { ModelInstance, modelInstances } from './model';
 import { createWalker, WalkerParameters } from './walker';
 import { entities } from './world';
 import { frameDT } from './time';
+import { isDebug } from '../debug/debug';
 
 /** Spawn a monster in the level. */
 export function spawnMonster(): void {
@@ -22,7 +23,12 @@ export function spawnMonster(): void {
   entities.push({
     update() {
       angle = canonicalAngle(angle + frameDT);
-      walker.update(params, vector(Math.sin(angle), Math.cos(angle)));
+      const movement = vector(Math.sin(angle), Math.cos(angle));
+      walker.update(params, movement);
+      if (isDebug) {
+        this.debugPos = walker.pos;
+        this.debugArrow = movement;
+      }
     },
   });
 }
