@@ -35,8 +35,13 @@ export const enum ModelAttrib {
 }
 
 export interface ParticlesProgram extends ShaderProgram {
+  ColorRate: WebGLUniformLocation | null;
+  Colors: WebGLUniformLocation | null;
+  Gravity: WebGLUniformLocation | null;
   Model: WebGLUniformLocation | null;
   Time: WebGLUniformLocation | null;
+  TimeDelay: WebGLUniformLocation | null;
+  Velocity: WebGLUniformLocation | null;
   ViewProjection: WebGLUniformLocation | null;
 }
 export const particlesShader = {} as ParticlesProgram;
@@ -78,7 +83,16 @@ export function getShaderSpecs(): ShaderSpec[] {
       vertex: 'particles.vert',
       fragment: 'particles.frag',
       attributes: ['aPos', 'aRandom', 'aColor'],
-      uniforms: ['Model', 'Time', 'ViewProjection'],
+      uniforms: [
+        'ColorRate',
+        'Colors',
+        'Gravity',
+        'Model',
+        'Time',
+        'TimeDelay',
+        'Velocity',
+        'ViewProjection',
+      ],
       object: particlesShader,
     },
   ];
@@ -112,7 +126,16 @@ export function loadShaders(): void {
   );
   compileShader(
     particlesShader,
-    ['Model', 'Time', 'ViewProjection'],
+    [
+      'ColorRate',
+      'Colors',
+      'Gravity',
+      'Model',
+      'Time',
+      'TimeDelay',
+      'Velocity',
+      'ViewProjection',
+    ],
     ['aPos', 'aRandom', 'aColor'],
     bundledData[shaderOffset + 5],
     bundledData[shaderOffset + 4],

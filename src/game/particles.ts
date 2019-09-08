@@ -16,31 +16,59 @@ import {
   entities,
   ParticlesInstance,
   Entity,
+  ParticlesParameters,
 } from './entity';
 import { ModelAsset } from '../model/models';
 import { Vector } from '../lib/math';
 
+/** Update a simple particles instance. */
+function particleUpdate(this: ParticlesInstance & Entity): void {
+  this.time += frameDT;
+  if (this.time > this.parameters.timeGone) {
+    this.isDead = true;
+  }
+}
+
+/** Particle parameters for death animations. */
+const deathParameters: ParticlesParameters = {
+  timeFull: 0,
+  timeGone: 1.0,
+  timeDelay: 0.5,
+  gravity: 2,
+  colors: [1, 0, 0, 0, 0, 0],
+  colorRate: 4,
+  count: 1024,
+};
+
 /**
- * Spawn a particle effect system.
+ * Spawn a particle effect system for an actor dying.
  * @param transform The initial transform of the particle effects.
  * @param model The particle effects model.
  */
-export function spawnParticles(transform: Matrix, model: ModelAsset): void {
+export function spawnDeath(transform: Matrix, model: ModelAsset): void {
   transform = matrixNew(transform);
   const particles: ParticlesInstance & Entity = {
     model,
+    parameters: deathParameters,
     transform,
     time: 0,
-    update() {
-      this.time += frameDT;
-      if (this.time > 3.0) {
-        this.isDead = true;
-      }
-    },
+    velocity: [0, 0, 2, 1, 1, 1],
+    update: particleUpdate,
   };
   particlesInstances.push(particles);
   entities.push(particles);
 }
+
+/** Particle parameters for a sword slash. */
+const slashParameters: ParticlesParameters = {
+  timeFull: 0,
+  timeGone: 0.3,
+  timeDelay: 0.1,
+  gravity: 0,
+  colors: [0.5, 0, 0, 0, 0, 0],
+  colorRate: 4,
+  count: 200,
+};
 
 /**
  * Spawn a sword slash particle effect.
@@ -55,5 +83,15 @@ export function spawnSlash(
   setIdentityMatrix(transform);
   translateMatrix(transform, [pos.x, pos.y]);
   rotateMatrixFromDirection(transform, Axis.Z, direction.x, direction.y);
-  spawnParticles(transform, ModelAsset.Slash);
+
+  const particles: ParticlesInstance & Entity = {
+    model: ModelAsset.Slash,
+    parameters: slashParameters,
+    transform,
+    time: 0,
+    velocity: [0.5, 0, 0, 1, 5, 1],
+    update: particleUpdate,
+  };
+  particlesInstances.push(particles);
+  entities.push(particles);
 }

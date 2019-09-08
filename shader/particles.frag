@@ -1,8 +1,8 @@
 // Particles: Particle effects shader.
 precision lowp float;
 
-varying vec4 Color;
+varying vec3 Color;
 
 void main() {
-  gl_FragColor = Color;
+  gl_FragColor = vec4(Color, 1.0);
 }

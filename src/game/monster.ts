@@ -10,7 +10,7 @@ import {
   colliders,
 } from './entity';
 import { frameDT } from './time';
-import { spawnParticles, spawnSlash } from './particles';
+import { spawnDeath, spawnSlash } from './particles';
 import { isDebug } from '../debug/debug';
 import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
@@ -51,7 +51,7 @@ export function spawnMonster(pos: Readonly<Vector>): void {
         playSound(Sounds.MonsterHit);
         walker.velocity = scaleVector(direction, 12);
       } else {
-        spawnParticles(model.transform, model.model);
+        spawnDeath(model.transform, model.model);
         playSound(Sounds.MonsterDeath);
         this.isDead = true;
         model.isDead = true;

@@ -9,6 +9,8 @@ import { particlesShader, ParticlesAttrib } from './shaders';
 import { models } from '../model/model';
 import { randomVec4 } from './util';
 import { AssertionError } from '../debug/debug';
+import { clamp } from '../lib/util';
+import { lerp1D } from '../lib/math';
 
 /** Render models that are rendered in point cloud mode. */
 export function renderParticles(): void {
@@ -41,6 +43,20 @@ export function renderParticles(): void {
     }
 
     const points = model.points;
+    const param = instance.parameters;
+    let count = param.count;
+    if (instance.time > param.timeFull) {
+      if (instance.time > param.timeGone) {
+        continue;
+      }
+      count =
+        ((count * (param.timeGone - instance.time)) /
+          (param.timeGone - param.timeFull)) |
+        0;
+    }
+    if (!count) {
+      continue;
+    }
 
     // Attributes
     gl.bindBuffer(gl.ARRAY_BUFFER, points.pos);
@@ -59,9 +75,14 @@ export function renderParticles(): void {
     // Uniforms
     gl.uniformMatrix4fv(p.Model, false, instance.transform);
     gl.uniform1f(p.Time, instance.time);
+    gl.uniform1f(p.TimeDelay, param.timeDelay);
+    gl.uniform1f(p.ColorRate, param.colorRate);
+    gl.uniform1f(p.Gravity, param.gravity);
+    gl.uniform3fv(p.Colors, param.colors);
+    gl.uniform3fv(p.Velocity, instance.velocity);
 
     // Draw
-    gl.drawArrays(gl.POINTS, 0, points.count);
+    gl.drawArrays(gl.POINTS, 0, count);
   }
 
   // Cleanup

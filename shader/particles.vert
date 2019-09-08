@@ -1,21 +1,22 @@
 // Particles: Particle effects shader.
-attribute vec3 aPos;
+attribute vec3 aPos, aColor;
 attribute vec4 aRandom;
-attribute vec4 aColor;
 
-varying vec4 Color;
+varying vec3 Color;
 
-uniform mat4 ViewProjection;
-uniform mat4 Model;
-uniform float Time;
+uniform mat4 ViewProjection, Model;
+uniform float Time, TimeDelay, ColorRate, Gravity;
+uniform vec3 Colors[2], Velocity[2];
 
 void main() {
-  float time = max(0.0, Time - 3.0 * aRandom.w);
-  vec3 v0 = aRandom.xyz + vec3(0.0, 0.0, 1.0);
-  vec4 c1 = vec4(1.0, 0.0, 0.0, 1.0);
-  vec4 c2 = vec4(0.0, 0.0, 0.0, 1.0);
-  float frac = min(Time *0.333, aRandom.w);
-  Color = mix(aColor, mix(c1, c2, frac), frac);
+  float time0 = aRandom.w * TimeDelay;
+  float time = max(0.0, Time - time0);
+  Color =
+      mix(aColor, mix(Colors[0], Colors[1], clamp(time * ColorRate - 1.0, 0.0, 1.0)),
+          min(time * ColorRate, 1.0));
   gl_PointSize = 5.0;
-  gl_Position = ViewProjection * Model * vec4(aPos + time * v0 - time * time * vec3(0.0, 0.0, 1.0), 1.0);
+  gl_Position = ViewProjection * Model *
+                vec4(aPos + time * (Velocity[0] + Velocity[1] * aRandom.xyz -
+                                    time * Gravity * vec3(0.0, 0.0, 1.0)),
+                     1.0);
 }

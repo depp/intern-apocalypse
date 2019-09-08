@@ -90,6 +90,7 @@ export function spawnPlayer(): void {
         pendingHit = true;
         attackTime = 0;
         playSound(Sounds.Swoosh);
+        // spawnSlash(madd(this.pos, walker.facing, 1), walker.facing);
       }
       let frac = -1; // Position along attack, from -1 to +1.
       let blend = 0; // Animation blend value, 0 = idle, 1 = attack.

@@ -19,14 +19,36 @@ export interface ModelInstance extends EntityBase {
 /** All model instances in the level. */
 export const modelInstances: ModelInstance[] = [];
 
+/** Parameters for particle effects. */
+export interface ParticlesParameters {
+  /** Time at which particles start disappearing. */
+  timeFull: number;
+  /** Time at which all particles have disappeared. */
+  timeGone: number;
+  /** Delay before all particles start moving. */
+  timeDelay: number;
+  /** Acceleration by gravity, meters per second squared, divided by two. */
+  gravity: number;
+  /** Colors that the particles change to (two vec3). */
+  colors: number[];
+  /** Rate at which colors change. */
+  colorRate: number;
+  /** Initial particle count. */
+  count: number;
+}
+
 /** A game entity, which is rendered as a particle effect instance. */
 export interface ParticlesInstance extends EntityBase {
   /** The model asset to use for the particle template. */
   model: ModelAsset;
+  /** Particle effect parameters. */
+  parameters: ParticlesParameters;
   /** Model transformation matrix. */
   transform: Matrix;
   /** Particle effect animation time. */
   time: number;
+  /** Particle movement initial velocity and dispersion (two vec3). */
+  velocity: number[];
 }
 
 /** All particles instances in the level. */
