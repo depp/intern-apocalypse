@@ -23,6 +23,27 @@ export function initialize(): void {
 /** The game state as of the last frame. */
 let lastState: State | undefined;
 
+/** Show the main menu. */
+function startMainMenu(): void {
+  startMenu(
+    {
+      click() {
+        startAudio();
+        setState(State.Game);
+      },
+    },
+    { space: 32 },
+    { text: 'Internship', size: 2 },
+    { space: -20 },
+    { text: '— at the —' },
+    { space: -12 },
+    { text: 'Apocalypse', size: 2 },
+    { flexspace: 1 },
+    { text: 'New Game' },
+    { flexspace: 1 },
+  );
+}
+
 /**
  * Main update loop.
  *
@@ -32,37 +53,7 @@ export function main(curTimeMS: DOMHighResTimeStamp): void {
   if (currentState != lastState) {
     switch (currentState) {
       case State.MainMenu:
-        startMenu(
-          {
-            click() {
-              startAudio();
-              setState(State.Game);
-            },
-          },
-          {
-            marginTop: 32,
-            text: 'Internship',
-            size: 2,
-          },
-          {
-            text: '— at the —',
-            marginTop: -20,
-            marginBottom: -12,
-          },
-          {
-            text: 'Apocalypse',
-            size: 2,
-          },
-          {
-            flexspace: 1,
-          },
-          {
-            text: 'New Game',
-          },
-          {
-            flexspace: 1,
-          },
-        );
+        startMainMenu();
         break;
       case State.Game:
         endMenu();

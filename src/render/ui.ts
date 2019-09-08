@@ -15,8 +15,7 @@ export interface MenuItem {
   text?: string;
   size?: number;
   flexspace?: number;
-  marginTop?: number;
-  marginBottom?: number;
+  space?: number;
   click?(): void;
 }
 
@@ -25,8 +24,7 @@ interface PositionedMenuItem {
   text?: string;
   size: number;
   flexspace: number;
-  marginTop: number;
-  marginBottom: number;
+  space: number;
   y0: number;
   y1: number;
   v0: number;
@@ -87,24 +85,22 @@ function updateMenu(): void {
       itemcount++;
       fixspace += 48 * item.size;
     }
-    fixspace += item.marginTop + item.marginBottom;
+    fixspace += item.space;
   }
   console.log('fixspace', fixspace, flexspace);
   const flexamt = flexspace && (canvasSize.y - fixspace) / flexspace;
   let ypos = 0;
   let vpos = 0;
   for (const item of currentItems) {
-    ypos += item.marginTop;
     item.y0 = ypos | 0;
     item.v0 = vpos | 0;
     if (item.text) {
       ypos += 48 * item.size;
       vpos += 48 * item.size;
     }
-    ypos += flexamt * item.flexspace;
+    ypos += item.space + flexamt * item.flexspace;
     item.y1 = ypos | 0;
     item.v1 = vpos | 0;
-    ypos += item.marginBottom;
   }
 
   elementCount = itemcount * 6;
@@ -250,8 +246,7 @@ export function startMenu(menu: Menu, ...items: MenuItem[]): void {
         {
           size: 1,
           flexspace: 0,
-          marginTop: 0,
-          marginBottom: 0,
+          space: 0,
           y0: 0,
           y1: 0,
           v0: 0,
