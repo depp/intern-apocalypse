@@ -85,7 +85,7 @@ export function compileShader(
     gl.deleteShader(shader);
   }
   for (let i = 0; i < attribs.length; i++) {
-    if (!isDebug || attribs[i] != '') {
+    if (attribs[i].trim() != '') {
       gl.bindAttribLocation(program, i, attribs[i]);
     }
   }
@@ -105,18 +105,13 @@ export function compileShader(
   if (isDebug) {
     // Print warnings for extra attributes.
     const anames = new Set<string>(attribs);
-    anames.delete(' ');
+    anames.delete('');
     const aexist = new Set<string>();
     const acount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
     for (let i = 0; i < acount; i++) {
       const attrib = gl.getActiveAttrib(program, i);
       if (attrib) {
         aexist.add(attrib.name);
-        if (!anames.has(attrib.name)) {
-          console.warn(
-            `${programName}: Unused attribute: ` + JSON.stringify(attrib.name),
-          );
-        }
       }
     }
     for (const name of anames) {
