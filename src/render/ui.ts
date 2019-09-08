@@ -1,4 +1,4 @@
-import { gl, canvas } from '../lib/global';
+import { gl, canvas, getMousePos } from '../lib/global';
 import { AssertionError, isDebug } from '../debug/debug';
 import { flat as flatShader, flat, Attribute } from './shaders';
 import { quad, packColor } from './util';
@@ -20,8 +20,7 @@ export interface MenuItem {
 }
 
 /** A menu item which has been positioned. */
-interface PositionedMenuItem {
-  text?: string;
+interface PositionedMenuItem extends MenuItem {
   size: number;
   flexspace: number;
   space: number;
@@ -231,6 +230,12 @@ function menuClick(event: MouseEvent) {
   }
   if (currentMenu.click) {
     currentMenu.click();
+  }
+  const { y } = getMousePos(event);
+  for (const item of currentItems) {
+    if (item.click && item.y0 <= y && y < item.y1) {
+      item.click();
+    }
   }
 }
 

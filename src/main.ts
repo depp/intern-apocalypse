@@ -29,7 +29,6 @@ function startMainMenu(): void {
     {
       click() {
         startAudio();
-        setState(State.Game);
       },
     },
     { space: 32 },
@@ -39,7 +38,12 @@ function startMainMenu(): void {
     { space: -12 },
     { text: 'Apocalypse', size: 2 },
     { flexspace: 1 },
-    { text: 'New Game' },
+    {
+      text: 'New Game',
+      click() {
+        setState(State.Game);
+      },
+    },
     { flexspace: 1 },
     { text: 'Made for JS13K 2019 by @DietrichEpp', size: 0.5 },
   );

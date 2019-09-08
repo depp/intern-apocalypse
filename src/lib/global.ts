@@ -4,6 +4,7 @@
  */
 
 import { isDebug, isCompetition } from '../debug/debug';
+import { Vector, vector } from './math';
 
 /** All data bundled with the release builds of the game. */
 export let bundledData!: string[];
@@ -32,6 +33,16 @@ export async function loadBundledData(): Promise<void> {
 
 /** Game canvas element. */
 export const canvas = document.getElementById('g') as HTMLCanvasElement;
+
+/**
+ * Get the location of a mouse event, in canvas coordinates.
+ * @param evt The mouse event.
+ */
+export function getMousePos(evt: MouseEvent): Vector {
+  // https://stackoverflow.com/questions/17130395/real-mouse-position-in-canvas
+  var rect = canvas.getBoundingClientRect();
+  return vector(evt.clientX - rect.left, evt.clientY - rect.top);
+}
 
 /** WebGL rendering context. */
 export let gl!: WebGLRenderingContext;
