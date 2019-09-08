@@ -21,6 +21,12 @@ import {
 } from '../lib/math';
 import { level } from './world';
 
+/**
+ * Distance we will look backwards to calculate collisions, if we end up on the
+ * wrong side of an edge due to rounding errors.
+ */
+const backtrackDistance = 0.001;
+
 /** The collision radius of walking entities. */
 export const walkerRadius = 0.5;
 
@@ -119,7 +125,7 @@ function testEdge(
     // back side of an edge. This is expected to happen, because the collision
     // resolution will place us directly on an edge, and rounding error should
     // often move us slightly behind the edge.
-    if ((num1 / denom) * distance(start, end) < -walkerRadius) {
+    if ((num1 / denom) * distance(start, end) < -backtrackDistance) {
       // The edge is behind us.
       return;
     }
@@ -214,7 +220,7 @@ function testCorner(
       // We don't reach the corner.
       return;
     }
-    if (testFrac * Math.sqrt(a) < -walkerRadius) {
+    if (testFrac * Math.sqrt(a) < -backtrackDistance) {
       // We are heading away from the corner.
       return;
     }
@@ -373,6 +379,12 @@ export function walk(
     }
     if (currentSegment.corner) {
       currentSegment.corner.hit = currentSegment.start;
+    }
+  }
+  if (false) {
+    const dotv = dotSubtract(currentSegment.start, start, movement);
+    if (dotv < 0) {
+      console.warn('bad walk');
     }
   }
   // This seems like it should be 'end', but 'start' is correct.
