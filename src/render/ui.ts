@@ -86,7 +86,6 @@ function updateMenu(): void {
     }
     fixspace += item.space;
   }
-  console.log('fixspace', fixspace, flexspace);
   const flexamt = flexspace && (canvasSize.y - fixspace) / flexspace;
   let ypos = 0;
   let vpos = 0;
