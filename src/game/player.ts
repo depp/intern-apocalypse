@@ -13,6 +13,7 @@ import {
   Collider,
   colliders,
   findColliders,
+  debugMarks,
 } from './entity';
 import { ModelAsset } from '../model/models';
 import { playerSettings } from '../lib/settings';
@@ -26,7 +27,7 @@ import { setCameraTarget } from './camera';
 import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
 import { createWalker } from './walker';
-import { isDebug } from '../debug/debug';
+import { isDebug, DebugColor } from '../debug/debug';
 
 /** Spawn the player in the level. */
 export function spawnPlayer(): void {
@@ -90,10 +91,17 @@ export function spawnPlayer(): void {
         attackTime += frameDT;
         if (pendingHit && attackTime > playerSettings.attackTime * 0.3) {
           pendingHit = false;
-          const targets = findColliders(
-            madd(this.pos, walker.facing, 0.5),
-            0.5,
-          );
+          const pos = madd(this.pos, walker.facing, 0.5);
+          const radius = 0.5;
+          if (isDebug) {
+            debugMarks.push({
+              time: 0.5,
+              pos,
+              radius,
+              color: DebugColor.Green,
+            });
+          }
+          const targets = findColliders(pos, radius);
           let isHit = false;
           for (const target of targets) {
             if (target != this) {

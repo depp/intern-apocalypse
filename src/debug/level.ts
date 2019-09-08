@@ -10,7 +10,8 @@ import { Vector } from '../lib/math';
 import { walkerRadius } from '../game/walk';
 import { level } from '../game/world';
 import { getCameraTarget, cameraMatrix } from '../game/camera';
-import { colliders, Collider } from '../game/entity';
+import { colliders, Collider, debugMarks } from '../game/entity';
+import { frameDT } from '../game/time';
 
 const edgeInset = 2;
 
@@ -230,6 +231,36 @@ function drawEntity(entity: Collider, scale: number): void {
 }
 
 /**
+ * Draw all debug marks.
+ */
+function drawMarks(scale: number): void {
+  ctx.lineWidth = 3 / scale;
+  for (const mark of debugMarks) {
+    const { pos, radius, color } = mark;
+    ctx.beginPath();
+    ctx.strokeStyle = debugColors[color];
+    ctx.arc(pos.x, pos.y, radius, 0, 2 * Math.PI);
+    ctx.stroke();
+  }
+}
+
+/**
+ * Update all debug marks.
+ */
+function updateMarks(): void {
+  let i = 0;
+  let j = 0;
+  while (i < debugMarks.length) {
+    const mark = debugMarks[i++];
+    mark.time -= frameDT;
+    if (mark.time > 0) {
+      debugMarks[j++] = mark;
+    }
+  }
+  debugMarks.length = j;
+}
+
+/**
  * Draw a 2D view of the level.
  */
 export function drawLevel(): void {
@@ -250,7 +281,9 @@ export function drawLevel(): void {
     for (const entity of colliders) {
       drawEntity(entity, scale);
     }
+    drawMarks(scale);
   }
+  updateMarks();
   ctx.restore();
 }
 

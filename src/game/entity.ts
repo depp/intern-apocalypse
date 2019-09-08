@@ -1,6 +1,7 @@
 import { Vector, distanceSquared } from '../lib/math';
 import { ModelAsset } from '../model/models';
 import { Matrix } from '../lib/matrix';
+import { DebugColor } from '../debug/debug';
 
 /** Base interface for all entity types. */
 export interface EntityBase {
@@ -76,3 +77,18 @@ export function updateEntities(): void {
   clearDead(entities);
   clearDead(modelInstances);
 }
+
+/** A marker for the debug map. */
+export interface DebugMark {
+  /** Time remaining before mark disappears. */
+  time: number;
+  /** Position of mark. */
+  pos: Readonly<Vector>;
+  /** Radius of mark. */
+  radius: number;
+  /** Color to draw mark with. */
+  color: DebugColor;
+}
+
+/** List of all debug marks in the level. */
+export const debugMarks: DebugMark[] = [];
