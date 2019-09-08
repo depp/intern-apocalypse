@@ -52,7 +52,8 @@ export function spawnMonster(): void {
       playSound(Sounds.MonsterHit);
       walker.velocity = scaleVector(direction, 12);
       health--;
-      if (health <= 0) {
+      if (health <= 0 && !this.isDead) {
+        playSound(Sounds.MonsterDeath);
         this.isDead = true;
         model.isDead = true;
       }
