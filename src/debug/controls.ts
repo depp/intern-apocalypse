@@ -176,6 +176,7 @@ function startGUI(dat: typeof datTypes): void {
 
   folder('Player', playerSettings, playerDefaults, (gui, data) => {
     gui.add(data, 'speed', 1, 10);
+    gui.add(data, 'acceleration', 5, 50);
     gui.add(data, 'turnSpeed', 5, 30);
     gui.add(data, 'attackTime', 0.1, 0.5);
   });

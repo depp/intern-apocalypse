@@ -31,6 +31,8 @@ export const cameraSettings = {
 export const playerSettings = {
   /** Player movement speed, in meters per second. */
   speed: 5,
+  /** Player acceleration, in meters per second. */
+  acceleration: 20,
   /** Player turning speed, in radians per second. */
   turnSpeed: 20,
   /** Amount of time an attack lasts. */

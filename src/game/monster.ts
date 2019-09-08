@@ -24,6 +24,7 @@ export function spawnMonster(): void {
   let angle = 0;
   const params: WalkerParameters = {
     speed: 4,
+    acceleration: 5,
     turnSpeed: 20,
   };
   let health = 2;

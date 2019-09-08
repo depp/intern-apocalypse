@@ -4,6 +4,9 @@ import {
   lengthSquared,
   canonicalAngle,
   angleVector,
+  zeroVector,
+  distance,
+  lerp,
 } from '../lib/math';
 import {
   Matrix,
@@ -22,6 +25,9 @@ import { frameDT } from './time';
 export interface WalkerParameters {
   /** Walking speed, in meters per second. */
   readonly speed: number;
+
+  /** Acceleration, in meters per second squared. */
+  readonly acceleration: number;
 
   /** Turning speed, in radians per second. */
   readonly turnSpeed: number;
@@ -54,16 +60,33 @@ export interface Walker {
 export function createWalker(pos: Vector): Walker {
   const transform = matrixNew();
   let angle = 0;
+  let velocity = zeroVector;
   return {
     pos,
     transform,
     facing: angleVector(angle),
 
     update(params: WalkerParameters, movement: Readonly<Vector>): void {
+      // Calculate the new velocity.
+      const targetVelocity = scaleVector(movement, params.speed);
+      const maxDeltaVelocity = params.acceleration * frameDT;
+      const deltaVelocity = distance(velocity, targetVelocity);
+      if (deltaVelocity <= maxDeltaVelocity) {
+        velocity = targetVelocity;
+      } else {
+        velocity = lerp(
+          velocity,
+          targetVelocity,
+          maxDeltaVelocity / deltaVelocity,
+        );
+      }
+
       // Calculate the new position.
-      this.pos = walk(this.pos, scaleVector(movement, params.speed * frameDT));
-      if (lengthSquared(movement)) {
-        const targetAngle = Math.atan2(movement.y, movement.x);
+      this.pos = walk(this.pos, scaleVector(velocity, frameDT));
+
+      // Calculate the new facing angle.
+      if (lengthSquared(velocity)) {
+        const targetAngle = Math.atan2(velocity.y, velocity.x);
         let deltaAngle = canonicalAngle(targetAngle - angle);
         const turnAmount = params.turnSpeed * frameDT;
         deltaAngle = clamp(deltaAngle, -turnAmount, turnAmount);
