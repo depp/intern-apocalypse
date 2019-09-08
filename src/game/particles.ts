@@ -54,7 +54,6 @@ export function spawnSlash(
   const transform = matrixNew();
   setIdentityMatrix(transform);
   translateMatrix(transform, [pos.x, pos.y]);
-  rotateMatrixFromDirection(transform, Axis.Z, direction.y, -direction.x);
-  rotateMatrixFromDirection(transform, Axis.X, 0, 1);
+  rotateMatrixFromDirection(transform, Axis.Z, direction.x, direction.y);
   spawnParticles(transform, ModelAsset.Slash);
 }

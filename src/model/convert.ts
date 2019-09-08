@@ -16,6 +16,22 @@ import { DataWriter } from '../lib/data.writer';
 import { AssertionError } from '../debug/debug';
 import { Opcode } from './defs';
 
+/**
+ * Model data axis permutation.
+ *
+ * This is a kludge.
+ *
+ * The models are created with +Z forward, +Y up, and +X to their left. The
+ * models were originally created this way because it seems very natural, with
+ * the moadel's outline laid out on the XY plane. However, the game world uses
+ * +Z as up. So we permute the data in the models so that the actual data files
+ * will have +X as forward, +Y as left, and +Z as up. This makes it much easier
+ * to get the transforms for the models correct in the code.
+ *
+ * Note that this is an even permutation, so we don't have to fix winding order.
+ */
+const axisPermutation: readonly number[] = [1, 2, 0];
+
 /** Maximum number of different points in a model. */
 const maxPoints = dataMax - 7;
 
@@ -128,7 +144,7 @@ function parseAxes(chunk: Chunk): number {
     if (i == -1) {
       throw new SourceError(chunk, `unknown axis ${JSON.stringify(c)}`);
     }
-    const mask = 1 << i;
+    const mask = 1 << axisPermutation[i];
     if ((flags & mask) != 0) {
       throw new SourceError(chunk, `duplicate axis ${JSON.stringify(c)}`);
     }
@@ -164,9 +180,9 @@ deftype('p', function parsePoint(loc: SourceSpan, fields: Chunk[]): Item {
   if (!validName.test(name)) {
     throw new SourceError(fields[1], 'invalid point name');
   }
-  const coords: number[] = [];
+  const coords: number[] = [0, 0, 0];
   for (let i = 1; i < 4; i++) {
-    coords.push(parseIntExact(fields[i]));
+    coords[axisPermutation[i - 1]] = parseIntExact(fields[i]);
   }
   return { kind: Kind.Point, loc, name, coords };
 });
@@ -233,9 +249,9 @@ deftype('origin', function parseOrigin(loc: SourceSpan, fields: Chunk[]): Item {
       `origin requires 3 arguments (x y z), given ${fields.length}`,
     );
   }
-  const origin: number[] = [];
+  const origin: number[] = [0, 0, 0];
   for (let i = 0; i < 3; i++) {
-    origin.push(parseIntExact(fields[i]));
+    origin[axisPermutation[i]] = parseIntExact(fields[i]);
   }
   return { kind: Kind.Origin, loc, origin };
 });
@@ -264,7 +280,7 @@ deftype('scale', function parseScale(loc: SourceSpan, fields: Chunk[]): Item {
       break;
     case 3:
       for (let i = 0; i < 3; i++) {
-        scale[i] = parseFraction(fields[i]);
+        scale[axisPermutation[i]] = parseFraction(fields[i]);
       }
       break;
     default:

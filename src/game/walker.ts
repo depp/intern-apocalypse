@@ -102,8 +102,7 @@ export function createWalker(pos: Vector): Walker {
       // Set the model transform.
       setIdentityMatrix(transform);
       translateMatrix(transform, [this.pos.x, this.pos.y]);
-      rotateMatrixFromAngle(transform, Axis.Z, angle + 0.5 * Math.PI);
-      rotateMatrixFromDirection(transform, Axis.X, 0, 1);
+      rotateMatrixFromAngle(transform, Axis.Z, angle);
     },
   };
 }

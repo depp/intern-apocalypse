@@ -125,15 +125,15 @@ export function spawnPlayer(): void {
 
       // Set sword model transform.
       swordTransform.set(walker.transform);
-      translateMatrix(swordTransform, [-0.4, 0.5, 0.5 - 0.5 * Math.abs(frac)]);
-      rotateMatrixFromDirection(swordTransform, Axis.X, 1 - blend, 1);
+      translateMatrix(swordTransform, [0.5 - 0.5 * Math.abs(frac), -0.4, 0.5]);
+      rotateMatrixFromDirection(swordTransform, Axis.Y, 1 - blend, 1);
       rotateMatrixFromDirection(
         swordTransform,
-        Axis.Z,
+        Axis.X,
         1 - blend * Math.abs(frac),
         -2 * blend * frac,
       );
-      rotateMatrixFromDirection(swordTransform, Axis.Y, 1, 1 - blend);
+      rotateMatrixFromDirection(swordTransform, Axis.Z, 1, 1 - blend);
     },
     damage() {},
   };

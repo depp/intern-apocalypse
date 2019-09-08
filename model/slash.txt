@@ -3,10 +3,10 @@ scale 1/8
 origin 0 -4 0
 symmetry x
 
-p v0 1 1 0
-p v1 1 0 0
-p v2 4 0 2
+p v0 1 1 1
+p v1 1 0 1
+p v2 4 0 -1
 
 color ff0000
-f v1 v0 v0.x v1.x
-f v0 v1 v2
+f v0 v1 v1.x v0.x
+f v0 v2 v1
