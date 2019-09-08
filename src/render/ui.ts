@@ -1,6 +1,6 @@
 import { gl, canvas, getMousePos } from '../lib/global';
 import { AssertionError, isDebug } from '../debug/debug';
-import { flat as flatShader, flat, Attribute } from './shaders';
+import { flatShader, FlatAttrib } from './shaders';
 import { quad, packColor } from './util';
 import { uiMatrix } from '../game/camera';
 import { identityMatrix } from '../lib/matrix';
@@ -194,17 +194,17 @@ export function renderUI(): void {
   gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
   // Attributes
-  gl.enableVertexAttribArray(Attribute.Pos);
+  gl.enableVertexAttribArray(FlatAttrib.Pos);
   gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-  gl.vertexAttribPointer(Attribute.Pos, 2, gl.FLOAT, false, 0, 0);
+  gl.vertexAttribPointer(FlatAttrib.Pos, 2, gl.FLOAT, false, 0, 0);
 
-  gl.enableVertexAttribArray(Attribute.Color);
+  gl.enableVertexAttribArray(FlatAttrib.Color);
   gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  gl.vertexAttribPointer(Attribute.Color, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+  gl.vertexAttribPointer(FlatAttrib.Color, 4, gl.UNSIGNED_BYTE, true, 0, 0);
 
-  gl.enableVertexAttribArray(Attribute.TexCoord);
+  gl.enableVertexAttribArray(FlatAttrib.TexCoord);
   gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
-  gl.vertexAttribPointer(Attribute.TexCoord, 2, gl.FLOAT, false, 0, 0);
+  gl.vertexAttribPointer(FlatAttrib.TexCoord, 2, gl.FLOAT, false, 0, 0);
 
   // Textures
   gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -219,9 +219,9 @@ export function renderUI(): void {
 
   // Cleanup
   gl.disable(gl.BLEND);
-  gl.disableVertexAttribArray(Attribute.Pos);
-  gl.disableVertexAttribArray(Attribute.Color);
-  gl.disableVertexAttribArray(Attribute.TexCoord);
+  gl.disableVertexAttribArray(FlatAttrib.Pos);
+  gl.disableVertexAttribArray(FlatAttrib.Color);
+  gl.disableVertexAttribArray(FlatAttrib.TexCoord);
   gl.bindTexture(gl.TEXTURE_2D, null);
 }
 

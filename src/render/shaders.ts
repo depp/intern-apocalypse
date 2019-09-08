@@ -3,29 +3,37 @@ import { compileShader, ShaderProgram, ShaderSpec } from './shader';
 import { bundledData } from '../lib/global';
 import { shaderOffset } from '../lib/loader';
 
-/** Shader program attribute bindings. */
-export const enum Attribute {
-  Pos = 0,
-  Color = 1,
-  TexCoord = 2,
-  Normal = 3,
-}
-
 export interface FlatProgram extends ShaderProgram {
   Model: WebGLUniformLocation | null;
   Texture: WebGLUniformLocation | null;
   ViewProjection: WebGLUniformLocation | null;
 }
-export const flat = {} as FlatProgram;
+export const flatShader = {} as FlatProgram;
+export const enum FlatAttrib {
+  Pos = 0,
+  Color = 1,
+  TexCoord = 2,
+}
+
 export interface LevelProgram extends ShaderProgram {
   ModelViewProjection: WebGLUniformLocation | null;
 }
-export const level = {} as LevelProgram;
+export const levelShader = {} as LevelProgram;
+export const enum LevelAttrib {
+  Pos = 0,
+  Color = 1,
+}
+
 export interface ModelProgram extends ShaderProgram {
   Model: WebGLUniformLocation | null;
   ViewProjection: WebGLUniformLocation | null;
 }
-export const model = {} as ModelProgram;
+export const modelShader = {} as ModelProgram;
+export const enum ModelAttrib {
+  Pos = 0,
+  Color = 1,
+  Normal = 3,
+}
 
 /** Get specs for all shader programs. */
 export function getShaderSpecs(): ShaderSpec[] {
@@ -36,7 +44,7 @@ export function getShaderSpecs(): ShaderSpec[] {
       fragment: 'flat.frag',
       attributes: ['aPos', 'aColor', 'aTexCoord'],
       uniforms: ['Model', 'Texture', 'ViewProjection'],
-      object: flat,
+      object: flatShader,
     },
     {
       name: 'level',
@@ -44,7 +52,7 @@ export function getShaderSpecs(): ShaderSpec[] {
       fragment: 'level.frag',
       attributes: ['aPos', 'aColor'],
       uniforms: ['ModelViewProjection'],
-      object: level,
+      object: levelShader,
     },
     {
       name: 'model',
@@ -52,7 +60,7 @@ export function getShaderSpecs(): ShaderSpec[] {
       fragment: 'model.frag',
       attributes: ['aPos', 'aColor', '', 'aNormal'],
       uniforms: ['Model', 'ViewProjection'],
-      object: model,
+      object: modelShader,
     },
   ];
 }
@@ -60,7 +68,7 @@ export function getShaderSpecs(): ShaderSpec[] {
 /** Load all the shaders. */
 export function loadShaders(): void {
   compileShader(
-    flat,
+    flatShader,
     ['Model', 'Texture', 'ViewProjection'],
     ['aPos', 'aColor', 'aTexCoord'],
     bundledData[shaderOffset + 4],
@@ -68,7 +76,7 @@ export function loadShaders(): void {
     'flat',
   );
   compileShader(
-    level,
+    levelShader,
     ['ModelViewProjection'],
     ['aPos', 'aColor'],
     bundledData[shaderOffset + 2],
@@ -76,7 +84,7 @@ export function loadShaders(): void {
     'level',
   );
   compileShader(
-    model,
+    modelShader,
     ['Model', 'ViewProjection'],
     ['aPos', 'aColor', '', 'aNormal'],
     bundledData[shaderOffset + 4],

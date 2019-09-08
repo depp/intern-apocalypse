@@ -7,7 +7,7 @@ import { gl } from '../lib/global';
 import { level } from '../game/world';
 import { Random } from '../lib/random';
 import { clamp } from '../lib/util';
-import { level as levelShader, Attribute } from './shaders';
+import { levelShader, LevelAttrib } from './shaders';
 import { Edge } from '../game/level';
 import { concatArrays } from '../lib/array';
 
@@ -137,16 +137,16 @@ export function renderLevel(): void {
 
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuf);
   gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-  gl.vertexAttribPointer(Attribute.Pos, 3, gl.FLOAT, false, 0, 0);
+  gl.vertexAttribPointer(LevelAttrib.Pos, 3, gl.FLOAT, false, 0, 0);
   gl.bindBuffer(gl.ARRAY_BUFFER, colorBuf);
-  gl.vertexAttribPointer(Attribute.Color, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+  gl.vertexAttribPointer(LevelAttrib.Color, 4, gl.UNSIGNED_BYTE, true, 0, 0);
 
   gl.useProgram(p.program);
-  gl.enableVertexAttribArray(Attribute.Pos);
-  gl.enableVertexAttribArray(Attribute.Color);
+  gl.enableVertexAttribArray(LevelAttrib.Pos);
+  gl.enableVertexAttribArray(LevelAttrib.Color);
   gl.uniformMatrix4fv(p.ModelViewProjection, false, cameraMatrix);
   gl.drawElements(gl.TRIANGLES, elementCount, gl.UNSIGNED_SHORT, 0);
 
-  gl.disableVertexAttribArray(Attribute.Pos);
-  gl.disableVertexAttribArray(Attribute.Color);
+  gl.disableVertexAttribArray(LevelAttrib.Pos);
+  gl.disableVertexAttribArray(LevelAttrib.Color);
 }

@@ -67,13 +67,12 @@ export function minifyShaders(shaderPrograms: ShaderPrograms): ShaderPrograms {
   const idmap = new IdentifierMap();
 
   // Generate new attribute names.
-  const attributes: (Attribute | null)[] = [];
-  for (let attribute of shaderPrograms.attributes) {
-    if (attribute != null) {
-      const glName = idmap.add(attribute.glName);
-      attribute = Object.assign({}, attribute, { glName });
+  for (const program of shaderPrograms.programs) {
+    for (const attribute of program.attributes) {
+      if (attribute != null) {
+        idmap.add(attribute.glName);
+      }
     }
-    attributes.push(attribute);
   }
 
   // Parse all shaders and extract all identifiers.
@@ -138,18 +137,20 @@ export function minifyShaders(shaderPrograms: ShaderPrograms): ShaderPrograms {
   // Fill in uniforms and map attributes in the programs.
   const programs: Program[] = [];
   for (const program of shaderPrograms.programs) {
-    const attributes: (string | null)[] = [];
+    const attributes: (Attribute | null)[] = [];
     for (const attribute of program.attributes) {
-      let short: string | null | undefined;
       if (attribute) {
-        short = idmap.map.get(attribute);
+        let short = idmap.map.get(attribute.glName);
         if (short == null) {
           throw new AssertionError('short == null', { attribute });
         }
+        attributes.push({
+          glName: short,
+          enumName: attribute.enumName,
+        });
       } else {
-        short = null;
+        attributes.push(null);
       }
-      attributes.push(short);
     }
     const programUniforms = new Set<string>();
     for (const filename of [program.vertex, program.fragment]) {
@@ -170,7 +171,6 @@ export function minifyShaders(shaderPrograms: ShaderPrograms): ShaderPrograms {
   }
 
   return {
-    attributes,
     programs,
     shaders,
     uniformMap,

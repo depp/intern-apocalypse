@@ -35,7 +35,7 @@ export function emitDefinitions(
   shaderPrograms: ShaderPrograms,
   mode: 'source' | 'release',
 ): string {
-  const { attributes, programs } = shaderPrograms;
+  const { programs } = shaderPrograms;
   let out = '';
   out += generatedHeader;
   if (mode == 'source') {
@@ -48,29 +48,25 @@ export function emitDefinitions(
   out += "import { shaderOffset } from '../lib/loader';\n";
 
   if (mode == 'source') {
-    // Attribute binding enum
-    out += '\n';
-    out += '/** Shader program attribute bindings. */\n';
-    out += 'export const enum Attribute {\n';
-    for (let i = 0; i < attributes.length; i++) {
-      const attribute = attributes[i];
-      if (attribute != null) {
-        out += `  ${attribute.enumName} = ${i},\n`;
-      }
-    }
-    out += '}\n';
-
     // Shader program objects and type definitions
-    out += '\n';
     for (const program of programs) {
-      const { name, uniforms } = program;
+      out += '\n';
+      const { name, uniforms, attributes } = program;
       const typeName = name.upperCase + 'Program';
       out += `export interface ${typeName} extends ShaderProgram {\n`;
       for (const name of uniforms) {
         out += `  ${name}: WebGLUniformLocation | null;\n`;
       }
       out += '}\n';
-      out += `export const ${program.name.lowerCase} = {} as ${typeName};\n`;
+      out += `export const ${program.name.lowerCase}Shader = {} as ${typeName};\n`;
+      out += `export const enum ${program.name.upperCase}Attrib {\n`;
+      for (let i = 0; i < attributes.length; i++) {
+        const attribute = attributes[i];
+        if (attribute != null) {
+          out += `  ${attribute.enumName} = ${i},\n`;
+        }
+      }
+      out += '}\n';
     }
 
     // Shader program specs
@@ -80,14 +76,16 @@ export function emitDefinitions(
     out += '  return [\n';
     for (const program of programs) {
       const { name, uniforms } = program;
-      const attributes = program.attributes.map(x => (x == null ? '' : x));
+      const attributes = program.attributes.map(x =>
+        x == null ? '' : x.glName,
+      );
       out += '    {\n';
       out += `      name: ${JSON.stringify(name.lowerCase)},\n`;
       out += `      vertex: ${JSON.stringify(program.vertex)},\n`;
       out += `      fragment: ${JSON.stringify(program.fragment)},\n`;
       out += `      attributes: ${JSON.stringify(attributes)},\n`;
       out += `      uniforms: ${JSON.stringify(uniforms)},\n`;
-      out += `      object: ${name.lowerCase},\n`;
+      out += `      object: ${name.lowerCase}Shader,\n`;
       out += '    },\n';
     }
     out += '  ];\n';
@@ -96,7 +94,7 @@ export function emitDefinitions(
     // Shader program objects
     out += '\n;';
     for (const program of programs) {
-      out += `export let ${program.name.lowerCase} = {};\n`;
+      out += `export let ${program.name.lowerCase}Shader = {};\n`;
     }
   }
 
@@ -116,9 +114,9 @@ export function emitDefinitions(
     }
     const name = program.name.lowerCase;
     const args = [
-      name,
+      `${name}Shader`,
       encodeStrings(program.uniforms),
-      encodeStrings(program.attributes),
+      encodeStrings(program.attributes.map(x => (x != null ? x.glName : null))),
       `bundledData[shaderOffset + ${vertex.index}]`,
       `bundledData[shaderOffset + ${fragment.index}]`,
     ];

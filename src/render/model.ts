@@ -5,7 +5,7 @@
 import { cameraMatrix } from '../game/camera';
 import { gl } from '../lib/global';
 import { modelInstances } from '../game/entity';
-import { model as modelShader, Attribute } from './shaders';
+import { modelShader, ModelAttrib } from './shaders';
 import { models } from '../model/model';
 
 /**
@@ -30,17 +30,17 @@ export function renderModels(): void {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.index);
 
     // Attributes
-    gl.enableVertexAttribArray(Attribute.Pos);
+    gl.enableVertexAttribArray(ModelAttrib.Pos);
     gl.bindBuffer(gl.ARRAY_BUFFER, model.pos);
-    gl.vertexAttribPointer(Attribute.Pos, 3, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(ModelAttrib.Pos, 3, gl.FLOAT, false, 0, 0);
 
-    gl.enableVertexAttribArray(Attribute.Color);
+    gl.enableVertexAttribArray(ModelAttrib.Color);
     gl.bindBuffer(gl.ARRAY_BUFFER, model.color);
-    gl.vertexAttribPointer(Attribute.Color, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+    gl.vertexAttribPointer(ModelAttrib.Color, 4, gl.UNSIGNED_BYTE, true, 0, 0);
 
-    gl.enableVertexAttribArray(Attribute.Normal);
+    gl.enableVertexAttribArray(ModelAttrib.Normal);
     gl.bindBuffer(gl.ARRAY_BUFFER, model.normal);
-    gl.vertexAttribPointer(Attribute.Normal, 3, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(ModelAttrib.Normal, 3, gl.FLOAT, false, 0, 0);
 
     // Uniforms
     gl.uniformMatrix4fv(p.ViewProjection, false, cameraMatrix);
