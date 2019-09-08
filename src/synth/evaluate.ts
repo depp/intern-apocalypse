@@ -10,6 +10,7 @@ import { SourceError, SourceSpan } from '../lib/sourcepos';
 import { Operator, Node, createNode, Type } from './node';
 import * as node from './node';
 import { Units, UnitError, multiplyUnits } from './units';
+import { sampleRate } from './engine';
 
 /** Kinds of values returned by expressions. */
 enum ValueKind {
@@ -438,6 +439,23 @@ defun('noise', (expr, args) => {
   getExactArgs(expr, args, 0);
   return nodeValue(
     createNode(expr, node.noise, [], []),
+    Units.Volt,
+    Type.Buffer,
+  );
+});
+
+defun('highPass', (expr, args) => {
+  const [frequency, input] = getExactArgs(expr, args, 2);
+  const fval = getConstant('frequency', frequency, Units.Hertz);
+  // We calculate the coefficient here, not in the engine.
+  const coeff = Math.sin((2 * Math.PI * fval) / sampleRate);
+  return nodeValue(
+    createNode(
+      expr,
+      node.highPass,
+      [toDataClamp(data.encodeFrequency(coeff * sampleRate))],
+      [getBuffer('input', input, Units.Volt)],
+    ),
     Units.Volt,
     Type.Buffer,
   );

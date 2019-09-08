@@ -158,6 +158,26 @@ export const operators: (() => void)[] = [
     }
   },
 
+  // ===========================================================================
+  // Filters
+  // ===========================================================================
+
+  /** Simple constant two-pole high-pass filter with fixed Q. */
+  function highPass(): void {
+    const top = stack[stack.length - 1];
+    if (!(top instanceof Float32Array)) {
+      throw new AssertionError('type error');
+    }
+    let a = 0;
+    let b = 0;
+    // We calculate the coefficient in the compiler.
+    const f = decodeFrequency(readParam()) / sampleRate;
+    for (let i = 0; i < bufferSize; i++) {
+      b += f * a;
+      a += f * (top[i] -= b + 1.4 * a);
+    }
+  },
+
   /** Apply a state-variable filter filter. */
   function stateVariableFilter(): void {
     const [input, frequency] = getArgs(2);

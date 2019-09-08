@@ -128,6 +128,7 @@ export const oscillator = opcode('oscillator', 0);
 export const sawtooth = opcode('sawtooth', 0);
 export const sine = opcode('sine', 0);
 export const noise = opcode('noise', 0);
+export const highPass = opcode('highPass', 1);
 export const stateVariableFilter = opcode('stateVariableFilter', 2);
 export const multiply = opcode('multiply', 0);
 export const constant = opcode('constant', 0);
