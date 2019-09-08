@@ -9,7 +9,7 @@ import { Cell, Edge } from '../game/level';
 import { Vector } from '../lib/math';
 import { walkerRadius } from '../game/walk';
 import { level } from '../game/world';
-import { getCameraTarget } from '../game/camera';
+import { getCameraTarget, cameraMatrix } from '../game/camera';
 import { entities } from '../game/world';
 import { Entity } from '../game/entity';
 
@@ -70,47 +70,75 @@ function joinVertex(
   };
 }
 
-/** Map from highlight colors to lists of edges with that color. */
-const edgeHighlight = new Map<DebugColor, Edge[]>();
+interface HighlightSet {
+  edges: Edge[];
+  vertexes: Vector[];
+}
+
+/** Map from highlight colors to lists of edges and vertexes with that color. */
+const highlightSets = new Map<DebugColor, HighlightSet>();
+
+/** Get the set of highligts for the given color, creating it if necessary. */
+function getHighlight(color: DebugColor): HighlightSet {
+  let set = highlightSets.get(color);
+  if (set == null) {
+    set = { edges: [], vertexes: [] };
+    highlightSets.set(color, set);
+  }
+  return set;
+}
 
 /**
  * Check if an edge is highlighted and needs to be drawn later.
  */
 function visitEdge(edge: Edge): void {
-  const { debugColor } = edge;
+  const { debugColor, debugVertexColor, vertex0 } = edge;
   if (debugColor != null && debugColor != DebugColor.None) {
-    let list = edgeHighlight.get(debugColor);
-    if (!list) {
-      list = [];
-      edgeHighlight.set(debugColor, list);
-    }
-    list.push(edge);
+    getHighlight(debugColor).edges.push(edge);
+  }
+  if (debugVertexColor != null && debugVertexColor != DebugColor.None) {
+    getHighlight(debugVertexColor).vertexes.push(vertex0);
   }
 }
 
 /**
  * Draw all highlighted edges.
  */
-function drawEdges(scale: number): void {
+function drawHighlights(scale: number): void {
   const inset = edgeInset / scale;
-  for (const [debugColor, edges] of edgeHighlight.entries()) {
-    if (edges.length) {
-      ctx.strokeStyle = debugColors[debugColor];
-      ctx.lineJoin = 'bevel';
-      ctx.beginPath();
-      for (const edge of edges) {
-        const v0 = edge.prev!.vertex0;
-        const v1 = edge.vertex0;
-        const v2 = edge.vertex1;
-        const v3 = edge.next!.vertex1;
-        const e0 = joinVertex(v0, v1, v2, inset);
-        const e1 = joinVertex(v1, v2, v3, inset);
-        ctx.moveTo(e0.x, e0.y);
-        ctx.lineTo(e1.x, e1.y);
-      }
-      ctx.stroke();
-      edges.length = 0;
+  for (const [debugColor, set] of highlightSets.entries()) {
+    const { edges } = set;
+    if (!edges.length) {
+      continue;
     }
+    ctx.lineWidth = 6 / scale;
+    ctx.strokeStyle = debugColors[debugColor];
+    ctx.beginPath();
+    for (const edge of edges) {
+      const v0 = edge.prev!.vertex0;
+      const v1 = edge.vertex0;
+      const v2 = edge.vertex1;
+      const v3 = edge.next!.vertex1;
+      const e0 = joinVertex(v0, v1, v2, inset);
+      const e1 = joinVertex(v1, v2, v3, inset);
+      ctx.moveTo(e0.x, e0.y);
+      ctx.lineTo(e1.x, e1.y);
+    }
+    ctx.stroke();
+    edges.length = 0;
+  }
+  for (const [debugColor, set] of highlightSets.entries()) {
+    const { vertexes } = set;
+    if (!vertexes.length) {
+      continue;
+    }
+    ctx.fillStyle = debugColors[debugColor];
+    ctx.beginPath();
+    for (const vertex of vertexes) {
+      ctx.arc(vertex.x, vertex.y, 12 / scale, 0, 2 * Math.PI);
+    }
+    ctx.fill();
+    vertexes.length = 0;
   }
 }
 
@@ -218,7 +246,7 @@ export function drawLevel(): void {
       drawCell(cell, scale);
     }
   }
-  drawEdges(scale);
+  drawHighlights(scale);
   if (debugView.entities) {
     for (const entity of entities) {
       drawEntity(entity, scale);
@@ -233,5 +261,6 @@ export function drawLevel(): void {
 export function resetLevelDebug(): void {
   for (const edge of level.edges.values()) {
     edge.debugColor = DebugColor.None;
+    edge.debugVertexColor = DebugColor.None;
   }
 }

@@ -125,6 +125,9 @@ export interface Edge {
 
   /** Highlight color for this edge. */
   debugColor?: DebugColor;
+
+  /** Highlight color for vertex0. */
+  debugVertexColor?: DebugColor;
 }
 
 /**

@@ -249,11 +249,8 @@ function testCorner(
     color = DebugColor.Magenta;
   }
   if (isDebug) {
-    if (!corner.edge0.edge.debugColor) {
-      corner.edge0.edge.debugColor = color;
-    }
-    if (!corner.edge1.edge.debugColor) {
-      corner.edge1.edge.debugColor = color;
+    if (!corner.edge1.edge.debugVertexColor) {
+      corner.edge1.edge.debugVertexColor = color;
     }
   }
   return {
