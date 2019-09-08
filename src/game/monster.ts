@@ -26,6 +26,7 @@ export function spawnMonster(): void {
     speed: 4,
     turnSpeed: 20,
   };
+  let health = 2;
   const entity: Entity & Collider = {
     pos,
     radius: 0.5,
@@ -38,8 +39,11 @@ export function spawnMonster(): void {
       }
     },
     damage() {
-      this.isDead = true;
-      model.isDead = true;
+      health--;
+      if (health <= 0) {
+        this.isDead = true;
+        model.isDead = true;
+      }
     },
   };
   entities.push(entity);
