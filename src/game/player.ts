@@ -92,7 +92,7 @@ export function spawnPlayer(): void {
         if (pendingHit && attackTime > playerSettings.attackTime * 0.3) {
           pendingHit = false;
           const pos = madd(this.pos, walker.facing, 0.5);
-          const radius = 0.5;
+          const radius = 0.75;
           if (isDebug) {
             debugMarks.push({
               time: 0.5,
