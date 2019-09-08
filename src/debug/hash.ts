@@ -2,8 +2,21 @@
  * Access to variables in the fragment (location.hash).
  */
 
+interface HashVariables {
+  /** If set, show the given model in the model viewer. */
+  model: string | null;
+  /** If true, skip the menu and start the game. */
+  game: boolean;
+  /** Difficulty to start game with, if skipping the menu. */
+  difficulty: number;
+}
+
 /** Variables in the URL fragment identifier. */
-export const hashVariables = new Map<string, string>();
+export const hashVariables: HashVariables = {
+  model: null,
+  game: false,
+  difficulty: 1,
+};
 
 /** Parse variables in the fragment identifier */
 export function parseHash(): void {
@@ -11,6 +24,32 @@ export function parseHash(): void {
   if (!hash.startsWith('#')) {
     return;
   }
+  const parsers = new Map<string, (value: string) => boolean>();
+  function parser(name: string, func: (value: string) => boolean): void {
+    parsers.set(name, func);
+  }
+  parser('model', value => {
+    hashVariables.model = value;
+    return true;
+  });
+  parser('game', value => {
+    if (value != '') {
+      return false;
+    }
+    hashVariables.game = true;
+    return true;
+  });
+  parser('difficulty', value => {
+    if (!/^[0-9]+$/.test(value)) {
+      return false;
+    }
+    const ivalue = parseInt(value, 10);
+    if (ivalue < 0 || 2 < ivalue) {
+      return false;
+    }
+    hashVariables.difficulty = ivalue;
+    return true;
+  });
   for (const item of hash.substring(1).split('&')) {
     let key: string;
     let value: string;
@@ -29,6 +68,14 @@ export function parseHash(): void {
       console.error(e);
       continue;
     }
-    hashVariables.set(key, value);
+    const func = parsers.get(key);
+    if (func == null) {
+      throw new Error(`Unknown hash parameter: ${JSON.stringify(key)}`);
+    }
+    if (!func(value)) {
+      throw new Error(
+        `Bad value for ${JSON.stringify(key)}: ${JSON.stringify(value)}`,
+      );
+    }
   }
 }

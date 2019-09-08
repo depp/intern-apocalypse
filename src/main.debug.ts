@@ -74,24 +74,13 @@ function start(): void {
   watchModels();
   watchSounds();
   startDebugGUI();
-  const model = hashVariables.get('model');
-  if (model != null) {
-    runModelView(model);
+  if (hashVariables.model != null) {
+    runModelView(hashVariables.model);
     return;
   }
   initialize();
-  if (hashVariables.has('game')) {
-    const difficultyText = hashVariables.get('difficulty');
-    let difficulty = Difficulty.Normal;
-    if (difficultyText != null) {
-      const value = parseInt(difficultyText, 10);
-      if (Difficulty.Easy <= value && value <= Difficulty.Hard) {
-        difficulty = value;
-      } else {
-        console.warn(`Invalid difficulty: ${JSON.stringify(difficultyText)}`);
-      }
-    }
-    newGame(difficulty);
+  if (hashVariables.game) {
+    newGame(hashVariables.difficulty);
   }
   window.addEventListener('click', firstEvent, { once: true, passive: true });
   window.addEventListener('keydown', firstEvent, { once: true, passive: true });
