@@ -1,11 +1,11 @@
 import { gl, canvas } from '../lib/global';
 import { AssertionError, isDebug } from '../debug/debug';
 import { flat as flatShader, flat, Attribute } from './shaders';
-import { quad } from './util';
+import { quad, packColor } from './util';
 import { uiMatrix } from '../game/camera';
 import { identityMatrix } from '../lib/matrix';
 import { roundUpPow2 } from '../lib/util';
-import { Vector, vector } from '../lib/math';
+import { Vector, vector, lerp1D } from '../lib/math';
 
 export interface Menu {
   click?(): void;
@@ -17,6 +17,7 @@ export interface MenuItem {
   flexspace?: number;
   marginTop?: number;
   marginBottom?: number;
+  click?(): void;
 }
 
 /** A menu item which has been positioned. */
@@ -28,6 +29,8 @@ interface PositionedMenuItem {
   marginBottom: number;
   y0: number;
   y1: number;
+  v0: number;
+  v1: number;
 }
 
 let currentMenu: Menu | undefined | null;
@@ -40,6 +43,7 @@ let ctx!: CanvasRenderingContext2D;
 
 let texture: WebGLTexture | null;
 let posBuffer: WebGLBuffer | null;
+let colorBuffer: WebGLBuffer | null;
 let texBuffer: WebGLBuffer | null;
 let elementCount: number | undefined;
 
@@ -47,6 +51,7 @@ let elementCount: number | undefined;
 export function initRenderUI(): void {
   texture = gl.createTexture();
   posBuffer = gl.createBuffer();
+  colorBuffer = gl.createBuffer();
   texBuffer = gl.createBuffer();
 }
 
@@ -86,24 +91,29 @@ function updateMenu(): void {
   }
   console.log('fixspace', fixspace, flexspace);
   const flexamt = flexspace && (canvasSize.y - fixspace) / flexspace;
-  let y = 0;
+  let ypos = 0;
+  let vpos = 0;
   for (const item of currentItems) {
-    y += item.marginTop;
-    item.y0 = y | 0;
+    ypos += item.marginTop;
+    item.y0 = ypos | 0;
+    item.v0 = vpos | 0;
     if (item.text) {
-      y += 48 * item.size;
+      ypos += 48 * item.size;
+      vpos += 48 * item.size;
     }
-    y += flexamt * item.flexspace;
-    item.y1 = y | 0;
-    y += item.marginBottom;
+    ypos += flexamt * item.flexspace;
+    item.y1 = ypos | 0;
+    item.v1 = vpos | 0;
+    ypos += item.marginBottom;
   }
 
   elementCount = itemcount * 6;
   const pos = new Float32Array(elementCount * 2);
+  const color = new Int32Array(elementCount);
   const tex = new Float32Array(elementCount * 2);
   const aspect = canvasSize.x / canvasSize.y;
-  const u1 = canvasSize.x / textureSize.x;
-  const v1 = canvasSize.y / textureSize.y;
+  const usize = canvasSize.x / textureSize.x;
+  const vsize = canvasSize.y / textureSize.y;
   let off = 0;
 
   for (const item of currentItems) {
@@ -112,7 +122,7 @@ function updateMenu(): void {
     }
 
     ctx.save();
-    ctx.translate(canvasSize.x / 2, (item.y0 + item.y1) / 2);
+    ctx.translate(canvasSize.x / 2, (item.v0 + item.v1) / 2);
     ctx.font = `bold ${item.size * 32}px Luminari`;
 
     ctx.textAlign = 'center';
@@ -127,12 +137,23 @@ function updateMenu(): void {
     ctx.fillText(item.text, 0, 0);
     ctx.restore();
 
-    for (const [i, x, y, u, v] of quad) {
-      pos.set([x * aspect, y], off + i * 2);
-      tex.set([u * u1, v * v1], off + i * 2);
+    for (const [i, x, , u, v] of quad) {
+      pos.set(
+        [x * aspect, 1 - (2 * lerp1D(item.y0, item.y1, v)) / canvasSize.y],
+        (off + i) * 2,
+      );
+      tex.set(
+        [u * usize, (lerp1D(item.v0, item.v1, v) / canvasSize.y) * vsize],
+        (off + i) * 2,
+      );
     }
+    color.fill(
+      packColor(Math.random(), Math.random(), Math.random()),
+      off,
+      off + 6,
+    );
 
-    off += 12;
+    off += 6;
   }
 
   gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -149,6 +170,8 @@ function updateMenu(): void {
 
   gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, color, gl.STATIC_DRAW);
   gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
   gl.bufferData(gl.ARRAY_BUFFER, tex, gl.STATIC_DRAW);
 }
@@ -175,7 +198,9 @@ export function renderUI(): void {
   gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
   gl.vertexAttribPointer(Attribute.Pos, 2, gl.FLOAT, false, 0, 0);
 
-  gl.vertexAttrib4f(Attribute.Color, 1, 1, 1, 1);
+  gl.enableVertexAttribArray(Attribute.Color);
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+  gl.vertexAttribPointer(Attribute.Color, 4, gl.UNSIGNED_BYTE, true, 0, 0);
 
   gl.enableVertexAttribArray(Attribute.TexCoord);
   gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
@@ -195,6 +220,7 @@ export function renderUI(): void {
   // Cleanup
   gl.disable(gl.BLEND);
   gl.disableVertexAttribArray(Attribute.Pos);
+  gl.disableVertexAttribArray(Attribute.Color);
   gl.disableVertexAttribArray(Attribute.TexCoord);
   gl.bindTexture(gl.TEXTURE_2D, null);
 }
@@ -228,6 +254,8 @@ export function startMenu(menu: Menu, ...items: MenuItem[]): void {
           marginBottom: 0,
           y0: 0,
           y1: 0,
+          v0: 0,
+          v1: 0,
         },
         item,
       ),

@@ -46,8 +46,8 @@ export function main(curTimeMS: DOMHighResTimeStamp): void {
           },
           {
             text: '— at the —',
-            marginTop: -16,
-            marginBottom: -16,
+            marginTop: -20,
+            marginBottom: -12,
           },
           {
             text: 'Apocalypse',
