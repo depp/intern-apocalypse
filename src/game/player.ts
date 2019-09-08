@@ -3,9 +3,9 @@
  */
 
 import { Button, buttonAxis, buttonPress } from '../lib/input';
-import { vector, lengthSquared, scaleVector } from '../lib/math';
+import { vector, lengthSquared, scaleVector, madd } from '../lib/math';
 import { frameDT } from './time';
-import { entities, Entity, Collider, colliders } from './entity';
+import { entities, Entity, Collider, colliders, findColliders } from './entity';
 import { ModelInstance, modelInstances } from './model';
 import { ModelAsset } from '../model/models';
 import { playerSettings } from '../lib/settings';
@@ -41,26 +41,13 @@ export function spawnPlayer(): void {
   // True if the player has pressed attack and it will take effect at the next
   // opportunity.
   let pendingAttack = false;
+  // True if the attack hasn't landed yet.
+  let pendingHit = false;
 
   const entity: Entity & Collider = {
     pos,
     radius: 0.5,
     update() {
-      // Update attack state.
-      if (buttonPress[Button.Action]) {
-        pendingAttack = true;
-      }
-      if (attackTime >= 0) {
-        attackTime += frameDT;
-        if (attackTime > playerSettings.attackTime) {
-          attackTime = -1;
-        }
-      } else if (pendingAttack) {
-        pendingAttack = false;
-        attackTime = 0;
-        playSound(Sounds.Swoosh);
-      }
-
       // Update player position.
       let movement = vector(
         buttonAxis(Button.Left, Button.Right),
@@ -80,14 +67,46 @@ export function spawnPlayer(): void {
       // Update camera position.
       setCameraTarget(walker.pos);
 
+      // Update attack state.
+      if (buttonPress[Button.Action]) {
+        pendingAttack = true;
+      }
+      if (attackTime < 0 && pendingAttack) {
+        pendingAttack = false;
+        pendingHit = true;
+        attackTime = 0;
+        playSound(Sounds.Swoosh);
+      }
+      let frac = -1; // Position along attack, from -1 to +1.
+      let blend = 0; // Animation blend value, 0 = idle, 1 = attack.
+      if (attackTime >= 0) {
+        attackTime += frameDT;
+        if (pendingHit && attackTime > playerSettings.attackTime * 0.3) {
+          pendingHit = false;
+          const targets = findColliders(
+            madd(this.pos, walker.facing, 0.5),
+            0.5,
+          );
+          let isHit = false;
+          for (const target of targets) {
+            if (target != this) {
+              isHit = true;
+            }
+          }
+          if (isHit) {
+            playSound(Sounds.Clang);
+          }
+        }
+        if (attackTime > playerSettings.attackTime) {
+          attackTime = -1;
+        } else {
+          frac = 2 * (attackTime / playerSettings.attackTime) - 1;
+          blend = Math.min(2 * (1 - Math.abs(frac)), 1);
+        }
+      }
+
       // Set sword model transform.
       swordTransform.set(walker.transform);
-      let frac = -1;
-      let blend = 0;
-      if (attackTime >= 0) {
-        frac = 2 * (attackTime / playerSettings.attackTime) - 1;
-        blend = Math.min(2 * (1 - Math.abs(frac)), 1);
-      }
       translateMatrix(swordTransform, [-0.4, 0.5, 0.5 - 0.5 * Math.abs(frac)]);
       rotateMatrixFromDirection(swordTransform, Axis.X, 1 - blend, 1);
       rotateMatrixFromDirection(

@@ -1,4 +1,4 @@
-import { Vector } from '../lib/math';
+import { Vector, distanceSquared } from '../lib/math';
 
 /** A game entity, which other objects can collide with. */
 export interface Collider {
@@ -13,6 +13,17 @@ export interface Collider {
 
 /** List of all colliders in the world. */
 export const colliders: Collider[] = [];
+
+/** Find all colliders which touch the given circle. */
+export function findColliders(center: Vector, radius: number): Collider[] {
+  const result: Collider[] = [];
+  for (const entity of colliders) {
+    if (distanceSquared(center, entity.pos) <= (radius + entity.radius) ** 2) {
+      result.push(entity);
+    }
+  }
+  return result;
+}
 
 /** A game entity, which gets processed every tick. */
 export interface Entity {
