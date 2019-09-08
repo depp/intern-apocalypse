@@ -28,9 +28,16 @@ function render(curTimeMS: DOMHighResTimeStamp): void {
   rotateMatrixFromAngle(transform, Axis.Z, t);
   rotateMatrixFromAngle(transform, Axis.X, 0.7 * t);
   scaleMatrix(transform, [3, 3, 3]);
+
   gl.clearColor(0.5, 0.5, 0.5, 1.0);
   gl.clear(gl.COLOR_BUFFER_BIT);
+
+  gl.enable(gl.CULL_FACE);
+  gl.enable(gl.DEPTH_TEST);
   renderModels();
+  gl.disable(gl.CULL_FACE);
+  gl.disable(gl.DEPTH_TEST);
+
   requestAnimationFrame(render);
 }
 
