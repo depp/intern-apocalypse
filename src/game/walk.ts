@@ -11,13 +11,13 @@ import {
   distance,
   lerp,
   lineNormal,
-  lengthSquared,
   dotSubtract,
   distanceSquared,
   wedgeSubtract,
   projectToCircle,
   vector,
   lerp1D,
+  scaleVector,
 } from '../lib/math';
 import { level } from './world';
 
@@ -57,10 +57,10 @@ export interface WalkSegment {
    * for right.
    */
   slideDirection: number;
-  /** Fraction of movement remaining once this segment starts. */
-  startFraction: number;
-  /** Fraction of movement remaining once this segment ends. */
-  endFraction: number;
+  /** Amount of movement remaining once this segment starts. */
+  startDistance: number;
+  /** Amount of movement remaining once this segment ends. */
+  endDistance: number;
   /** The edge that this segment is sliding along. */
   edge?: CollisionEdge;
   /** The corner that this segment is sliding around. */
@@ -70,30 +70,32 @@ export interface WalkSegment {
 function circleMovementPos(
   center: Readonly<Vector>,
   pos: Readonly<Vector>,
-  movement: Readonly<Vector>,
+  direction: Readonly<Vector>,
 ): number {
   return (
-    dotSubtract(center, pos, movement) /
-    Math.abs(wedgeSubtract(center, pos, movement))
+    dotSubtract(center, pos, direction) /
+    Math.abs(wedgeSubtract(center, pos, direction))
   );
 }
 
 /**
  * Test for collisions against an edge.
- * @param movement Input movement vector.
+ * @param direction Input movement direction.
  * @param segment Previous movement segment.
  * @param edge Edge to test for collisions.
  */
 function testEdge(
-  movement: Readonly<Vector>,
+  direction: Readonly<Vector>,
   segment: WalkSegment,
   edge: CollisionEdge,
 ): WalkSegment | undefined {
   const { vertex0, vertex1 } = edge;
   const { start, end, corner } = segment;
-  // Position on edge, with vertex0..vertex1 as 0..1.
+  // Position we initially collide with the edge, with vertex0..vertex1 as 0..1.
   let edgeFrac: number;
-  let startFraction: number;
+  // Distance remaining when we collide with the edge.
+  let startDistance: number;
+  // Location where we collide with the edge.
   let newStart: Readonly<Vector>;
   let color: DebugColor;
   if (!corner) {
@@ -126,19 +128,19 @@ function testEdge(
     // back side of an edge. This is expected to happen, because the collision
     // resolution will place us directly on an edge, and rounding error should
     // often move us slightly behind the edge.
-    if ((num1 / denom) * distance(start, end) < -backtrackDistance) {
+    if (num1 * distance(start, end) < -backtrackDistance * denom) {
       // The edge is behind us.
       return;
     }
     edgeFrac = num2 / denom;
-    startFraction = 1 - num1 / denom;
+    startDistance = segment.startDistance * (1 - num1 / denom);
     newStart = lerp(vertex0, vertex1, edgeFrac);
     color = DebugColor.Yellow;
   } else if (corner.edge0 == edge) {
     if (end != edge.vertex1) {
       return;
     }
-    startFraction = segment.endFraction;
+    startDistance = segment.endDistance;
     newStart = end;
     edgeFrac = 1;
     color = DebugColor.Green;
@@ -146,7 +148,7 @@ function testEdge(
     if (end != edge.vertex0) {
       return;
     }
-    startFraction = segment.endFraction;
+    startDistance = segment.endDistance;
     newStart = end;
     edgeFrac = 0;
     color = DebugColor.Green;
@@ -168,80 +170,79 @@ function testEdge(
       return;
     }
     newStart = lerp(vertex0, vertex1, edgeFrac);
-    if (dotSubtract(newStart, end, movement) >= 0) {
+    if (dotSubtract(newStart, end, direction) >= 0) {
       // We leave the arc before hitting the line.
       return;
     }
-    startFraction =
-      segment.endFraction +
-      ((circleMovementPos(center, newStart, movement) -
-        circleMovementPos(center, end, movement)) *
-        walkerRadius) /
-        length(movement);
+    startDistance =
+      segment.endDistance +
+      (circleMovementPos(center, newStart, direction) -
+        circleMovementPos(center, end, direction)) *
+        walkerRadius;
     color = DebugColor.Magenta;
   }
-  // At this point, we have a collision. It just may not be the first collision
-  // in the path.
+  // At this point, we have a collision.
   if (isDebug) {
-    if (!edge.edge.debugColor) {
-      edge.edge.debugColor = color;
-    }
+    edge.edge.debugColor = color;
   }
+  // Position where we end movement, sliding along the edge.
   let newEnd: Readonly<Vector>;
-  // Factor to multiply movement by due to sliding.
-  const hitSlideFactor = dotSubtract(vertex1, vertex0, movement);
-  // Sliding along edge will add <v1-v0,m>/||v1-v0||^2 to the position.
-  const edgeDeltaFrac =
-    (startFraction * hitSlideFactor) / distanceSquared(vertex1, vertex0);
+  const edgeLengthSquared = distanceSquared(vertex1, vertex0);
+  // Movement is projected onto the vector, giving new movement vector of:
+  // distance * <dir, v1 - v0> / length(v1 - v0)
+  const moveDot = dotSubtract(vertex1, vertex0, direction);
+  const edgeDeltaFrac = (startDistance * moveDot) / edgeLengthSquared;
   let newEdgeFrac = edgeFrac + edgeDeltaFrac;
-  let endFraction = 0;
+  let endDistance: number;
   if (newEdgeFrac <= 0) {
     newEnd = vertex0;
-    endFraction = newEdgeFrac / edgeDeltaFrac;
+    endDistance = startDistance + (edgeFrac * edgeLengthSquared) / moveDot;
   } else if (newEdgeFrac >= 1) {
     newEnd = vertex1;
-    endFraction = (newEdgeFrac - 1) / edgeDeltaFrac;
+    endDistance =
+      startDistance + ((edgeFrac - 1) * edgeLengthSquared) / moveDot;
   } else {
     newEnd = lerp(vertex0, vertex1, newEdgeFrac);
+    endDistance = 0;
   }
   return {
     start: newStart,
     end: newEnd,
-    slideDirection: Math.sign(hitSlideFactor),
-    startFraction,
-    endFraction,
+    slideDirection: Math.sign(moveDot),
+    startDistance,
+    endDistance,
     edge,
   };
 }
 
 /**
  * Test for collisions against a corner.
- * @param movement Input movement vector.
+ * @param direction Input movement direction.
  * @param segment Previous movement segment.
  * @param corner Corner to test for collisions.
  */
 function testCorner(
-  movement: Readonly<Vector>,
+  direction: Readonly<Vector>,
   segment: WalkSegment,
   corner: CollisionCorner,
 ): WalkSegment | undefined {
   const { start, end, edge } = segment;
   const { center } = corner;
-  let startFraction: number;
+  let startDistance: number;
   let newStart: Readonly<Vector>;
   if (edge == corner.edge0) {
     // We slid off an edge, this is the corner.
     if (end != edge.vertex1) {
       return;
     }
-    startFraction = segment.endFraction;
+    startDistance = segment.endDistance;
     newStart = end;
   } else if (edge == corner.edge1) {
     // We slid off the other edge.
     if (end != edge.vertex0) {
       return;
     }
-    startFraction = segment.endFraction;
+    startDistance = segment.endDistance;
     newStart = end;
   } else if (segment.corner) {
     // Hitting a second corner.
@@ -266,69 +267,54 @@ function testCorner(
       // We are heading away from the corner.
       return;
     }
-    startFraction = lerp1D(
-      segment.startFraction,
-      segment.endFraction,
+    startDistance = lerp1D(
+      segment.startDistance,
+      segment.endDistance,
       testFrac,
     );
     newStart = lerp(start, end, testFrac);
   }
-  let color: DebugColor;
-  const offset = wedgeSubtract(center, newStart, movement);
-  const moveLength = length(movement);
-  let newEnd = madd(
-    newStart,
-    movement,
-    Math.abs(offset) / (walkerRadius * moveLength),
+  let color = DebugColor.Magenta;
+  // The amount sideways of movement that we hit the circle.
+  const side = wedgeSubtract(center, newStart, direction);
+  // The final pos, if we are locked to the circle.
+  let newEnd = projectToCircle(
+    madd(newStart, direction, (Math.abs(side) * startDistance) / walkerRadius),
+    center,
+    walkerRadius,
   );
-  let edgeVertex = offset < 0 ? corner.edge0.vertex1 : corner.edge1.vertex0;
-  let endFraction = 0;
-  if (
-    dotSubtract(edgeVertex, center, movement) < Infinity &&
-    dotSubtract(edgeVertex, newEnd, movement) < 0
-  ) {
-    // We slide off the vertex onto an edge.
-    newEnd = edgeVertex;
-    endFraction =
-      startFraction -
-      ((circleMovementPos(center, newStart, movement) -
-        circleMovementPos(center, edgeVertex, movement)) *
-        walkerRadius) /
-        moveLength;
-    color = DebugColor.Blue;
-  } else if (dotSubtract(newEnd, center, movement) > 0) {
-    // We slide off the vertex into open space.
-    const dx = -offset * movement.y;
-    const dy = offset * movement.x;
-    const a = walkerRadius / Math.hypot(dx, dy);
-    newEnd = vector(center.x + a * dx, center.y + a * dy);
-    endFraction =
-      startFraction -
-      (circleMovementPos(center, newStart, movement) * walkerRadius) /
-        moveLength;
+  let endDistance = 0;
+  if (dotSubtract(newEnd, center, direction) > 0) {
+    // We slide off the circle before reaching newEnd.
+    const a = Math.sign(side) * walkerRadius;
+    newEnd = vector(center.x - a * direction.y, center.y + a * direction.x);
+    endDistance =
+      startDistance +
+      (circleMovementPos(center, newEnd, direction) -
+        circleMovementPos(center, newStart, direction)) *
+        walkerRadius;
     color = DebugColor.Cyan;
-  } else {
-    // We stay sliding along the vertex.
-    newEnd = projectToCircle(newEnd, center, walkerRadius);
-    endFraction = 0;
-    color = DebugColor.Magenta;
+  }
+  let edgeVertex = side < 0 ? corner.edge0.vertex1 : corner.edge1.vertex0;
+  if (dotSubtract(newEnd, edgeVertex, direction) > 0) {
+    // We slide onto an edge before reaching newEnd.
+    newEnd = edgeVertex;
+    endDistance =
+      startDistance +
+      (circleMovementPos(center, newEnd, direction) -
+        circleMovementPos(center, newStart, direction)) *
+        walkerRadius;
+    color = DebugColor.Blue;
   }
   if (isDebug) {
-    if (!corner.edge1.edge.debugVertexColor) {
-      corner.edge1.edge.debugVertexColor = color;
-    }
-    if (offset < 0) {
-      corner.edge0.edge.debugColor = DebugColor.Green;
-    } else {
-      corner.edge1.edge.debugColor = DebugColor.Green;
-    }
+    corner.edge1.edge.debugVertexColor = color;
   }
   return {
     start: newStart,
     end: newEnd,
-    slideDirection: Math.sign(offset),
-    startFraction,
-    endFraction,
+    slideDirection: Math.sign(side),
+    startDistance,
+    endDistance,
     corner,
   };
 }
@@ -343,15 +329,17 @@ export function walk(
   start: Readonly<Vector>,
   movement: Readonly<Vector>,
 ): Readonly<Vector> {
-  if (lengthSquared(movement) == 0) {
+  const movementDistance = length(movement);
+  if (movementDistance == 0) {
     return start;
   }
+  const direction = scaleVector(movement, 1 / movementDistance);
   // Due to the way collisions are resolved, the player may be pushed off axis,
   // but will always stay within a circle whose opposite points are the starting
   // point and the target point.
   const rawEdges = level.findUnpassableEdges(
     madd(start, movement, 0.5),
-    walkerRadius + 0.5 * length(movement) + 0.1,
+    walkerRadius + 0.5 * movementDistance + 0.1,
   );
   let edges: CollisionEdge[] = [];
   for (const edge of rawEdges) {
@@ -391,22 +379,22 @@ export function walk(
     start,
     end: madd(start, movement),
     slideDirection: 0,
-    startFraction: 1,
-    endFraction: 0,
+    startDistance: movementDistance,
+    endDistance: 0,
   };
   // We ignore collisions if we haven't traveled at least this far.
   const suppressionTresholdSquared = 0.01;
   for (
     let testNum = 0;
-    testNum < 9 && currentSegment.startFraction > 0;
+    testNum < 9 && currentSegment.startDistance > 0;
     testNum++
   ) {
     let nextSegment: WalkSegment = {
       start: currentSegment.end,
-      end: madd(currentSegment.end, movement, currentSegment.endFraction),
+      end: madd(currentSegment.end, direction, currentSegment.endDistance),
       slideDirection: 0,
-      startFraction: currentSegment.endFraction,
-      endFraction: 0,
+      startDistance: currentSegment.endDistance,
+      endDistance: 0,
     };
     for (const edge of edges) {
       if (
@@ -414,8 +402,8 @@ export function walk(
         distanceSquared(currentSegment.start, edge.hit) >
           suppressionTresholdSquared
       ) {
-        const segment = testEdge(movement, currentSegment, edge);
-        if (segment && segment.startFraction >= nextSegment.startFraction) {
+        const segment = testEdge(direction, currentSegment, edge);
+        if (segment && segment.startDistance >= nextSegment.startDistance) {
           nextSegment = segment;
         }
       }
@@ -426,8 +414,8 @@ export function walk(
         distanceSquared(currentSegment.start, corner.hit) >
           suppressionTresholdSquared
       ) {
-        const segment = testCorner(movement, currentSegment, corner);
-        if (segment && segment.startFraction >= nextSegment.startFraction) {
+        const segment = testCorner(direction, currentSegment, corner);
+        if (segment && segment.startDistance >= nextSegment.startDistance) {
           nextSegment = segment;
         }
       }
