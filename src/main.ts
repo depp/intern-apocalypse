@@ -41,6 +41,7 @@ function startMainMenu(): void {
     { flexspace: 1 },
     { text: 'New Game' },
     { flexspace: 1 },
+    { text: 'Made for JS13K 2019 by @DietrichEpp', size: 0.5 },
   );
 }
 
