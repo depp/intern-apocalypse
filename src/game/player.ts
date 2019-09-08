@@ -5,8 +5,15 @@
 import { Button, buttonAxis, buttonPress } from '../lib/input';
 import { vector, lengthSquared, scaleVector, madd } from '../lib/math';
 import { frameDT } from './time';
-import { entities, Entity, Collider, colliders, findColliders } from './entity';
-import { ModelInstance, modelInstances } from './model';
+import {
+  ModelInstance,
+  modelInstances,
+  entities,
+  Entity,
+  Collider,
+  colliders,
+  findColliders,
+} from './entity';
 import { ModelAsset } from '../model/models';
 import { playerSettings } from '../lib/settings';
 import {

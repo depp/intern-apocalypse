@@ -1,8 +1,14 @@
 import { vector, canonicalAngle, angleVector } from '../lib/math';
 import { ModelAsset } from '../model/models';
-import { ModelInstance, modelInstances } from './model';
 import { createWalker, WalkerParameters } from './walker';
-import { entities, Entity, Collider, colliders } from './entity';
+import {
+  ModelInstance,
+  modelInstances,
+  entities,
+  Entity,
+  Collider,
+  colliders,
+} from './entity';
 import { frameDT } from './time';
 import { isDebug } from '../debug/debug';
 

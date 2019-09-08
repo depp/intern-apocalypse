@@ -4,7 +4,7 @@
 
 import { cameraMatrix } from '../game/camera';
 import { gl } from '../lib/global';
-import { modelInstances } from '../game/model';
+import { modelInstances } from '../game/entity';
 import { model as modelShader, Attribute } from './shaders';
 import { models } from '../model/model';
 

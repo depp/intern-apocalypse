@@ -1,6 +1,6 @@
 import { getModelNames } from '../model/models';
 import { updateCamera } from '../game/camera';
-import { modelInstances, ModelInstance } from '../game/model';
+import { modelInstances, ModelInstance } from '../game/entity';
 import { renderModels } from '../render/model';
 import {
   matrixNew,

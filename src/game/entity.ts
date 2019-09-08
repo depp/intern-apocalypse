@@ -1,4 +1,21 @@
 import { Vector, distanceSquared } from '../lib/math';
+import { ModelAsset } from '../model/models';
+import { Matrix } from '../lib/matrix';
+
+/** Base interface for all entity types. */
+export interface EntityBase {
+  isDead?: boolean;
+}
+
+/** A game entity, which is rendered. */
+export interface ModelInstance {
+  /** The model asset to draw. */
+  model: ModelAsset;
+  /** Model transformation matrix. */
+  transform: Matrix;
+}
+
+export const modelInstances: ModelInstance[] = [];
 
 /** A game entity, which other objects can collide with. */
 export interface Collider {
