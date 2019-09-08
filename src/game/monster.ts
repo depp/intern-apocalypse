@@ -1,10 +1,4 @@
-import {
-  vector,
-  canonicalAngle,
-  angleVector,
-  Vector,
-  scaleVector,
-} from '../lib/math';
+import { canonicalAngle, angleVector, Vector, scaleVector } from '../lib/math';
 import { ModelAsset } from '../model/models';
 import { createWalker, WalkerParameters } from './walker';
 import {
@@ -22,8 +16,7 @@ import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
 
 /** Spawn a monster in the level. */
-export function spawnMonster(): void {
-  let pos = vector(-9, -9);
+export function spawnMonster(pos: Readonly<Vector>): void {
   const walker = createWalker(pos);
   const model: ModelInstance = {
     model: ModelAsset.Eyestalk,

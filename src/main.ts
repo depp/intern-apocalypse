@@ -13,6 +13,7 @@ import { State, currentState, setState } from './lib/global';
 import { startMenu, pushMenu, endMenu, popMenu } from './render/ui';
 import { spawnMonster } from './game/monster';
 import { Difficulty, setDifficulty } from './game/difficulty';
+import { vector } from './lib/math';
 
 /**
  * Initialize game.
@@ -65,7 +66,10 @@ export function newGame(difficulty: Difficulty): void {
   setState(State.Game);
   setDifficulty(difficulty);
   spawnPlayer();
-  spawnMonster();
+  spawnMonster(vector(-9, -9));
+  spawnMonster(vector(-2, 9));
+  spawnMonster(vector(6, -9));
+  spawnMonster(vector(2, 0));
 }
 
 /**
