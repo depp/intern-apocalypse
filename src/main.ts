@@ -61,7 +61,7 @@ function pushNewGameMenu(): void {
 }
 
 /** Start a new game. */
-function newGame(difficulty: Difficulty): void {
+export function newGame(difficulty: Difficulty): void {
   setState(State.Game);
   setDifficulty(difficulty);
   spawnPlayer();

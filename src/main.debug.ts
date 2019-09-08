@@ -16,11 +16,13 @@ import { startDebugGUI } from './debug/controls';
 import { watchModels } from './debug/model';
 import { renderDebug } from './debug/render';
 import { watchShaders } from './debug/shader';
-import { initialize, main } from './main';
+import { initialize, main, newGame } from './main';
 import { watchSounds } from './debug/audio';
 import { runModelView } from './debug/modelview';
 import { initRenderer } from './render/render';
 import { debugView } from './lib/settings';
+import { startAudio } from './audio/audio';
+import { Difficulty } from './game/difficulty';
 
 let counter = 0;
 let lastFrameMS = 0;
@@ -61,6 +63,11 @@ function mainDebug(curTimeMS: DOMHighResTimeStamp): void {
   }
 }
 
+/** Handle a window event, to start the sound system. */
+function firstEvent(): void {
+  startAudio();
+}
+
 function start(): void {
   initRenderer();
   watchShaders();
@@ -73,6 +80,21 @@ function start(): void {
     return;
   }
   initialize();
+  if (hashVariables.has('game')) {
+    const difficultyText = hashVariables.get('difficulty');
+    let difficulty = Difficulty.Normal;
+    if (difficultyText != null) {
+      const value = parseInt(difficultyText, 10);
+      if (Difficulty.Easy <= value && value <= Difficulty.Hard) {
+        difficulty = value;
+      } else {
+        console.warn(`Invalid difficulty: ${JSON.stringify(difficultyText)}`);
+      }
+    }
+    newGame(difficulty);
+  }
+  window.addEventListener('click', firstEvent, { once: true, passive: true });
+  window.addEventListener('keydown', firstEvent, { once: true, passive: true });
   requestAnimationFrame(mainDebug);
 }
 
