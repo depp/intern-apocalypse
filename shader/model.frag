@@ -1,3 +1,4 @@
+// Model: 3D shader with vertex colors, lighting, and normals.
 precision lowp float;
 
 varying vec4 Color;

@@ -15,8 +15,8 @@
 export type Matrix = Float32Array & { _brand: 'Matrix' };
 
 /** Create a new 4x4 matrix. */
-export function matrixNew(): Matrix {
-  return new Float32Array(16) as Matrix;
+export function matrixNew(matrix?: Matrix): Matrix {
+  return new Float32Array((matrix || 16) as any) as Matrix;
 }
 
 /** A scratch matrix for multiplication. */

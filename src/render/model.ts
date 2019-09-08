@@ -17,8 +17,15 @@ export function renderModels(): void {
     return;
   }
 
-  // State
   gl.useProgram(p.program);
+
+  // Attributes
+  gl.enableVertexAttribArray(ModelAttrib.Pos);
+  gl.enableVertexAttribArray(ModelAttrib.Color);
+  gl.enableVertexAttribArray(ModelAttrib.Normal);
+
+  // Common uniforms
+  gl.uniformMatrix4fv(p.ViewProjection, false, cameraMatrix);
 
   for (const instance of modelInstances) {
     const model = models[instance.model];
@@ -30,20 +37,16 @@ export function renderModels(): void {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.index);
 
     // Attributes
-    gl.enableVertexAttribArray(ModelAttrib.Pos);
     gl.bindBuffer(gl.ARRAY_BUFFER, model.pos);
     gl.vertexAttribPointer(ModelAttrib.Pos, 3, gl.FLOAT, false, 0, 0);
 
-    gl.enableVertexAttribArray(ModelAttrib.Color);
     gl.bindBuffer(gl.ARRAY_BUFFER, model.color);
     gl.vertexAttribPointer(ModelAttrib.Color, 4, gl.UNSIGNED_BYTE, true, 0, 0);
 
-    gl.enableVertexAttribArray(ModelAttrib.Normal);
     gl.bindBuffer(gl.ARRAY_BUFFER, model.normal);
     gl.vertexAttribPointer(ModelAttrib.Normal, 3, gl.FLOAT, false, 0, 0);
 
     // Uniforms
-    gl.uniformMatrix4fv(p.ViewProjection, false, cameraMatrix);
     gl.uniformMatrix4fv(p.Model, false, instance.transform);
 
     // Draw
@@ -51,7 +54,7 @@ export function renderModels(): void {
   }
 
   // Cleanup
-  gl.disableVertexAttribArray(0);
-  gl.disableVertexAttribArray(1);
-  gl.disableVertexAttribArray(2);
+  gl.disableVertexAttribArray(ModelAttrib.Pos);
+  gl.disableVertexAttribArray(ModelAttrib.Color);
+  gl.disableVertexAttribArray(ModelAttrib.Normal);
 }

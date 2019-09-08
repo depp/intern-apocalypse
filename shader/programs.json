@@ -16,5 +16,11 @@
     "vertex": "model.vert",
     "fragment": "model.frag",
     "attributes": ["aPos", "aColor", null, "aNormal"]
+  },
+  {
+    "name": "particles",
+    "vertex": "particles.vert",
+    "fragment": "particles.frag",
+    "attributes": ["aPos", "aRandom", "aColor"]
   }
 ]

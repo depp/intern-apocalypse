@@ -31,4 +31,14 @@ export class Random {
   range(min: number = 0, max: number = 1): number {
     return min + this.next() * (max - min) * 2 ** -32;
   }
+
+  /**
+   * Return an integer in the range 0..limit-1.
+   */
+  rangeInt(limit: number) {
+    return (this.next() * limit * 2 ** -32) | 0;
+  }
 }
+
+/** Global, shared instance of random-number generator. */
+export const globalRandom = new Random(9);

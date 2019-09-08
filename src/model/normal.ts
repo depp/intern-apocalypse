@@ -1,4 +1,10 @@
-import { newVector3, getVector3, subVector3, crossVector3 } from './util';
+import {
+  newVector3,
+  getVector3,
+  subVector3,
+  crossVector3,
+  getTriangle,
+} from './util';
 
 /**
  * Create normals for a model.
@@ -13,9 +19,7 @@ export function createNormals(
   const vectors = [newVector3(), newVector3(), newVector3()];
   const [v0, v1, v2] = vectors;
   for (let offset = 0; offset < indexData.length; offset += 3) {
-    for (let j = 0; j < 3; j++) {
-      getVector3(vectors[j], posData, indexData[offset + j]);
-    }
+    getTriangle(vectors, posData, indexData, offset);
     subVector3(v1, v1, v0);
     subVector3(v2, v2, v0);
     crossVector3(v0, v1, v2);

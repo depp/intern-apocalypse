@@ -34,6 +34,18 @@ export const enum ModelAttrib {
   Normal = 3,
 }
 
+export interface ParticlesProgram extends ShaderProgram {
+  Model: WebGLUniformLocation | null;
+  Time: WebGLUniformLocation | null;
+  ViewProjection: WebGLUniformLocation | null;
+}
+export const particlesShader = {} as ParticlesProgram;
+export const enum ParticlesAttrib {
+  Pos = 0,
+  Random = 1,
+  Color = 2,
+}
+
 /** Get specs for all shader programs. */
 export function getShaderSpecs(): ShaderSpec[] {
   return [
@@ -61,6 +73,14 @@ export function getShaderSpecs(): ShaderSpec[] {
       uniforms: ['Model', 'ViewProjection'],
       object: modelShader,
     },
+    {
+      name: 'particles',
+      vertex: 'particles.vert',
+      fragment: 'particles.frag',
+      attributes: ['aPos', 'aRandom', 'aColor'],
+      uniforms: ['Model', 'Time', 'ViewProjection'],
+      object: particlesShader,
+    },
   ];
 }
 
@@ -70,8 +90,8 @@ export function loadShaders(): void {
     uiShader,
     ['ModelViewProjection', 'Texture'],
     ['aPos', 'aColor', 'aTexCoord'],
-    bundledData[shaderOffset + 5],
-    bundledData[shaderOffset + 4],
+    bundledData[shaderOffset + 7],
+    bundledData[shaderOffset + 6],
     'ui',
   );
   compileShader(
@@ -89,5 +109,13 @@ export function loadShaders(): void {
     bundledData[shaderOffset + 3],
     bundledData[shaderOffset + 2],
     'model',
+  );
+  compileShader(
+    particlesShader,
+    ['Model', 'Time', 'ViewProjection'],
+    ['aPos', 'aRandom', 'aColor'],
+    bundledData[shaderOffset + 5],
+    bundledData[shaderOffset + 4],
+    'particles',
   );
 }

@@ -8,7 +8,7 @@ export interface EntityBase {
   isDead?: boolean;
 }
 
-/** A game entity, which is rendered. */
+/** A game entity, which is rendered as a normal model. */
 export interface ModelInstance extends EntityBase {
   /** The model asset to draw. */
   model: ModelAsset;
@@ -16,7 +16,21 @@ export interface ModelInstance extends EntityBase {
   transform: Matrix;
 }
 
+/** All model instances in the level. */
 export const modelInstances: ModelInstance[] = [];
+
+/** A game entity, which is rendered as a particle effect instance. */
+export interface ParticlesInstance extends EntityBase {
+  /** The model asset to use for the particle template. */
+  model: ModelAsset;
+  /** Model transformation matrix. */
+  transform: Matrix;
+  /** Particle effect animation time. */
+  time: number;
+}
+
+/** All particles instances in the level. */
+export const particlesInstances: ParticlesInstance[] = [];
 
 /** A game entity, which other objects can collide with. */
 export interface Collider extends EntityBase {
@@ -79,6 +93,7 @@ export function updateEntities(): void {
   clearDead(colliders);
   clearDead(entities);
   clearDead(modelInstances);
+  clearDead(particlesInstances);
 }
 
 /** A marker for the debug map. */

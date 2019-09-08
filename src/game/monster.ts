@@ -3,7 +3,6 @@ import {
   canonicalAngle,
   angleVector,
   Vector,
-  madd,
   scaleVector,
 } from '../lib/math';
 import { ModelAsset } from '../model/models';
@@ -17,6 +16,7 @@ import {
   colliders,
 } from './entity';
 import { frameDT } from './time';
+import { spawnParticles } from './particles';
 import { isDebug } from '../debug/debug';
 import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
@@ -53,6 +53,7 @@ export function spawnMonster(): void {
       walker.velocity = scaleVector(direction, 12);
       health--;
       if (health <= 0 && !this.isDead) {
+        spawnParticles(model.transform, model.model);
         playSound(Sounds.MonsterDeath);
         this.isDead = true;
         model.isDead = true;

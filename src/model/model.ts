@@ -9,6 +9,7 @@ import { dataMax, decodeExponential, decode } from '../lib/data.encode';
 import { clamp } from '../lib/util';
 import { createNormals } from './normal';
 import { modelOffset } from '../lib/loader';
+import { ModelPoints, makePoints } from './points';
 
 /** A loaded model. */
 export interface Model {
@@ -22,6 +23,9 @@ export interface Model {
   index: WebGLBuffer | null;
   /** Number of elements in index array. */
   count: number;
+
+  /** Point data, as an alternative to triangles. */
+  points: ModelPoints;
 }
 
 /*
@@ -136,6 +140,7 @@ export function loadModel(data: Uint8Array): Model {
     normal: normalBuffer,
     index: indexBuffer,
     count: indexPos,
+    points: makePoints(posData, colorData, indexData),
   };
 }
 
@@ -147,6 +152,9 @@ export function unloadModel(model: Model): void {
   gl.deleteBuffer(model.color);
   gl.deleteBuffer(model.index);
   gl.deleteBuffer(model.normal);
+  const { points } = model;
+  gl.deleteBuffer(points.pos);
+  gl.deleteBuffer(points.color);
 }
 
 /** Loaded models. */
