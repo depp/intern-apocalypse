@@ -5,7 +5,7 @@
 import { Button, buttonAxis, buttonPress } from '../lib/input';
 import { vector, lengthSquared, scaleVector } from '../lib/math';
 import { frameDT } from './time';
-import { entities } from './world';
+import { entities, Entity, Collider, colliders } from './entity';
 import { ModelInstance, modelInstances } from './model';
 import { ModelAsset } from '../model/models';
 import { playerSettings } from '../lib/settings';
@@ -41,7 +41,9 @@ export function spawnPlayer(): void {
   // opportunity.
   let pendingAttack = false;
 
-  entities.push({
+  const entity: Entity & Collider = {
+    pos,
+    radius: 0.5,
     update() {
       // Update attack state.
       if (buttonPress[Button.Action]) {
@@ -69,6 +71,7 @@ export function spawnPlayer(): void {
         movement = scaleVector(movement, 1 / Math.sqrt(magSquared));
       }
       walker.update(playerSettings, movement);
+      this.pos = walker.pos;
 
       // Update camera position.
       setCameraTarget(walker.pos);
@@ -91,5 +94,7 @@ export function spawnPlayer(): void {
       );
       rotateMatrixFromDirection(swordTransform, Axis.Y, 1, 1 - blend);
     },
-  });
+  };
+  entities.push(entity);
+  colliders.push(entity);
 }

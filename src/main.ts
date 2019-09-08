@@ -8,7 +8,7 @@ import { startInput, endFrameInput } from './lib/input';
 import { spawnPlayer } from './game/player';
 import { render } from './render/render';
 import { updateTime } from './game/time';
-import { updateWorld } from './game/world';
+import { updateEntities } from './game/entity';
 import { State, currentState, setState } from './lib/global';
 import { startMenu, endMenu } from './render/ui';
 import { spawnMonster } from './game/monster';
@@ -54,7 +54,7 @@ export function main(curTimeMS: DOMHighResTimeStamp): void {
   }
   updateTime(curTimeMS);
   if (currentState == State.Game) {
-    updateWorld();
+    updateEntities();
   }
   updateCamera();
   endFrameInput();

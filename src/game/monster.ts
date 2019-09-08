@@ -2,7 +2,7 @@ import { vector, canonicalAngle } from '../lib/math';
 import { ModelAsset } from '../model/models';
 import { ModelInstance, modelInstances } from './model';
 import { createWalker, WalkerParameters } from './walker';
-import { entities } from './world';
+import { entities, Entity, Collider, colliders } from './entity';
 import { frameDT } from './time';
 import { isDebug } from '../debug/debug';
 
@@ -20,15 +20,19 @@ export function spawnMonster(): void {
     speed: 4,
     turnSpeed: 20,
   };
-  entities.push({
+  const entity: Entity & Collider = {
+    pos,
+    radius: 0.5,
     update() {
       angle = canonicalAngle(angle + frameDT);
       const movement = vector(Math.sin(angle), Math.cos(angle));
       walker.update(params, movement);
+      this.pos = walker.pos;
       if (isDebug) {
-        this.debugPos = walker.pos;
-        this.debugArrow = movement;
+        this.debugArrow = vector(Math.sin(angle), Math.cos(angle));
       }
     },
-  });
+  };
+  entities.push(entity);
+  colliders.push(entity);
 }

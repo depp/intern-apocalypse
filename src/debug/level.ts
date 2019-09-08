@@ -10,8 +10,7 @@ import { Vector } from '../lib/math';
 import { walkerRadius } from '../game/walk';
 import { level } from '../game/world';
 import { getCameraTarget, cameraMatrix } from '../game/camera';
-import { entities } from '../game/world';
-import { Entity } from '../game/entity';
+import { colliders, Collider } from '../game/entity';
 
 const edgeInset = 2;
 
@@ -209,21 +208,21 @@ function drawCell(cell: Cell, scale: number): void {
 /**
  * Draw an entity in the level.
  */
-function drawEntity(entity: Entity, scale: number): void {
-  const { debugPos, debugArrow } = entity;
-  if (!debugPos) {
+function drawEntity(entity: Collider, scale: number): void {
+  const { pos, debugArrow } = entity;
+  if (!pos) {
     return;
   }
 
   ctx.beginPath();
-  ctx.arc(debugPos.x, debugPos.y, walkerRadius, 0, 2 * Math.PI);
+  ctx.arc(pos.x, pos.y, walkerRadius, 0, 2 * Math.PI);
   ctx.fillStyle = '#800';
   ctx.fill();
 
   if (debugArrow) {
     ctx.beginPath();
-    ctx.moveTo(debugPos.x, debugPos.y);
-    ctx.lineTo(debugPos.x + debugArrow.x, debugPos.y + debugArrow.y);
+    ctx.moveTo(pos.x, pos.y);
+    ctx.lineTo(pos.x + debugArrow.x, pos.y + debugArrow.y);
     ctx.strokeStyle = '#f88';
     ctx.lineWidth = 4 / scale;
     ctx.stroke();
@@ -248,7 +247,7 @@ export function drawLevel(): void {
   }
   drawHighlights(scale);
   if (debugView.entities) {
-    for (const entity of entities) {
+    for (const entity of colliders) {
       drawEntity(entity, scale);
     }
   }

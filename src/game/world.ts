@@ -2,7 +2,6 @@
  * World state.
  */
 
-import { Entity } from './entity';
 import { LevelBuilder } from './level';
 import { Vector } from '../lib/math';
 import { Random } from '../lib/random';
@@ -37,15 +36,3 @@ export let level: LevelBuilder;
   }
   level.updateProperties();
 })();
-
-/** List of all active entities in the world. */
-export const entities: Entity[] = [];
-
-/**
- * Update the state of the world.
- */
-export function updateWorld(): void {
-  for (const entity of entities) {
-    entity.update();
-  }
-}
