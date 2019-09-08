@@ -24,8 +24,24 @@ const scratchMatrix = matrixNew();
 /** A second scratch matrix for other operations. */
 const scratchMatrix2 = matrixNew();
 
+/** Right and left multiplication order constants. */
+export const enum MultiplicationOrder {
+  /** Computes x = x * y. */
+  Right,
+  /** Computes x = y * x. */
+  Left,
+}
+
 /** Compute out = a * b. Aliasing is permitted. */
-export function matrixMultiply(out: Matrix, a: Matrix, b: Matrix): void {
+export function matrixMultiply(
+  out: Matrix,
+  a: Matrix,
+  b: Matrix,
+  order: MultiplicationOrder = MultiplicationOrder.Right,
+): void {
+  if (order) {
+    [a, b] = [b, a];
+  }
   let i, j, k, s;
   // out_ij = a_ik * b_kj
   for (j = 0; j < 4; j++) {
@@ -61,8 +77,7 @@ export const enum Axis {
 }
 
 /**
- * Right-multiply a matrix by a rotation matrix using a direction rather than
- * angles.
+ * Multiply a matrix by a rotation matrix using a direction rather than angles.
  * @param out Output matrix.
  * @param axis Axis to rotate around.
  * @param u Second axis component (the axis after the main axis).
@@ -73,6 +88,7 @@ export function rotateMatrixFromDirection(
   axis: Axis,
   u: number,
   v: number,
+  order: MultiplicationOrder = MultiplicationOrder.Right,
 ) {
   const [c1, c2, s1, s2] =
     axis == Axis.Z ? [0, 5, 1, 4] : axis ? [0, 10, 8, 2] : [5, 10, 6, 9];
@@ -80,39 +96,52 @@ export function rotateMatrixFromDirection(
   setIdentityMatrix(scratchMatrix2);
   scratchMatrix2[c1] = scratchMatrix2[c2] = a * u;
   scratchMatrix2[s2] = -(scratchMatrix2[s1] = a * v);
-  matrixMultiply(out, out, scratchMatrix2);
+  matrixMultiply(out, out, scratchMatrix2, order);
 }
 
 /**
- * Right-multiply a matrix by a rotation matrix.
+ * Multiply a matrix by a rotation matrix.
  * @param out Output matrix.
  * @param axis Axis to rotate around.
  * @param angle Angle to rotate.
  */
-export function rotateMatrixFromAngle(out: Matrix, axis: Axis, angle: number) {
-  rotateMatrixFromDirection(out, axis, Math.cos(angle), Math.sin(angle));
+export function rotateMatrixFromAngle(
+  out: Matrix,
+  axis: Axis,
+  angle: number,
+  order: MultiplicationOrder = MultiplicationOrder.Right,
+): void {
+  rotateMatrixFromDirection(out, axis, Math.cos(angle), Math.sin(angle), order);
 }
 
 /**
- * Right-multiply a matrix by a translation matrix.
+ * Multiply a matrix by a translation matrix.
  * @param out Output matrix.
  * @param value Vector to translate by.
  */
-export function translateMatrix(out: Matrix, value: ArrayLike<number>): void {
+export function translateMatrix(
+  out: Matrix,
+  value: ArrayLike<number>,
+  order: MultiplicationOrder = MultiplicationOrder.Right,
+): void {
   setIdentityMatrix(scratchMatrix2);
   scratchMatrix2.set(value, 12);
-  matrixMultiply(out, out, scratchMatrix2);
+  matrixMultiply(out, out, scratchMatrix2, order);
 }
 
 /**
- * Right-multiply a matrix by a scaling matrix.
+ * Multiply a matrix by a scaling matrix.
  * @param out Output matrix.
  * @param scale The X, Y, Z scaling parameters.
  */
-export function scaleMatrix(out: Matrix, scale: number[]): void {
+export function scaleMatrix(
+  out: Matrix,
+  scale: number[],
+  order: MultiplicationOrder = MultiplicationOrder.Right,
+): void {
   setIdentityMatrix(scratchMatrix2);
   for (let i = 0; i < scale.length; i++) {
     scratchMatrix2[i * 5] = scale[i];
   }
-  matrixMultiply(out, out, scratchMatrix2);
+  matrixMultiply(out, out, scratchMatrix2, order);
 }
