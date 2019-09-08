@@ -40,7 +40,27 @@ export function main(curTimeMS: DOMHighResTimeStamp): void {
             },
           },
           {
-            text: 'Internship\nat the\nApocalypse',
+            marginTop: 32,
+            text: 'Internship',
+            size: 2,
+          },
+          {
+            text: '— at the —',
+            marginTop: -16,
+            marginBottom: -16,
+          },
+          {
+            text: 'Apocalypse',
+            size: 2,
+          },
+          {
+            flexspace: 1,
+          },
+          {
+            text: 'New Game',
+          },
+          {
+            flexspace: 1,
           },
         );
         break;

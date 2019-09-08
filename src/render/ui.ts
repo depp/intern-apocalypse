@@ -12,11 +12,26 @@ export interface Menu {
 }
 
 export interface MenuItem {
-  text: string;
+  text?: string;
+  size?: number;
+  flexspace?: number;
+  marginTop?: number;
+  marginBottom?: number;
+}
+
+/** A menu item which has been positioned. */
+interface PositionedMenuItem {
+  text?: string;
+  size: number;
+  flexspace: number;
+  marginTop: number;
+  marginBottom: number;
+  y0: number;
+  y1: number;
 }
 
 let currentMenu: Menu | undefined | null;
-let currentItems: MenuItem[] | undefined | null;
+let currentItems: PositionedMenuItem[] | undefined | null;
 
 let offscreenCanvas!: HTMLCanvasElement;
 let canvasSize!: Vector;
@@ -57,7 +72,33 @@ function updateMenu(): void {
   }
   initContext();
 
-  elementCount = currentItems.length * 6;
+  // Calculate the positions of the menu items.
+  let fixspace = 0;
+  let flexspace = 0;
+  let itemcount = 0;
+  for (const item of currentItems) {
+    flexspace += item.flexspace;
+    if (item.text) {
+      itemcount++;
+      fixspace += 48 * item.size;
+    }
+    fixspace += item.marginTop + item.marginBottom;
+  }
+  console.log('fixspace', fixspace, flexspace);
+  const flexamt = flexspace && (canvasSize.y - fixspace) / flexspace;
+  let y = 0;
+  for (const item of currentItems) {
+    y += item.marginTop;
+    item.y0 = y | 0;
+    if (item.text) {
+      y += 48 * item.size;
+    }
+    y += flexamt * item.flexspace;
+    item.y1 = y | 0;
+    y += item.marginBottom;
+  }
+
+  elementCount = itemcount * 6;
   const pos = new Float32Array(elementCount * 2);
   const tex = new Float32Array(elementCount * 2);
   const aspect = canvasSize.x / canvasSize.y;
@@ -66,15 +107,23 @@ function updateMenu(): void {
   let off = 0;
 
   for (const item of currentItems) {
+    if (!item.text) {
+      continue;
+    }
+
     ctx.save();
-    ctx.translate(canvasSize.x / 2, canvasSize.y / 2);
-    ctx.font = 'bold 48px Luminari';
+    ctx.translate(canvasSize.x / 2, (item.y0 + item.y1) / 2);
+    ctx.font = `bold ${item.size * 32}px Luminari`;
+
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.strokeStyle = '#000';
-    ctx.fillStyle = '#fff';
-    ctx.lineWidth = 6;
-    ctx.strokeText(item.text, 0, 0);
+    ctx.fillStyle = '#000';
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = '#fff';
+    // ctx.lineWidth = 6;
+    // ctx.lineJoin = 'round';
+    // ctx.strokeText(item.text, 0, 0);
+    // ctx.fillRect(-150, -2, 300, 4);
     ctx.fillText(item.text, 0, 0);
     ctx.restore();
 
@@ -168,7 +217,22 @@ function menuClick(event: MouseEvent) {
  */
 export function startMenu(menu: Menu, ...items: MenuItem[]): void {
   currentMenu = menu;
-  currentItems = items;
+  currentItems = [];
+  for (const item of items) {
+    currentItems.push(
+      Object.assign(
+        {
+          size: 1,
+          flexspace: 0,
+          marginTop: 0,
+          marginBottom: 0,
+          y0: 0,
+          y1: 0,
+        },
+        item,
+      ),
+    );
+  }
   updateMenu();
   canvas.addEventListener('click', menuClick);
 }
