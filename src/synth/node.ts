@@ -187,6 +187,7 @@ export const frequency = opSimple(
   [Type.Buffer],
 );
 export const saturate = opSimple(opcode.saturate, [Type.Buffer], [Type.Buffer]);
+export const rectify = opSimple(opcode.rectify, [Type.Buffer], [Type.Buffer]);
 export const mix = opSimple(
   opcode.mix,
   [Type.Buffer, Type.Buffer],

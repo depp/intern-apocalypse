@@ -478,6 +478,15 @@ defun('saturate', (expr, args) => {
   );
 });
 
+defun('rectify', (expr, args) => {
+  const [input] = getExactArgs(expr, args, 1);
+  return nodeValue(
+    createNode(expr, node.rectify, [], [getBuffer('input', input, Units.Volt)]),
+    Units.Volt,
+    Type.Buffer,
+  );
+});
+
 defun('*', (expr, args) => {
   if (args.length < 2) {
     throw new EvaluationError(

@@ -197,6 +197,17 @@ export const operators: (() => void)[] = [
     }
   },
 
+  /** Replace negative values with zero. */
+  function rectify(): void {
+    const top = stack[stack.length - 1];
+    if (!(top instanceof Float32Array)) {
+      throw new AssertionError('type error');
+    }
+    for (let i = 0; i < bufferSize; i++) {
+      top[i] = Math.max(top[i], 0);
+    }
+  },
+
   /** Start a new envelope. */
   function env_start(): void {
     envValue = 0;

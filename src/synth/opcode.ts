@@ -133,6 +133,7 @@ export const multiply = opcode('multiply', 0);
 export const constant = opcode('constant', 0);
 export const frequency = opcode('frequency', 0);
 export const saturate = opcode('saturate', 0);
+export const rectify = opcode('rectify', 0);
 export const mix = opcode('mix', 1);
 export const zero = opcode('zero', 0);
 
