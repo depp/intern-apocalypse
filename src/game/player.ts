@@ -97,6 +97,7 @@ export function spawnPlayer(): void {
           let isHit = false;
           for (const target of targets) {
             if (target != this) {
+              target.damage();
               isHit = true;
             }
           }
@@ -124,6 +125,7 @@ export function spawnPlayer(): void {
       );
       rotateMatrixFromDirection(swordTransform, Axis.Y, 1, 1 - blend);
     },
+    damage() {},
   };
   entities.push(entity);
   colliders.push(entity);

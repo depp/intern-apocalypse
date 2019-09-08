@@ -37,6 +37,10 @@ export function spawnMonster(): void {
         this.debugArrow = walker.facing;
       }
     },
+    damage() {
+      this.isDead = true;
+      model.isDead = true;
+    },
   };
   entities.push(entity);
   colliders.push(entity);

@@ -8,7 +8,7 @@ export interface EntityBase {
 }
 
 /** A game entity, which is rendered. */
-export interface ModelInstance {
+export interface ModelInstance extends EntityBase {
   /** The model asset to draw. */
   model: ModelAsset;
   /** Model transformation matrix. */
@@ -18,11 +18,14 @@ export interface ModelInstance {
 export const modelInstances: ModelInstance[] = [];
 
 /** A game entity, which other objects can collide with. */
-export interface Collider {
+export interface Collider extends EntityBase {
   /** The entity position. */
   pos: Readonly<Vector>;
   /** The entity collision radius. */
   radius: number;
+
+  /** Damage this entity. */
+  damage(): void;
 
   /** Arrow for debugging view. */
   debugArrow?: Vector;
@@ -43,7 +46,7 @@ export function findColliders(center: Vector, radius: number): Collider[] {
 }
 
 /** A game entity, which gets processed every tick. */
-export interface Entity {
+export interface Entity extends EntityBase {
   /** Update the entity. Called every frame. */
   update(): void;
 }
@@ -51,9 +54,25 @@ export interface Entity {
 /** List of all active entities in the world. */
 export const entities: Entity[] = [];
 
+/** Remove dead entities from a list. */
+function clearDead<T extends EntityBase>(list: T[]): void {
+  let i = 0;
+  let j = 0;
+  while (i < list.length) {
+    const obj = list[i++];
+    if (!obj.isDead) {
+      list[j++] = obj;
+    }
+  }
+  list.length = j;
+}
+
 /** Update all enteties. */
 export function updateEntities(): void {
   for (const entity of entities) {
     entity.update();
   }
+  clearDead(colliders);
+  clearDead(entities);
+  clearDead(modelInstances);
 }
