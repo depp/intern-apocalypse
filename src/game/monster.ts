@@ -1,4 +1,11 @@
-import { vector, canonicalAngle, angleVector } from '../lib/math';
+import {
+  vector,
+  canonicalAngle,
+  angleVector,
+  Vector,
+  madd,
+  scaleVector,
+} from '../lib/math';
 import { ModelAsset } from '../model/models';
 import { createWalker, WalkerParameters } from './walker';
 import {
@@ -24,7 +31,7 @@ export function spawnMonster(): void {
   let angle = 0;
   const params: WalkerParameters = {
     speed: 4,
-    acceleration: 5,
+    acceleration: 20,
     turnSpeed: 20,
   };
   let health = 2;
@@ -39,7 +46,8 @@ export function spawnMonster(): void {
         this.debugArrow = walker.facing;
       }
     },
-    damage() {
+    damage(direction: Readonly<Vector>): void {
+      walker.velocity = scaleVector(direction, 12);
       health--;
       if (health <= 0) {
         this.isDead = true;

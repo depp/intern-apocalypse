@@ -41,6 +41,9 @@ export interface Walker {
   /** The direction the walker is facing. */
   facing: Readonly<Vector>;
 
+  /** The velocity of the walker. */
+  velocity: Readonly<Vector>;
+
   /** The transformation matrix. Updated by update(). */
   transform: Matrix;
 
@@ -60,14 +63,15 @@ export interface Walker {
 export function createWalker(pos: Vector): Walker {
   const transform = matrixNew();
   let angle = 0;
-  let velocity = zeroVector;
   return {
     pos,
-    transform,
+    velocity: zeroVector,
     facing: angleVector(angle),
+    transform,
 
     update(params: WalkerParameters, movement: Readonly<Vector>): void {
       // Calculate the new velocity.
+      let velocity = this.velocity;
       const targetVelocity = scaleVector(movement, params.speed);
       const maxDeltaVelocity = params.acceleration * frameDT;
       const deltaVelocity = distance(velocity, targetVelocity);
@@ -80,6 +84,7 @@ export function createWalker(pos: Vector): Walker {
           maxDeltaVelocity / deltaVelocity,
         );
       }
+      this.velocity = velocity;
 
       // Calculate the new position.
       this.pos = walk(this.pos, scaleVector(velocity, frameDT));

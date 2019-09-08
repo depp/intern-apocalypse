@@ -82,6 +82,15 @@ export function distance(u: Readonly<Vector>, v: Readonly<Vector>): number {
   return Math.sqrt(distanceSquared(u, v));
 }
 
+/** Return the vector (u - v) / |u - v|. */
+export function normalizeSubtract(
+  u: Readonly<Vector>,
+  v: Readonly<Vector>,
+): Readonly<Vector> {
+  const a = distance(u, v);
+  return a ? maddSubtract(zeroVector, u, v, 1 / a) : zeroVector;
+}
+
 /** Compute the dot product of subtracted vectors, <u-v, a-b>. */
 export function dotSubtract(
   u: Vector,

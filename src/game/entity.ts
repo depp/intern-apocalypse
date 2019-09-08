@@ -25,8 +25,11 @@ export interface Collider extends EntityBase {
   /** The entity collision radius. */
   radius: number;
 
-  /** Damage this entity. */
-  damage(): void;
+  /**
+   * Damage this entity.
+   * @param direction The direction from the attack to this entity.
+   */
+  damage(direction: Vector): void;
 
   /** Arrow for debugging view. */
   debugArrow?: Vector;

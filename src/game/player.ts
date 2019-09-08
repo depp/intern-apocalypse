@@ -3,7 +3,13 @@
  */
 
 import { Button, buttonAxis, buttonPress } from '../lib/input';
-import { vector, lengthSquared, scaleVector, madd } from '../lib/math';
+import {
+  vector,
+  lengthSquared,
+  scaleVector,
+  madd,
+  normalizeSubtract,
+} from '../lib/math';
 import { frameDT } from './time';
 import {
   ModelInstance,
@@ -105,7 +111,8 @@ export function spawnPlayer(): void {
           let isHit = false;
           for (const target of targets) {
             if (target != this) {
-              target.damage();
+              const direction = normalizeSubtract(target.pos, this.pos);
+              target.damage(direction);
               isHit = true;
             }
           }
