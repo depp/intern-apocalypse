@@ -148,6 +148,7 @@ function startGUI(dat: typeof datTypes): void {
       {
         reset() {
           Object.assign(data, defaults);
+          folder.updateDisplay();
           didChange();
         },
       },
