@@ -14,23 +14,6 @@ const buffers: AudioBuffer[] = [];
 
 let audioCtx: AudioContext | undefined | false;
 
-function startContext(): void {
-  if (audioCtx != null) {
-    return;
-  }
-  try {
-    audioCtx = new ((window as any).AudioContext ||
-      (window as any).webkitAudioContext)() as AudioContext;
-  } catch (e) {
-    console.error(e);
-    audioCtx = false;
-    return;
-  }
-  // Play silence. This lets us use the context.
-  const buffer = audioCtx.createBuffer(1, 1000, sampleRate);
-  playBuffer(buffer);
-}
-
 /** Get the buffer containing the given sound. */
 function getSoundBuffer(index: number): AudioBuffer | null {
   if (!audioCtx) {
@@ -77,7 +60,20 @@ export function playSound(index: number): void {
  * Start the audio subsystem.
  */
 export function startAudio(): void {
-  startContext();
+  if (audioCtx != null) {
+    return;
+  }
+  try {
+    audioCtx = new ((window as any).AudioContext ||
+      (window as any).webkitAudioContext)() as AudioContext;
+  } catch (e) {
+    console.error(e);
+    audioCtx = false;
+    return;
+  }
+  // Play silence. This lets us use the context.
+  const buffer = audioCtx.createBuffer(1, 1000, sampleRate);
+  playBuffer(buffer);
 }
 
 /** Load the sound data files. */
