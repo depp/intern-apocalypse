@@ -3,7 +3,14 @@
  */
 
 import { frameDT } from './time';
-import { Matrix, matrixNew } from '../lib/matrix';
+import {
+  Matrix,
+  matrixNew,
+  setIdentityMatrix,
+  translateMatrix,
+  rotateMatrixFromDirection,
+  Axis,
+} from '../lib/matrix';
 import {
   particlesInstances,
   entities,
@@ -11,6 +18,7 @@ import {
   Entity,
 } from './entity';
 import { ModelAsset } from '../model/models';
+import { Vector } from '../lib/math';
 
 /**
  * Spawn a particle effect system.
@@ -32,4 +40,21 @@ export function spawnParticles(transform: Matrix, model: ModelAsset): void {
   };
   particlesInstances.push(particles);
   entities.push(particles);
+}
+
+/**
+ * Spawn a sword slash particle effect.
+ * @param pos Location of the target.
+ * @param direction Direction the attack was going towards.
+ */
+export function spawnSlash(
+  pos: Readonly<Vector>,
+  direction: Readonly<Vector>,
+): void {
+  const transform = matrixNew();
+  setIdentityMatrix(transform);
+  translateMatrix(transform, [pos.x, pos.y]);
+  rotateMatrixFromDirection(transform, Axis.Z, direction.y, -direction.x);
+  rotateMatrixFromDirection(transform, Axis.X, 0, 1);
+  spawnParticles(transform, ModelAsset.Slash);
 }
