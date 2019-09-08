@@ -73,7 +73,6 @@ function parseArgs(): AudioArgs {
     verbose: argv.disassemble,
     loop: argv.loop,
   };
-  console.log(args);
   if (argv.loop && argv.input == null) {
     console.error('cannot read from stdin with --loop');
     process.exit(2);
