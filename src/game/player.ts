@@ -19,6 +19,7 @@ import { setCameraTarget } from './camera';
 import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
 import { createWalker } from './walker';
+import { isDebug } from '../debug/debug';
 
 /** Spawn the player in the level. */
 export function spawnPlayer(): void {
@@ -72,6 +73,9 @@ export function spawnPlayer(): void {
       }
       walker.update(playerSettings, movement);
       this.pos = walker.pos;
+      if (isDebug) {
+        this.debugArrow = walker.facing;
+      }
 
       // Update camera position.
       setCameraTarget(walker.pos);

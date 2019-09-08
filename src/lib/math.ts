@@ -30,6 +30,11 @@ export function vector(x: number, y: number): Vector {
 /** The zero vector. */
 export const zeroVector: Readonly<Vector> = vector(0, 0);
 
+/** Create a unit vector pointing at the given angle. */
+export function angleVector(angle: number): Vector {
+  return vector(Math.cos(angle), Math.sin(angle));
+}
+
 /** Multiply a vector by a scalar. */
 export function scaleVector(u: Readonly<Vector>, scale: number): Vector {
   return vector(u.x * scale, u.y * scale);

@@ -1,4 +1,4 @@
-import { vector, canonicalAngle } from '../lib/math';
+import { vector, canonicalAngle, angleVector } from '../lib/math';
 import { ModelAsset } from '../model/models';
 import { ModelInstance, modelInstances } from './model';
 import { createWalker, WalkerParameters } from './walker';
@@ -25,11 +25,10 @@ export function spawnMonster(): void {
     radius: 0.5,
     update() {
       angle = canonicalAngle(angle + frameDT);
-      const movement = vector(Math.sin(angle), Math.cos(angle));
-      walker.update(params, movement);
+      walker.update(params, angleVector(angle));
       this.pos = walker.pos;
       if (isDebug) {
-        this.debugArrow = vector(Math.sin(angle), Math.cos(angle));
+        this.debugArrow = walker.facing;
       }
     },
   };

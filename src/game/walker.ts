@@ -3,6 +3,7 @@ import {
   scaleVector,
   lengthSquared,
   canonicalAngle,
+  angleVector,
 } from '../lib/math';
 import {
   Matrix,
@@ -31,6 +32,9 @@ export interface Walker {
   /** The current position. Updated by update(). */
   pos: Readonly<Vector>;
 
+  /** The direction the walker is facing. */
+  facing: Readonly<Vector>;
+
   /** The transformation matrix. Updated by update(). */
   transform: Matrix;
 
@@ -53,6 +57,8 @@ export function createWalker(pos: Vector): Walker {
   return {
     pos,
     transform,
+    facing: angleVector(angle),
+
     update(params: WalkerParameters, movement: Readonly<Vector>): void {
       // Calculate the new position.
       this.pos = walk(this.pos, scaleVector(movement, params.speed * frameDT));
@@ -62,6 +68,7 @@ export function createWalker(pos: Vector): Walker {
         const turnAmount = params.turnSpeed * frameDT;
         deltaAngle = clamp(deltaAngle, -turnAmount, turnAmount);
         angle = canonicalAngle(angle + deltaAngle);
+        this.facing = angleVector(angle);
       }
 
       // Set the model transform.
