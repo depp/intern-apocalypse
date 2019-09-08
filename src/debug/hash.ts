@@ -9,6 +9,8 @@ interface HashVariables {
   game: boolean;
   /** Difficulty to start game with, if skipping the menu. */
   difficulty: number;
+  /** If true, log assets loaded. */
+  logAssets: boolean;
 }
 
 /** Variables in the URL fragment identifier. */
@@ -16,6 +18,7 @@ export const hashVariables: HashVariables = {
   model: null,
   game: false,
   difficulty: 1,
+  logAssets: false,
 };
 
 /** Parse variables in the fragment identifier */
@@ -48,6 +51,13 @@ export function parseHash(): void {
       return false;
     }
     hashVariables.difficulty = ivalue;
+    return true;
+  });
+  parser('logassets', value => {
+    if (value != '') {
+      return false;
+    }
+    hashVariables.logAssets = true;
     return true;
   });
   for (const item of hash.substring(1).split('&')) {

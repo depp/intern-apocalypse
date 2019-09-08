@@ -3,6 +3,7 @@ import { loadModel, unloadModel, Model, models } from '../model/model';
 import { getModelNames } from '../model/models';
 import { convertModel } from '../model/convert';
 import { SourceError, SourceText } from '../lib/sourcepos';
+import { hashVariables } from './hash';
 
 interface ModelInfo {
   index: number;
@@ -35,6 +36,10 @@ function update(info: ModelInfo): void {
   const file = getFile(info.filename);
   if (file.version == info.version) {
     return;
+  }
+
+  if (hashVariables.logAssets) {
+    console.log(`Loading ${info.filename}`);
   }
   let model: Model | null;
   if (file.data == null) {

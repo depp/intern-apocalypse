@@ -5,6 +5,7 @@ import { SourceError, SourceText } from '../lib/sourcepos';
 import { parseSExpr } from '../lib/sexpr';
 import { evaluateProgram } from '../synth/evaluate';
 import { emitCode } from '../synth/node';
+import { hashVariables } from './hash';
 
 interface SoundInfo {
   index: number;
@@ -40,7 +41,10 @@ function update(info: SoundInfo): void {
   if (file.version == info.version) {
     return;
   }
-  console.log(`Loading ${info.filename}`);
+
+  if (hashVariables.logAssets) {
+    console.log(`Loading ${info.filename}`);
+  }
   let sound: Uint8Array | null;
   if (file.data == null) {
     sound = null;

@@ -1,6 +1,7 @@
 import { getFile, watchFiles } from './files';
 import { ShaderError, compileShader, ShaderSpec } from '../render/shader';
 import { getShaderSpecs } from '../render/shaders';
+import { hashVariables } from './hash';
 
 enum State {
   Empty,
@@ -29,7 +30,9 @@ function update(shader: Shader): void {
   if (version == shader.version) {
     return;
   }
-  console.log(`Loading shader ${shader.spec.name}`);
+  if (hashVariables.logAssets) {
+    console.log(`Loading shader ${shader.spec.name}`);
+  }
   try {
     compileShader(
       shader.spec.object,
