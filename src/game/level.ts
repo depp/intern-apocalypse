@@ -26,6 +26,10 @@ export class Cell {
   edge: Edge;
   /** True if you can walk through this cell. */
   walkable: boolean;
+  /** The next cell that monsters should navigate to. */
+  navigateNext: Cell | null | undefined;
+  /** The distance from the player, following the navigation path. */
+  navigateDistance: number | null | undefined;
 
   constructor(center: Readonly<Vector>, index: number, firstEdge: Edge) {
     this.center = center;
