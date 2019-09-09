@@ -250,9 +250,18 @@ export function initRect(out: Rect): void {
 }
 
 /** Get the bounding box of a circle. */
-export function rectAddCircle(out: Rect, pos: Vector, radius: number): void {
+export function rectAddCircle(
+  out: Rect,
+  pos: Vector,
+  radius: number = 0,
+): void {
   out.x0 = Math.min(out.x0, pos.x - radius);
   out.y0 = Math.min(out.y0, pos.y - radius);
   out.x1 = Math.max(out.x1, pos.x + radius);
   out.y1 = Math.max(out.y1, pos.y + radius);
+}
+
+/** Test if two rects intersect. */
+export function rectsIntersect(r: Readonly<Rect>, s: Readonly<Rect>): boolean {
+  return r.x1 > s.x0 && s.x1 > r.x0 && r.y1 > s.y0 && s.y1 > r.y0;
 }

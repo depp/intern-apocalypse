@@ -10,6 +10,10 @@ import {
   lerp,
   lineIntersectsCircle,
   vector,
+  Rect,
+  newRect,
+  initRect,
+  rectAddCircle,
 } from '../lib/math';
 
 /**
@@ -25,6 +29,8 @@ export interface Cell {
   readonly index: number;
   /** Arbitrary edge in the cell. */
   edge: Edge;
+  /** Bounds of the cell. */
+  bounds: Rect;
   /** True if you can walk through this cell. */
   walkable: boolean;
   /** The next cell that monsters should navigate to. */
@@ -70,6 +76,7 @@ function makeCell(center: Vector, index: number, firstEdge: Edge): Cell {
     center,
     index,
     edge: firstEdge,
+    bounds: newRect(),
     walkable: true,
     centroid,
     edges,
@@ -438,7 +445,10 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
 
   const edges: Edge[] = [];
   for (const cell of cells) {
+    const { bounds } = cell;
+    initRect(bounds);
     for (const edge of cell.edges()) {
+      rectAddCircle(bounds, edge.vertex0);
       if (!edge.back || !edge.back.cell) {
         throw new AssertionError('back == null || back.cell == null');
       }

@@ -6,11 +6,14 @@ import {
   newRect,
   initRect,
   rectAddCircle,
+  rectsIntersect,
 } from '../lib/math';
 import { EntityBase } from './entity';
-import { isDebug } from '../debug/debug';
+import { isDebug, DebugColor } from '../debug/debug';
 import { frameDT } from './time';
 import { debugMarks } from '../debug/mark';
+import { level } from './world';
+import { Edge } from './level';
 
 /** A game entity, which other objects can collide with. */
 export interface Collider extends EntityBase {
@@ -137,8 +140,38 @@ export function updateColliders(): void {
     }
   }
 
+  // Color of current group, on map.
+  let color: DebugColor = 1;
+
   /** Bounds of the current group. */
   const bounds = newRect();
+
+  // Edges we can collide with.
+  const edges: Edge[] = [];
+
+  // Get statit colliders.
+  function initStatic(): void {
+    edges.length = 0;
+    for (const cell of level.cells) {
+      if (rectsIntersect(cell.bounds, bounds)) {
+        for (const edge of cell.edges()) {
+          if (!edge.passable) {
+            edges.push(edge);
+            if (isDebug) {
+              edge.debugColor = color;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Resolve a collision with static objects.
+  // function resolveStatic(pos: Vector): Vector {
+  //
+  //}
+
+  // Handle singleton.
   for (const entity of singles) {
     if (isDebug) {
       debugMarks.push({
@@ -150,19 +183,24 @@ export function updateColliders(): void {
       });
     }
 
+    initRect(bounds);
+    rectAddCircle(bounds, entity.pos, entity.radius);
+    initStatic();
+
     const ent = entity.entity;
     ent.pos = madd(ent.pos, ent.velocity, frameDT);
   }
-  let color = 1;
+
   for (const group of groups.values()) {
     color++;
+
     initRect(bounds);
     for (const { pos, radius } of group) {
       rectAddCircle(bounds, pos, radius);
     }
+    initStatic();
 
     if (isDebug) {
-      color++;
       debugMarks.push({
         time: 0,
         kind: 'rectangle',
