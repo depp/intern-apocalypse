@@ -75,16 +75,19 @@ function updateNavigation(): void {
       cell.navigateDistance = navigateDistance;
       for (const edge of cell.edges()) {
         const { back } = edge;
-        if (!back) {
-          throw new AssertionError('back == null');
-        }
-        if (back.passable && back.cell && !back.cell.navigateDistance) {
-          frontier.push({
-            cell: back.cell,
-            navigateDistance:
-              navigateDistance + distance(cell.center, back.cell.center),
-            next: cell,
-          });
+        if (back && back.passable) {
+          const prev = back.cell;
+          if (!prev) {
+            throw new AssertionError('cell = null');
+          }
+          if (!prev.navigateDistance) {
+            frontier.push({
+              cell: prev,
+              navigateDistance:
+                navigateDistance + distance(cell.center, prev.center),
+              next: cell,
+            });
+          }
         }
       }
     }

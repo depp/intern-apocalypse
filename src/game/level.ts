@@ -222,8 +222,7 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
         center,
       );
       rootEdges.push(e1);
-      const cell = makeCell(vertexes[i], -1, e2);
-      cell.walkable = false;
+      makeCell(vertexes[i], -1, e2);
     }
     newCell(center, rootEdges);
     for (let i = 1; i < centers.length; i++) {
@@ -439,7 +438,15 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
 
   const edges: Edge[] = [];
   for (const cell of cells) {
-    edges.push(...cell.edges());
+    for (const edge of cell.edges()) {
+      if (!edge.back || !edge.back.cell) {
+        throw new AssertionError('back == null || back.cell == null');
+      }
+      if (edge.back.cell.index == -1) {
+        edge.back = null;
+      }
+      edges.push(edge);
+    }
   }
 
   /**
