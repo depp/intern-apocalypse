@@ -28,6 +28,7 @@ import { Sounds } from '../audio/sounds';
 import { createWalker, Walker } from './walker';
 import { isDebug, DebugColor } from '../debug/debug';
 import { debugMarks } from '../debug/mark';
+import { setNavigationTarget } from './navigation';
 
 /** Spawn the player in the level. */
 export function spawnPlayer(): void {
@@ -48,8 +49,10 @@ export function spawnPlayer(): void {
     pos,
     velocity: zeroVector,
     radius: 0.5,
-    smell: true,
     update() {
+      // Make monsters seek us.
+      setNavigationTarget(this.pos);
+
       // Update player position.
       let movement = vector(
         buttonAxis(Button.Left, Button.Right),

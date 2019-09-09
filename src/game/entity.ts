@@ -1,7 +1,5 @@
-import { Vector, distanceSquared } from '../lib/math';
 import { ModelAsset } from '../model/models';
 import { Matrix } from '../lib/matrix';
-import { DebugColor } from '../debug/debug';
 
 /** Base interface for all entity types. */
 export interface EntityBase {
@@ -53,9 +51,6 @@ export interface ParticlesInstance extends EntityBase {
 
 /** All particles instances in the level. */
 export let particlesInstances: ParticlesInstance[];
-
-/** The location which attracts the monsters. */
-export let monsterTarget: Vector | null | undefined;
 
 /** A game entity, which gets processed every tick. */
 export interface Entity extends EntityBase {

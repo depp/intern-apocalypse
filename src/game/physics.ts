@@ -30,8 +30,6 @@ export interface Collider extends EntityBase {
   velocity: Vector;
   /** The entity collision radius. */
   radius: number;
-  /** If true, the entity has a "smell" which attracts monsters. */
-  smell?: boolean;
 
   /**
    * Damage this entity.
