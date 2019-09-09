@@ -1,12 +1,15 @@
 import { Cell, Edge, LevelBuilder } from './level';
-import { Vector } from '../lib/math';
+import { Vector, vector } from '../lib/math';
 
 class Failure extends Error {}
 
 interface CellInfo {
-  x: number;
-  y: number;
+  pos: Vector;
   edges: number;
+}
+
+function tc(x: number, y: number, edges: number) {
+  return { pos: vector(x, y), edges };
 }
 
 interface Test {
@@ -18,77 +21,58 @@ interface Test {
 const tests: readonly Test[] = [
   {
     name: '1. basic',
-    cells: [{ x: 0, y: 0, edges: 4 }],
+    cells: [tc(0, 0, 4)],
     bounds: [1, 1, 1, 1],
   },
   {
     name: '2. horizontal',
-    cells: [{ x: 0, y: 1, edges: 4 }, { x: 0, y: -1, edges: 4 }],
+    cells: [tc(0, 1, 4), tc(0, -1, 4)],
     bounds: [1, 2, 1, 2],
   },
   {
     name: '2. vertical',
-    cells: [{ x: 1, y: 0, edges: 4 }, { x: -1, y: 0, edges: 4 }],
+    cells: [tc(1, 0, 4), tc(-1, 0, 4)],
     bounds: [2, 1, 2, 1],
   },
   {
     name: '2: corner',
-    cells: [{ x: 0, y: 0, edges: 5 }, { x: 4, y: 4, edges: 3 }],
+    cells: [tc(0, 0, 5), tc(4, 4, 3)],
     bounds: [2, 1, 1, 2],
   },
   {
     name: '2. diagonal A',
-    cells: [{ x: -1, y: 1, edges: 3 }, { x: 1, y: -1, edges: 3 }],
+    cells: [tc(-1, 1, 3), tc(1, -1, 3)],
     bounds: [1, 1, 1, 1],
   },
   {
     name: '2. diagonal B',
-    cells: [{ x: 1, y: 1, edges: 3 }, { x: -1, y: -1, edges: 3 }],
+    cells: [tc(1, 1, 3), tc(-1, -1, 3)],
     bounds: [1, 1, 1, 1],
   },
   {
     name: '2. diagnonal C',
-    cells: [{ x: 0, y: -1, edges: 4 }, { x: 1, y: 1, edges: 4 }],
+    cells: [tc(0, -1, 4), tc(1, 1, 4)],
     bounds: [1, 2, 1, 2],
   },
   {
     name: '3. wye',
-    cells: [
-      { x: 0, y: -1, edges: 5 },
-      { x: 1, y: 1, edges: 4 },
-      { x: -1, y: 1, edges: 4 },
-    ],
+    cells: [tc(0, -1, 5), tc(1, 1, 4), tc(-1, 1, 4)],
     bounds: [2, 2, 1, 2],
   },
   {
     name: '3. stack',
-    cells: [
-      { x: 0, y: 0, edges: 4 },
-      { x: 0, y: 1, edges: 4 },
-      { x: 0, y: -1, edges: 4 },
-    ],
+    cells: [tc(0, 0, 4), tc(0, 1, 4), tc(0, -1, 4)],
     bounds: [1, 3, 1, 3],
   },
   {
     name: '4: square',
-    cells: [
-      { x: 1, y: 1, edges: 4 },
-      { x: -1, y: -1, edges: 4 },
-      { x: 1, y: -1, edges: 4 },
-      { x: -1, y: 1, edges: 4 },
-    ],
+    cells: [tc(1, 1, 4), tc(-1, -1, 4), tc(1, -1, 4), tc(-1, 1, 4)],
     bounds: [2, 2, 2, 2],
   },
   {
     // Four cells on the boundary plus an interior rectangle.
     name: '5: interior',
-    cells: [
-      { x: 0, y: 4, edges: 6 },
-      { x: 2, y: 0, edges: 4 },
-      { x: 0, y: -3, edges: 6 },
-      { x: -1, y: 0, edges: 4 },
-      { x: 0, y: 0, edges: 4 },
-    ],
+    cells: [tc(0, 4, 6), tc(2, 0, 4), tc(0, -3, 6), tc(-1, 0, 4), tc(0, 0, 4)],
     bounds: [1, 3, 1, 3],
   },
 ];
@@ -233,7 +217,7 @@ function checkBoundary(cell: Cell, count: number): void {
 function runTest(test: Test): void {
   const { name, cells, bounds } = test;
   const level = new LevelBuilder();
-  level.createLevel(5, cells);
+  level.createLevel(5, cells.map(({ pos }) => pos));
   for (let i = 0; i < bounds.length; i++) {
     const cell = level.cells.get(-i - 1);
     if (!cell) {
