@@ -16,6 +16,7 @@ import { BuildState, Builder } from './action';
 import { Config, BuildArgs } from './config';
 import { projectName } from './info';
 import { Watcher, FileInfo } from './watch';
+import { projectRoot } from './util';
 
 /** Parameters for running the HTTP server. */
 export interface ServerParameters extends BuildArgs {
@@ -44,7 +45,6 @@ const baseFiles: readonly StaticFile[] = [
 
 /** Handle requests for /. */
 async function handleRoot(
-  options: ServerParameters,
   req: Request,
   res: Response,
   next: NextFunction,
@@ -60,6 +60,23 @@ async function handleRoot(
   } catch (e) {
     next(e);
   }
+}
+
+express.static.mime.define({ 'text/x.typescript': ['ts'] });
+
+/** Handle requests for /src. */
+function handleSrc(req: Request, res: Response, next: NextFunction): void {
+  res.setHeader('Cache-Control', 'no-cache');
+  const reqPath = req.params[0];
+  if (!/^[a-z0-9][-_.a-z0-9]*(?:\/[a-z0-9][-_.a-z0-9]*)*$/i.test(reqPath)) {
+    res.setHeader('Content-Type', 'text/plain;charset=UTF-8');
+    res.status(404).send(`Not found: ${JSON.stringify(reqPath)}`);
+    return;
+  }
+  const fullPath = path.join('src', reqPath);
+  send(req, fullPath, {
+    cacheControl: false,
+  }).pipe(res);
 }
 
 /** Create a handler for a file on disk. */
@@ -214,13 +231,14 @@ export function serve(options: ServerParameters) {
   const wss = new WebSocket.Server({ server });
 
   if (options.config == Config.Debug) {
-    app.get('/', (res, req, next) => handleRoot(options, res, req, next));
+    app.get('/', handleRoot);
   } else {
     app.get('/', staticHandler({ url: '/', file: 'build/index.html' }));
   }
   for (const file of baseFiles) {
     app.get(file.url, staticHandler(file));
   }
+  app.get('/src/*', handleSrc);
   wss.on('connection', ws => handleWebSocket(options, ws));
 
   server.listen(port, host, () => {
