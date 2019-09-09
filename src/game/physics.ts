@@ -7,6 +7,10 @@ import {
   initRect,
   rectAddCircle,
   rectsIntersect,
+  dotSubtract,
+  wedgeSubtract,
+  distance,
+  vector,
 } from '../lib/math';
 import { EntityBase } from './entity';
 import { isDebug, DebugColor } from '../debug/debug';
@@ -148,17 +152,27 @@ export function updateColliders(): void {
 
   // Edges we can collide with.
   const edges: Edge[] = [];
+  // Edge vertexes we can collide with.
+  const vertexes: Vector[] = [];
 
-  // Get statit colliders.
+  // Get static colliders.
   function initStatic(): void {
     edges.length = 0;
+    vertexes.length = 0;
     for (const cell of level.cells) {
       if (rectsIntersect(cell.bounds, bounds)) {
         for (const edge of cell.edges()) {
-          if (!edge.passable) {
+          const { passable, vertex0, vertex1 } = edge;
+          if (!passable) {
             edges.push(edge);
             if (isDebug) {
               edge.debugColor = color;
+            }
+            if (!vertexes.includes(vertex0)) {
+              vertexes.push(vertex0);
+            }
+            if (!vertexes.includes(vertex1)) {
+              vertexes.push(vertex1);
             }
           }
         }
@@ -166,10 +180,43 @@ export function updateColliders(): void {
     }
   }
 
+  // Resolve a collision with an edge. Returns null if we do not collide with
+  // the given edge.
+  function resolveEdge(pos: Vector, radius: number, edge: Edge): Vector | null {
+    const { vertex0, vertex1 } = edge;
+    const edgeLen = distance(vertex0, vertex1);
+    // Perpendicular component.
+    const perp = wedgeSubtract(vertex1, vertex0, pos, vertex0) / edgeLen;
+    if (perp > radius || perp < 0) {
+      return null;
+    }
+    // Parallel component.
+    const par = dotSubtract(vertex1, vertex0, pos, vertex0) / edgeLen;
+    if (par < 0 || edgeLen < par) {
+      return null;
+    }
+    // Project the object out of the edge.
+    const amt = (radius - perp) / edgeLen;
+    return vector(
+      pos.x - amt * (vertex1.y - vertex0.y),
+      pos.y + amt * (vertex1.x - vertex0.x),
+    );
+  }
+
   // Resolve a collision with static objects.
-  // function resolveStatic(pos: Vector): Vector {
-  //
-  //}
+  function resolveStatic(pos: Vector, radius: number): Vector {
+    let result = pos;
+    for (const edge of edges) {
+      const candidate = resolveEdge(pos, radius, edge);
+      if (
+        candidate &&
+        distanceSquared(candidate, pos) > distanceSquared(result, pos)
+      ) {
+        result = candidate;
+      }
+    }
+    return result || null;
+  }
 
   // Handle singleton.
   for (const entity of singles) {
@@ -188,7 +235,9 @@ export function updateColliders(): void {
     initStatic();
 
     const ent = entity.entity;
-    ent.pos = madd(ent.pos, ent.velocity, frameDT);
+    const pos = madd(ent.pos, ent.velocity, frameDT);
+    const cpos = resolveStatic(pos, ent.radius);
+    ent.pos = cpos || pos;
   }
 
   for (const group of groups.values()) {
@@ -211,7 +260,9 @@ export function updateColliders(): void {
 
     for (const entity of group) {
       const ent = entity.entity;
-      ent.pos = madd(ent.pos, ent.velocity, frameDT);
+      const pos = madd(ent.pos, ent.velocity, frameDT);
+      const cpos = resolveStatic(pos, ent.radius);
+      ent.pos = cpos || pos;
     }
   }
 }
