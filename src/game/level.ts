@@ -139,7 +139,7 @@ export interface Edge {
 
 /** A game level, consisting of cells and the edges that connect them. */
 export interface Level {
-  readonly cells: ReadonlyMap<number, Cell>;
+  readonly cells: readonly Cell[];
   readonly edges: readonly Edge[];
 
   /**
@@ -204,8 +204,7 @@ interface EdgeSplit {
  * @param centers Center of each cell in the level.
  */
 export function createLevel(size: number, centers: readonly Vector[]): Level {
-  const cells = new Map<number, Cell>();
-  let cellCounter = 0;
+  const cells: Cell[] = [];
 
   {
     const center = centers[0];
@@ -223,9 +222,8 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
         center,
       );
       rootEdges.push(e1);
-      const cell = makeCell(vertexes[i], -i - 1, e2);
+      const cell = makeCell(vertexes[i], -1, e2);
       cell.walkable = false;
-      cells.set(-i - 1, cell);
     }
     newCell(center, rootEdges);
     for (let i = 1; i < centers.length; i++) {
@@ -239,13 +237,11 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
   function findCell(point: Vector): Cell {
     let bestDistanceSquared = Infinity;
     let bestCell: Cell | undefined;
-    for (const parent of cells.values()) {
-      if (parent.index >= 0) {
-        const distSquared = distanceSquared(point, parent.center);
-        if (distSquared < bestDistanceSquared) {
-          bestDistanceSquared = distSquared;
-          bestCell = parent;
-        }
+    for (const parent of cells) {
+      const distSquared = distanceSquared(point, parent.center);
+      if (distSquared < bestDistanceSquared) {
+        bestDistanceSquared = distSquared;
+        bestCell = parent;
       }
     }
     if (!bestCell) {
@@ -290,7 +286,7 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
     if (!edges.length) {
       throw new AssertionError('no edges');
     }
-    const index = cellCounter++;
+    const index = cells.length;
     let prev = edges[edges.length - 1];
     for (const edge of edges) {
       prev.next = edge;
@@ -298,7 +294,7 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
       prev = edge;
     }
     const cell = makeCell(center, index, prev);
-    cells.set(index, cell);
+    cells.push(cell);
     return cell;
   }
 
@@ -421,7 +417,7 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
    */
   function findUnpassableEdges(center: Vector, radius: number): Edge[] {
     const result: Edge[] = [];
-    for (const cell of cells.values()) {
+    for (const cell of cells) {
       if (cell.index >= 0) {
         for (const edge of cell.edges()) {
           if (
@@ -442,7 +438,7 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
   }
 
   const edges: Edge[] = [];
-  for (const cell of cells.values()) {
+  for (const cell of cells) {
     edges.push(...cell.edges());
   }
 

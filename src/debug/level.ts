@@ -268,10 +268,8 @@ export function drawLevel(): void {
   ctx.scale(scale, -scale);
   const cameraTarget = getCameraTarget();
   ctx.translate(-cameraTarget.x, -cameraTarget.y);
-  for (const cell of level.cells.values()) {
-    if (cell.index >= 0) {
-      drawCell(cell, scale);
-    }
+  for (const cell of level.cells) {
+    drawCell(cell, scale);
   }
   drawHighlights(scale);
   if (debugView.entities) {

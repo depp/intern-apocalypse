@@ -40,7 +40,7 @@ function updateNavigation(): void {
     return;
   }
   lastNavigationUpdateTime = levelTime;
-  for (const cell of level.cells.values()) {
+  for (const cell of level.cells) {
     cell.navigateNext = null;
     cell.navigateDistance = 0;
   }

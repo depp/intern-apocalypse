@@ -39,11 +39,7 @@ function createGeometry(): void {
   const cellColorList: Uint8Array[] = [];
   let index = 0;
   const wallHeight = 0.7;
-  for (const cell of level.cells.values()) {
-    if (cell.index < 0) {
-      // Border cell.
-      continue;
-    }
+  for (const cell of level.cells) {
     const z = ((!cell.walkable as unknown) as number) * wallHeight;
     const edges: Readonly<Edge>[] = Array.from(cell.edges());
     const n = edges.length;

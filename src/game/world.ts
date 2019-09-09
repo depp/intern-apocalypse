@@ -21,12 +21,12 @@ export let level: Level;
   // Lloyd's algorithm / Voronoi relaxation
   for (let j = 0; j < 3; j++) {
     for (let i = 0; i < count; i++) {
-      cells[i] = level.cells.get(i)!.centroid();
+      cells[i] = level.cells[i].centroid();
     }
     level = createLevel(size, cells);
   }
   for (let i = 0; i < count; i++) {
-    const cell = level.cells.get(i)!;
+    const cell = level.cells[i];
     cell.walkable = rand.range() < 0.8;
   }
   level.updateProperties();

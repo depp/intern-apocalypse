@@ -15,6 +15,7 @@ function tc(x: number, y: number, edges: number) {
 interface Test {
   name: string;
   cells: CellInfo[];
+  // NOTE: this can no longer be checked.
   bounds: number[]; // Top, left, bottom, right.
 }
 
@@ -190,47 +191,12 @@ function cellFailure(cell: Cell, e: Failure): never {
   throw new Failure(`cell #${cell.index}: ${e.message}`);
 }
 
-function checkBoundary(cell: Cell, count: number): void {
-  const edges = getEdges(cell);
-  const n = edges.length;
-  for (let i = 0; i < n; i++) {
-    const edge = edges[i];
-    const next = i + 1 < n ? edges[i + 1] : null;
-    const prev = i > 0 ? edges[i - 1] : null;
-    try {
-      checkEdge(cell, edge, next, prev);
-    } catch (e) {
-      if (e instanceof Failure) {
-        throw new Failure(`edge ${i}: ${e.message}`);
-      }
-      throw e;
-    }
-  }
-  if (n != count) {
-    throw new Failure(`got ${n} edges, expect ${count}`);
-  }
-}
-
 function runTest(test: Test): void {
-  const { name, cells, bounds } = test;
+  const { name, cells } = test;
   const level = createLevel(5, cells.map(({ pos }) => pos));
-  for (let i = 0; i < bounds.length; i++) {
-    const cell = level.cells.get(-i - 1);
-    if (!cell) {
-      throw new Failure(`missing cell #${-i - 1}`);
-    }
-    try {
-      checkBoundary(cell, bounds[i]);
-    } catch (e) {
-      if (e instanceof Failure) {
-        cellFailure(cell, e);
-      }
-      throw e;
-    }
-  }
   for (let i = 0; i < cells.length; i++) {
     const info = cells[i];
-    const cell = level.cells.get(i);
+    const cell = level.cells[i];
     if (cell == null) {
       throw new Failure(`missing cell #${i}`);
     }
