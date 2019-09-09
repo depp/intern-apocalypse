@@ -10,6 +10,7 @@ import { clamp } from '../lib/util';
 import { levelShader, LevelAttrib } from './shaders';
 import { Edge } from '../game/level';
 import { concatArrays } from '../lib/array';
+import { AssertionError } from '../debug/debug';
 
 let indexBuf!: WebGLBuffer | null;
 let posBuf!: WebGLBuffer | null;
@@ -65,7 +66,10 @@ function createGeometry(): void {
     cellColorList.push(flatColor(n, cell.walkable));
     if (!cell.walkable) {
       for (const edge of edges) {
-        const back = level.edgeBack(edge);
+        const { back } = edge;
+        if (!back) {
+          throw new AssertionError('back == null');
+        }
         if (back.cell!.walkable) {
           const { vertex0, vertex1 } = edge;
           cellIndexList.push(

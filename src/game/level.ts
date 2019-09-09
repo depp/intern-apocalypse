@@ -104,15 +104,6 @@ export interface Edge {
   center: Vector;
 
   /**
-   * The index of this edge within the level.
-   *
-   * Each edge is paired with another edge, back to back, and the pairs are
-   * allocated sequentially. So the back side of this edge has index equal to
-   * (index^1).
-   */
-  index: number;
-
-  /**
    * True if the player can walk through the edge from front to back. This
    * should not be set manually, it is set by updateProperties().
    */
@@ -122,10 +113,15 @@ export interface Edge {
   cell: Cell | null;
 
   /**
+   * The edge on the back side of this edge. If it exists, the vertexes are the
+   * same on the back edge, but the order is reversed.
+   */
+  back: Edge | null;
+
+  /**
    * Reference to the previous (clockwise) edge. These form a circular linked
    * list for each cell, except the border cells.
    */
-
   prev: Edge | null;
 
   /**
@@ -144,17 +140,12 @@ export interface Edge {
 /** A game level, consisting of cells and the edges that connect them. */
 export interface Level {
   readonly cells: ReadonlyMap<number, Cell>;
-  readonly edges: ReadonlyMap<number, Edge>;
+  readonly edges: readonly Edge[];
 
   /**
    * Find the cell that contains the given point.
    */
   findCell(point: Vector): Cell;
-
-  /**
-   * Get the back side of the given edge.
-   */
-  edgeBack(edge: Edge): Edge;
 
   /**
    * Update precomputed properties.
@@ -214,9 +205,7 @@ interface EdgeSplit {
  */
 export function createLevel(size: number, centers: readonly Vector[]): Level {
   const cells = new Map<number, Cell>();
-  const edges = new Map<number, Edge>();
   let cellCounter = 0;
-  let edgeCounter = 0;
 
   {
     const center = centers[0];
@@ -265,54 +254,31 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
     return bestCell;
   }
 
-  /**
-   * Get the back side of the given edge.
-   */
-  function edgeBack(edge: Edge): Edge {
-    if (edge == null) {
-      throw new AssertionError('null edge');
-    }
-    const back = edges.get(edge.index ^ 1);
-    if (back == null) {
-      throw new AssertionError('could not find back to edge', { edge });
-    }
-    return back;
-  }
-
-  function newEdge(
-    vertex0: Vector,
-    vertex1: Vector,
-    center: Vector,
-    index: number,
-  ): Edge {
-    const edge: Edge = {
+  /** Create a new edge. Should only be called by newEdgePair. */
+  function newEdge(vertex0: Vector, vertex1: Vector, center: Vector): Edge {
+    return {
       vertex0,
       vertex1,
       center,
-      index,
       passable: true,
       cell: null,
+      back: null,
       prev: null,
       next: null,
     };
-    edges.set(index, edge);
-    return edge;
   }
 
-  /**
-   * Create a new edge pair and add them to the level.
-   */
+  /** Create a new edge pair (front and back). */
   function newEdgePair(
     vertex0: Vector,
     vertex1: Vector,
     center: Vector,
   ): [Edge, Edge] {
-    const index = edgeCounter;
-    edgeCounter += 2;
-    return [
-      newEdge(vertex0, vertex1, center, index),
-      newEdge(vertex1, vertex0, center, index + 1),
-    ];
+    const e1 = newEdge(vertex0, vertex1, center);
+    const e2 = newEdge(vertex1, vertex0, center);
+    e1.back = e2;
+    e2.back = e1;
+    return [e1, e2];
   }
 
   /**
@@ -360,13 +326,22 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
           }
           vertex = lerp(vertex0, vertex1, alpha);
         }
-        return { front, back: edgeBack(front), vertex };
+        if (!front.back) {
+          throw new AssertionError('back == null');
+        }
+        return { front, back: front.back, vertex };
       }
       if (!next) {
         // Find the next border cell.
-        let back = edgeBack(front);
+        let back = front.back;
+        if (!back) {
+          throw new AssertionError('back == null');
+        }
         while (back.prev) {
-          back = edgeBack(back.prev);
+          back = back.prev.back;
+          if (back == null) {
+            throw new AssertionError('back == null');
+          }
         }
         // This will happen for border cells.
         return { front, back, vertex: vertex1 };
@@ -466,19 +441,18 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
     return result;
   }
 
+  const edges: Edge[] = [];
+  for (const cell of cells.values()) {
+    edges.push(...cell.edges());
+  }
+
   /**
    * Update precomputed properties.
    */
   function updateProperties() {
-    for (let i = 0; i < edgeCounter; i += 2) {
-      const edge0 = edges.get(i);
-      const edge1 = edges.get(i + 1);
-      if (edge0 && edge1) {
-        const w0 = edge0.cell!.walkable;
-        const w1 = edge1.cell!.walkable;
-        edge0.passable = w1 || !w0;
-        edge1.passable = w0 || !w1;
-      }
+    for (const edge of edges) {
+      const { cell, back } = edge;
+      edge.passable = back != null && (!cell!.walkable || back.cell!.walkable);
     }
   }
 
@@ -486,7 +460,6 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
     cells,
     edges,
     findCell,
-    edgeBack,
     updateProperties,
     findUnpassableEdges,
   };

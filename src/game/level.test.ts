@@ -94,7 +94,7 @@ function pcell(c: Cell | null) {
 }
 
 function pedge(e: Edge | null) {
-  return e ? `edge[${e.index}]` : 'null';
+  return e ? `edge(${pt(e.vertex0)},${pt(e.vertex1)})` : 'null';
 }
 
 function checkEdge(
@@ -144,17 +144,14 @@ function checkWinding(cell: Cell, edge: Edge) {
 }
 
 function getEdges(cell: Cell): Edge[] {
-  const edgeIndexes = new Set<number>();
   let edge: Edge | null = cell.edge;
   let edges: Edge[] = [];
-  while (edge != null && !edgeIndexes.has(edge.index)) {
-    edgeIndexes.add(edge.index);
+  while (edge != null && !edges.includes(edge)) {
     edges.push(edge);
     edge = edge.next;
   }
   edge = cell.edge.prev;
-  while (edge != null && !edgeIndexes.has(edge.index)) {
-    edgeIndexes.add(edge.index);
+  while (edge != null && !edges.includes(edge)) {
     edges.unshift(edge);
     edge = edge.prev;
   }
@@ -187,8 +184,8 @@ function cellFailure(cell: Cell, e: Failure): never {
   const edges = getEdges(cell);
   console.log(`Cell #${cell.index}`);
   for (let i = 0; i < edges.length; i++) {
-    const { index, vertex0, vertex1 } = edges[i];
-    console.log(`  edge[${i}] #${index}: ${pt(vertex0)} => ${pt(vertex1)}`);
+    const { vertex0, vertex1 } = edges[i];
+    console.log(`  edge[${i}]: ${pt(vertex0)} => ${pt(vertex1)}`);
   }
   throw new Failure(`cell #${cell.index}: ${e.message}`);
 }

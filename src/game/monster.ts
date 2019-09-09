@@ -18,7 +18,7 @@ import {
   monsterTarget,
 } from './entity';
 import { spawnDeath, spawnSlash } from './particles';
-import { isDebug } from '../debug/debug';
+import { isDebug, AssertionError } from '../debug/debug';
 import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
 import { level } from './world';
@@ -74,7 +74,10 @@ function updateNavigation(): void {
       cell.navigateNext = next;
       cell.navigateDistance = navigateDistance;
       for (const edge of cell.edges()) {
-        const back = level.edgeBack(edge);
+        const { back } = edge;
+        if (!back) {
+          throw new AssertionError('back == null');
+        }
         if (back.passable && back.cell && !back.cell.navigateDistance) {
           frontier.push({
             cell: back.cell,
