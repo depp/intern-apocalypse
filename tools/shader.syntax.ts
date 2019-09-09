@@ -185,7 +185,7 @@ export class Shader {
             const m = tok.data.match(/^0*([1-9][0-9]*)?$/);
             if (m) {
               const d = m[1];
-              if (d == '') {
+              if (d == null) {
                 out += '0';
               } else {
                 out += d;
