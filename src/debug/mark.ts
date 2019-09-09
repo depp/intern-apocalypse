@@ -1,4 +1,4 @@
-import { Vector } from '../lib/math';
+import { Vector, Rect } from '../lib/math';
 import { DebugColor } from './debug';
 
 export interface DebugMarkBase {
@@ -23,8 +23,7 @@ export interface DebugMarkCircle extends DebugMarkBase {
 export interface DebugMarkRectangle extends DebugMarkBase {
   kind: 'rectangle';
   /** Position of mark. */
-  min: Vector;
-  max: Vector;
+  rect: Rect;
   /** Color to draw mark with. */
   color: DebugColor;
 }

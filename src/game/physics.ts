@@ -1,4 +1,13 @@
-import { Vector, madd, length, distanceSquared, vector } from '../lib/math';
+import {
+  Vector,
+  madd,
+  length,
+  distanceSquared,
+  vector,
+  newRect,
+  rectFromCircle,
+  rectUnion,
+} from '../lib/math';
 import { EntityBase } from './entity';
 import { isDebug } from '../debug/debug';
 import { frameDT } from './time';
@@ -129,6 +138,10 @@ export function updateColliders(): void {
     }
   }
 
+  /** Bounds of the current group. */
+  const bounds = newRect();
+  const entityBounds = newRect();
+
   for (const entity of singles) {
     if (isDebug) {
       debugMarks.push({
@@ -146,14 +159,10 @@ export function updateColliders(): void {
   let color = 1;
   for (const group of groups.values()) {
     color++;
-    let { x: x0, y: y0 } = group[0].pos;
-    let x1 = x0;
-    let y1 = y0;
-    for (const { radius, pos } of group) {
-      x0 = Math.min(x0, pos.x - radius);
-      x1 = Math.max(x1, pos.x + radius);
-      y0 = Math.min(y0, pos.y - radius);
-      y1 = Math.max(y1, pos.y + radius);
+    rectFromCircle(bounds, group[0].pos, group[0].radius);
+    for (const { pos, radius } of group) {
+      rectFromCircle(entityBounds, pos, radius);
+      rectUnion(bounds, entityBounds);
     }
 
     if (isDebug) {
@@ -161,8 +170,7 @@ export function updateColliders(): void {
       debugMarks.push({
         time: 0,
         kind: 'rectangle',
-        min: vector(x0, y0),
-        max: vector(x1, y1),
+        rect: Object.assign({}, bounds),
         color,
       });
     }

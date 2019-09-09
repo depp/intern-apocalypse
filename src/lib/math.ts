@@ -227,3 +227,32 @@ export function projectToCircle(
     a = radius / Math.hypot(dx, dy);
   return vector(center.x + dx * a, center.y + dy * a);
 }
+
+/** A 2D rectangle. */
+export interface Rect {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
+/** Create a new empty rectangle. */
+export function newRect(): Rect {
+  return { x0: 0, y0: 0, x1: 0, y1: 0 };
+}
+
+/** Get the bounding box of a circle. */
+export function rectFromCircle(out: Rect, pos: Vector, radius: number): void {
+  out.x0 = pos.x - radius;
+  out.y0 = pos.y - radius;
+  out.x1 = pos.x + radius;
+  out.y1 = pos.y + radius;
+}
+
+/** Set out to the smallest rectangle containing out and input. */
+export function rectUnion(out: Rect, input: Rect): void {
+  out.x0 = Math.min(out.x0, input.x0);
+  out.y0 = Math.min(out.y0, input.y0);
+  out.x1 = Math.max(out.x1, input.x1);
+  out.y1 = Math.max(out.y1, input.y1);
+}

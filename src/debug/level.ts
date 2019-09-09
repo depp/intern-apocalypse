@@ -245,9 +245,10 @@ function drawMarks(scale: number): void {
         break;
       case 'rectangle':
         {
-          const { min, max, color } = mark;
+          const { rect, color } = mark;
           ctx.strokeStyle = debugColors[color];
-          ctx.strokeRect(min.x, min.y, max.x - min.x, max.y - min.y);
+          const { x0, y0, x1, y1 } = rect;
+          ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
         }
         break;
       default:
