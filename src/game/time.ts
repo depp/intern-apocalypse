@@ -19,6 +19,14 @@ export let frameDT: number;
 /** Timestamp of the last frame update, in milliseconds. */
 let lastTimeMS: DOMHighResTimeStamp = 0;
 
+/** Time since level start. */
+export let levelTime: number = 0;
+
+/** Reset the time since level start. */
+export function resetTime(): void {
+  levelTime = 0;
+}
+
 /**
  * Update the current time.
  *
@@ -29,4 +37,5 @@ export function updateTime(curTimeMS: DOMHighResTimeStamp): void {
     ? clamp(curTimeMS - lastTimeMS, 0, maxDeltaTimeMS) * 1e-3
     : 0;
   lastTimeMS = curTimeMS;
+  levelTime += frameDT;
 }

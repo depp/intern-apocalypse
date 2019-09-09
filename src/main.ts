@@ -7,7 +7,7 @@ import { updateCamera } from './game/camera';
 import { startInput, endFrameInput } from './lib/input';
 import { spawnPlayer } from './game/player';
 import { render } from './render/render';
-import { updateTime } from './game/time';
+import { updateTime, resetTime } from './game/time';
 import { updateEntities } from './game/entity';
 import { State, currentState, setState } from './lib/global';
 import { startMenu, pushMenu, endMenu, popMenu } from './render/ui';
@@ -65,6 +65,7 @@ function pushNewGameMenu(): void {
 export function newGame(difficulty: Difficulty): void {
   setState(State.Game);
   setDifficulty(difficulty);
+  resetTime();
   spawnPlayer();
   spawnMonster(vector(-9, -9));
   spawnMonster(vector(-2, 9));
