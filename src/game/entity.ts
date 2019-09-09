@@ -60,6 +60,8 @@ export interface Collider extends EntityBase {
   pos: Readonly<Vector>;
   /** The entity collision radius. */
   radius: number;
+  /** If true, the entity has a "smell" which attracts monsters. */
+  smell?: boolean;
 
   /**
    * Damage this entity.
@@ -70,6 +72,9 @@ export interface Collider extends EntityBase {
   /** Arrow for debugging view. */
   debugArrow?: Vector;
 }
+
+/** The location which attracts the monsters. */
+export let monsterTarget: Readonly<Vector> | null | undefined;
 
 /** List of all colliders in the world. */
 export const colliders: Collider[] = [];
@@ -116,6 +121,13 @@ export function updateEntities(): void {
   clearDead(entities);
   clearDead(modelInstances);
   clearDead(particlesInstances);
+  let target: Readonly<Vector> | undefined;
+  for (const entity of colliders) {
+    if (entity.smell) {
+      target = entity.pos;
+    }
+  }
+  monsterTarget = target;
 }
 
 /** A marker for the debug map. */

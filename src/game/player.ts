@@ -61,6 +61,7 @@ export function spawnPlayer(): void {
   const entity: Entity & Collider = {
     pos,
     radius: 0.5,
+    smell: true,
     update() {
       // Update player position.
       let movement = vector(

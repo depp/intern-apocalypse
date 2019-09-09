@@ -1,4 +1,11 @@
-import { canonicalAngle, angleVector, Vector, scaleVector } from '../lib/math';
+import {
+  canonicalAngle,
+  angleVector,
+  Vector,
+  scaleVector,
+  normalizeSubtract,
+  zeroVector,
+} from '../lib/math';
 import { ModelAsset } from '../model/models';
 import { createWalker, WalkerParameters } from './walker';
 import {
@@ -8,6 +15,7 @@ import {
   Entity,
   Collider,
   colliders,
+  monsterTarget,
 } from './entity';
 import { frameDT } from './time';
 import { spawnDeath, spawnSlash } from './particles';
@@ -23,7 +31,6 @@ export function spawnMonster(pos: Readonly<Vector>): void {
     transform: walker.transform,
   };
   modelInstances.push(model);
-  let angle = 0;
   const params: WalkerParameters = {
     speed: 4,
     acceleration: 20,
@@ -34,8 +41,11 @@ export function spawnMonster(pos: Readonly<Vector>): void {
     pos,
     radius: 0.5,
     update() {
-      angle = canonicalAngle(angle + frameDT);
-      walker.update(params, angleVector(angle));
+      let movement = zeroVector;
+      if (monsterTarget) {
+        movement = normalizeSubtract(monsterTarget, this.pos);
+      }
+      walker.update(params, movement);
       this.pos = walker.pos;
       if (isDebug) {
         this.debugArrow = walker.facing;
