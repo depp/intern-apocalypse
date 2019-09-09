@@ -131,12 +131,9 @@ function minifyPlugin(config: BuildArgs): rollup.Plugin {
           },
         };
       }
-      let { code, map } = terser.minify(input, options);
+      const { code, map } = terser.minify(input, options);
       if (!code) {
         throw new Error('terser failed');
-      }
-      if (config.config == Config.Release) {
-        code = code.trimEnd() + '\n//# sourceMappingURL=game.js.map\n';
       }
       return { code, map };
     },
@@ -225,11 +222,24 @@ class RollupJS implements BuildAction {
       globals: globals,
     };
     const { output } = await bundle.generate(outputOptions);
-    const { code, map } = output[0];
-    await fs.promises.writeFile(params.output, code);
-    if (map) {
-      await fs.promises.writeFile(params.output + '.map', map);
+    let { code, map } = output[0];
+    let writeMap: Promise<void> | null = null;
+    if (map && !config.beautify) {
+      const obj: any = Object.assign({}, map);
+      delete obj.file;
+      delete obj.sourcesContent;
+      const mapPath = params.output + '.map';
+      writeMap = fs.promises.writeFile(mapPath, JSON.stringify(obj), 'utf8');
+      if (config.config != Config.Competition) {
+        const mapRel = path.basename(mapPath);
+        if (!code.endsWith('\n')) {
+          code += '\n';
+        }
+        code += `//# sourceMappingURL=${mapRel}\n`;
+      }
     }
+    await fs.promises.writeFile(params.output, code);
+    await writeMap;
     return true;
   }
 }
