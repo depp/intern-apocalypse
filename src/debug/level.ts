@@ -7,11 +7,11 @@ import { debugView } from '../lib/settings';
 import { ctx } from './global';
 import { Cell, Edge } from '../game/level';
 import { Vector, vector } from '../lib/math';
-import { walkerRadius } from '../game/walk';
 import { level } from '../game/world';
 import { getCameraTarget, cameraMatrix } from '../game/camera';
-import { colliders, Collider, debugMarks } from '../game/entity';
+import { debugMarks } from '../debug/mark';
 import { frameDT } from '../game/time';
+import { Collider, colliders } from '../game/physics';
 
 const edgeInset = 2;
 
@@ -213,7 +213,7 @@ function drawEntity(entity: Collider, scale: number): void {
   }
 
   ctx.beginPath();
-  ctx.arc(pos.x, pos.y, walkerRadius, 0, 2 * Math.PI);
+  ctx.arc(pos.x, pos.y, entity.radius, 0, 2 * Math.PI);
   ctx.fillStyle = '#800';
   ctx.fill();
 
@@ -233,11 +233,27 @@ function drawEntity(entity: Collider, scale: number): void {
 function drawMarks(scale: number): void {
   ctx.lineWidth = 3 / scale;
   for (const mark of debugMarks) {
-    const { pos, radius, color } = mark;
-    ctx.beginPath();
-    ctx.strokeStyle = debugColors[color];
-    ctx.arc(pos.x, pos.y, radius, 0, 2 * Math.PI);
-    ctx.stroke();
+    switch (mark.kind) {
+      case 'circle':
+        {
+          const { pos, radius, color } = mark;
+          ctx.beginPath();
+          ctx.strokeStyle = debugColors[color];
+          ctx.arc(pos.x, pos.y, radius, 0, 2 * Math.PI);
+          ctx.stroke();
+        }
+        break;
+      case 'rectangle':
+        {
+          const { min, max, color } = mark;
+          ctx.strokeStyle = debugColors[color];
+          ctx.strokeRect(min.x, min.y, max.x - min.x, max.y - min.y);
+        }
+        break;
+      default:
+        const dummy: never = mark;
+        throw new AssertionError('invalid mark');
+    }
   }
 }
 

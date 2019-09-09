@@ -9,18 +9,11 @@ import {
   scaleVector,
   madd,
   normalizeSubtract,
+  zeroVector,
 } from '../lib/math';
 import { frameDT } from './time';
-import {
-  ModelInstance,
-  modelInstances,
-  entities,
-  Entity,
-  Collider,
-  colliders,
-  findColliders,
-  debugMarks,
-} from './entity';
+import { ModelInstance, modelInstances, entities, Entity } from './entity';
+import { Collider, findColliders, colliders } from './physics';
 import { ModelAsset } from '../model/models';
 import { playerSettings } from '../lib/settings';
 import {
@@ -32,23 +25,15 @@ import {
 import { setCameraTarget } from './camera';
 import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
-import { createWalker } from './walker';
+import { createWalker, Walker } from './walker';
 import { isDebug, DebugColor } from '../debug/debug';
+import { debugMarks } from '../debug/mark';
 
 /** Spawn the player in the level. */
 export function spawnPlayer(): void {
   let pos = vector(0, 0);
-  const walker = createWalker(pos);
-  const swordTransform = matrixNew();
-  const model: ModelInstance = {
-    model: ModelAsset.Person,
-    transform: walker.transform,
-  };
-  const swordModel: ModelInstance = {
-    model: ModelAsset.Sword,
-    transform: swordTransform,
-  };
-  modelInstances.push(model, swordModel);
+  let model: ModelInstance;
+  let sword: ModelInstance;
 
   // Amount of time into attack.
   let attackTime = -1;
@@ -58,8 +43,10 @@ export function spawnPlayer(): void {
   // True if the attack hasn't landed yet.
   let pendingHit = false;
 
+  let walker: Walker;
   const entity: Entity & Collider = {
     pos,
+    velocity: zeroVector,
     radius: 0.5,
     smell: true,
     update() {
@@ -74,13 +61,12 @@ export function spawnPlayer(): void {
         movement = scaleVector(movement, 1 / Math.sqrt(magSquared));
       }
       walker.update(playerSettings, movement);
-      this.pos = walker.pos;
       if (isDebug) {
         this.debugArrow = walker.facing;
       }
 
       // Update camera position.
-      setCameraTarget(walker.pos);
+      setCameraTarget(this.pos);
 
       // Update attack state.
       if (buttonPress[Button.Action]) {
@@ -104,6 +90,7 @@ export function spawnPlayer(): void {
           if (isDebug) {
             debugMarks.push({
               time: 0.5,
+              kind: 'circle',
               pos,
               radius,
               color: DebugColor.Green,
@@ -126,6 +113,7 @@ export function spawnPlayer(): void {
       }
 
       // Set sword model transform.
+      const swordTransform = sword.transform;
       swordTransform.set(walker.transform);
       translateMatrix(swordTransform, [0.5 - 0.5 * Math.abs(frac), -0.4, 0.5]);
       rotateMatrixFromDirection(swordTransform, Axis.Y, 1 - blend, 1);
@@ -139,6 +127,16 @@ export function spawnPlayer(): void {
     },
     damage() {},
   };
+  walker = createWalker(entity);
+  model = {
+    model: ModelAsset.Person,
+    transform: walker.transform,
+  };
+  sword = {
+    model: ModelAsset.Sword,
+    transform: matrixNew(),
+  };
+  modelInstances.push(model, sword);
   entities.push(entity);
   colliders.push(entity);
 }

@@ -17,7 +17,7 @@ export interface ModelInstance extends EntityBase {
 }
 
 /** All model instances in the level. */
-export const modelInstances: ModelInstance[] = [];
+export let modelInstances: ModelInstance[];
 
 /** Parameters for particle effects. */
 export interface ParticlesParameters {
@@ -52,95 +52,22 @@ export interface ParticlesInstance extends EntityBase {
 }
 
 /** All particles instances in the level. */
-export const particlesInstances: ParticlesInstance[] = [];
-
-/** A game entity, which other objects can collide with. */
-export interface Collider extends EntityBase {
-  /** The entity position. */
-  pos: Vector;
-  /** The entity collision radius. */
-  radius: number;
-  /** If true, the entity has a "smell" which attracts monsters. */
-  smell?: boolean;
-
-  /**
-   * Damage this entity.
-   * @param direction The direction from the attack to this entity.
-   */
-  damage(direction: Vector): void;
-
-  /** Arrow for debugging view. */
-  debugArrow?: Vector;
-}
+export let particlesInstances: ParticlesInstance[];
 
 /** The location which attracts the monsters. */
 export let monsterTarget: Vector | null | undefined;
-
-/** List of all colliders in the world. */
-export const colliders: Collider[] = [];
-
-/** Find all colliders which touch the given circle. */
-export function findColliders(center: Vector, radius: number): Collider[] {
-  const result: Collider[] = [];
-  for (const entity of colliders) {
-    if (distanceSquared(center, entity.pos) <= (radius + entity.radius) ** 2) {
-      result.push(entity);
-    }
-  }
-  return result;
-}
 
 /** A game entity, which gets processed every tick. */
 export interface Entity extends EntityBase {
   /** Update the entity. Called every frame. */
   update(): void;
 }
-
 /** List of all active entities in the world. */
-export const entities: Entity[] = [];
+export let entities: Entity[];
 
-/** Remove dead entities from a list. */
-function clearDead<T extends EntityBase>(list: T[]): void {
-  let i = 0;
-  let j = 0;
-  while (i < list.length) {
-    const obj = list[i++];
-    if (!obj.isDead) {
-      list[j++] = obj;
-    }
-  }
-  list.length = j;
+/** Reset the entity system to make it ready for a new level. */
+export function resetEntities(): void {
+  entities = [];
+  modelInstances = [];
+  particlesInstances = [];
 }
-
-/** Update all enteties. */
-export function updateEntities(): void {
-  for (const entity of entities) {
-    entity.update();
-  }
-  clearDead(colliders);
-  clearDead(entities);
-  clearDead(modelInstances);
-  clearDead(particlesInstances);
-  let target: Vector | undefined;
-  for (const entity of colliders) {
-    if (entity.smell) {
-      target = entity.pos;
-    }
-  }
-  monsterTarget = target;
-}
-
-/** A marker for the debug map. */
-export interface DebugMark {
-  /** Time remaining before mark disappears. */
-  time: number;
-  /** Position of mark. */
-  pos: Vector;
-  /** Radius of mark. */
-  radius: number;
-  /** Color to draw mark with. */
-  color: DebugColor;
-}
-
-/** List of all debug marks in the level. */
-export const debugMarks: DebugMark[] = [];

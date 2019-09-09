@@ -7,14 +7,12 @@ import {
   distanceSquared,
 } from '../lib/math';
 import { ModelAsset } from '../model/models';
-import { createWalker, WalkerParameters } from './walker';
+import { createWalker, WalkerParameters, Walker } from './walker';
 import {
   ModelInstance,
   modelInstances,
   entities,
   Entity,
-  Collider,
-  colliders,
   monsterTarget,
 } from './entity';
 import { spawnDeath, spawnSlash } from './particles';
@@ -24,6 +22,7 @@ import { Sounds } from '../audio/sounds';
 import { level } from './world';
 import { Cell } from './level';
 import { levelTime } from './time';
+import { Collider, colliders } from './physics';
 
 /** Interval, in seconds, between navigation updates. */
 const navigationUpdateInterval = 0.5;
@@ -98,20 +97,17 @@ function updateNavigation(): void {
 
 /** Spawn a monster in the level. */
 export function spawnMonster(pos: Vector): void {
-  const walker = createWalker(pos);
-  const model: ModelInstance = {
-    model: ModelAsset.Eyestalk,
-    transform: walker.transform,
-  };
-  modelInstances.push(model);
   const params: WalkerParameters = {
     speed: 4,
     acceleration: 20,
     turnSpeed: 20,
   };
   let health = 2;
+  let walker: Walker;
+  let model: ModelInstance;
   const entity: Entity & Collider = {
     pos,
+    velocity: zeroVector,
     radius: 0.5,
     update() {
       const pos = this.pos;
@@ -130,7 +126,6 @@ export function spawnMonster(pos: Vector): void {
         }
       }
       walker.update(params, movement);
-      this.pos = walker.pos;
       if (isDebug) {
         this.debugArrow = walker.facing;
       }
@@ -143,7 +138,7 @@ export function spawnMonster(pos: Vector): void {
       spawnSlash(this.pos, direction);
       if (health > 0) {
         playSound(Sounds.MonsterHit);
-        walker.velocity = scaleVector(direction, 12);
+        this.velocity = scaleVector(direction, 12);
       } else {
         spawnDeath(model.transform, model.model);
         playSound(Sounds.MonsterDeath);
@@ -152,6 +147,12 @@ export function spawnMonster(pos: Vector): void {
       }
     },
   };
+  walker = createWalker(entity);
+  model = {
+    model: ModelAsset.Eyestalk,
+    transform: walker.transform,
+  };
+  modelInstances.push(model);
   entities.push(entity);
   colliders.push(entity);
 }

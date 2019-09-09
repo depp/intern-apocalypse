@@ -7,13 +7,12 @@ import { updateCamera } from './game/camera';
 import { startInput, endFrameInput } from './lib/input';
 import { spawnPlayer } from './game/player';
 import { render } from './render/render';
-import { updateTime, resetTime } from './game/time';
-import { updateEntities } from './game/entity';
 import { State, currentState, setState } from './lib/global';
 import { startMenu, pushMenu, endMenu, popMenu } from './render/ui';
 import { spawnMonster } from './game/monster';
 import { Difficulty, setDifficulty } from './game/difficulty';
 import { vector } from './lib/math';
+import { resetGame, updateGame } from './game/game';
 
 /**
  * Initialize game.
@@ -65,7 +64,7 @@ function pushNewGameMenu(): void {
 export function newGame(difficulty: Difficulty): void {
   setState(State.Game);
   setDifficulty(difficulty);
-  resetTime();
+  resetGame();
   spawnPlayer();
   spawnMonster(vector(-9, -9));
   spawnMonster(vector(-2, 9));
@@ -91,11 +90,7 @@ export function main(curTimeMS: DOMHighResTimeStamp): void {
     }
     lastState = currentState;
   }
-  updateTime(curTimeMS);
-  if (currentState == State.Game) {
-    updateEntities();
-  }
-  updateCamera();
+  updateGame(curTimeMS);
   endFrameInput();
   render();
 }

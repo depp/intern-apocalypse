@@ -15,11 +15,10 @@ import {
   translateMatrix,
   rotateMatrixFromAngle,
   Axis,
-  rotateMatrixFromDirection,
 } from '../lib/matrix';
-import { walk } from './walk';
 import { clamp } from '../lib/util';
 import { frameDT } from './time';
+import { Collider } from './physics';
 
 /** Parameters for a walker. */
 export interface WalkerParameters {
@@ -35,14 +34,8 @@ export interface WalkerParameters {
 
 /** An object which can walk around the level. */
 export interface Walker {
-  /** The current position. Updated by update(). */
-  pos: Vector;
-
   /** The direction the walker is facing. */
   facing: Vector;
-
-  /** The velocity of the walker. */
-  velocity: Vector;
 
   /** The transformation matrix. Updated by update(). */
   transform: Matrix;
@@ -60,18 +53,16 @@ export interface Walker {
  * Create a walker. This is not a complete entity by itself, but is a component
  * which manages the movement of an entity.
  */
-export function createWalker(pos: Vector): Walker {
+export function createWalker(entity: Collider): Walker {
   const transform = matrixNew();
   let angle = 0;
   return {
-    pos,
-    velocity: zeroVector,
     facing: angleVector(angle),
     transform,
 
     update(params: WalkerParameters, movement: Vector): void {
       // Calculate the new velocity.
-      let velocity = this.velocity;
+      let { velocity } = entity;
       const targetVelocity = scaleVector(movement, params.speed);
       const maxDeltaVelocity = params.acceleration * frameDT;
       const deltaVelocity = distance(velocity, targetVelocity);
@@ -84,10 +75,7 @@ export function createWalker(pos: Vector): Walker {
           maxDeltaVelocity / deltaVelocity,
         );
       }
-      this.velocity = velocity;
-
-      // Calculate the new position.
-      this.pos = walk(this.pos, scaleVector(velocity, frameDT));
+      entity.velocity = velocity;
 
       // Calculate the new facing angle.
       if (lengthSquared(velocity)) {
@@ -101,7 +89,7 @@ export function createWalker(pos: Vector): Walker {
 
       // Set the model transform.
       setIdentityMatrix(transform);
-      translateMatrix(transform, [this.pos.x, this.pos.y]);
+      translateMatrix(transform, [entity.pos.x, entity.pos.y]);
       rotateMatrixFromAngle(transform, Axis.Z, angle);
     },
   };
