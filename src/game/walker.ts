@@ -36,13 +36,13 @@ export interface WalkerParameters {
 /** An object which can walk around the level. */
 export interface Walker {
   /** The current position. Updated by update(). */
-  pos: Readonly<Vector>;
+  pos: Vector;
 
   /** The direction the walker is facing. */
-  facing: Readonly<Vector>;
+  facing: Vector;
 
   /** The velocity of the walker. */
-  velocity: Readonly<Vector>;
+  velocity: Vector;
 
   /** The transformation matrix. Updated by update(). */
   transform: Matrix;
@@ -53,7 +53,7 @@ export interface Walker {
    * @param movement The amount of movement to apply relative to the walker's
    * speed, a vector with magnitude no larger than one.
    */
-  update(params: WalkerParameters, movement: Readonly<Vector>): void;
+  update(params: WalkerParameters, movement: Vector): void;
 }
 
 /**
@@ -69,7 +69,7 @@ export function createWalker(pos: Vector): Walker {
     facing: angleVector(angle),
     transform,
 
-    update(params: WalkerParameters, movement: Readonly<Vector>): void {
+    update(params: WalkerParameters, movement: Vector): void {
       // Calculate the new velocity.
       let velocity = this.velocity;
       const targetVelocity = scaleVector(movement, params.speed);

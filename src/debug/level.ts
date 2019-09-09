@@ -46,9 +46,9 @@ function drawBorderCell(cell: Cell, scale: number): void {
  * Calculate vertex for line join.
  */
 function joinVertex(
-  v0: Readonly<Vector>,
-  v1: Readonly<Vector>,
-  v2: Readonly<Vector>,
+  v0: Vector,
+  v1: Vector,
+  v2: Vector,
   distance: number,
 ): Vector {
   let x1 = v1.y - v0.y,

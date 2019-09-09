@@ -34,26 +34,26 @@ export const walkerRadius = 0.5;
 /** An edge for collision testing. */
 export interface CollisionEdge {
   edge: Edge; // FIXME: not necessary in release?
-  vertex0: Readonly<Vector>;
-  vertex1: Readonly<Vector>;
-  hit?: Readonly<Vector>;
+  vertex0: Vector;
+  vertex1: Vector;
+  hit?: Vector;
 }
 
 /** A corner for collision testing. */
 interface CollisionCorner {
-  pos: Readonly<Vector>;
+  pos: Vector;
   radius: number;
   edge0?: CollisionEdge;
   edge1?: CollisionEdge;
-  hit?: Readonly<Vector>;
+  hit?: Vector;
 }
 
 /** A segment of a walking path. */
 export interface WalkSegment {
   /** The starting point of the segment. */
-  start: Readonly<Vector>;
+  start: Vector;
   /** The ending point of the segment. */
-  end: Readonly<Vector>;
+  end: Vector;
   /**
    * The direction, relative to movement, that we are sliding. +1 for left, -1
    * for right.
@@ -70,9 +70,9 @@ export interface WalkSegment {
 }
 
 function circleMovementPos(
-  center: Readonly<Vector>,
-  pos: Readonly<Vector>,
-  direction: Readonly<Vector>,
+  center: Vector,
+  pos: Vector,
+  direction: Vector,
 ): number {
   return (
     dotSubtract(center, pos, direction) /
@@ -87,7 +87,7 @@ function circleMovementPos(
  * @param edge Edge to test for collisions.
  */
 function testEdge(
-  direction: Readonly<Vector>,
+  direction: Vector,
   segment: WalkSegment,
   edge: CollisionEdge,
 ): WalkSegment | undefined {
@@ -98,7 +98,7 @@ function testEdge(
   // Distance remaining when we collide with the edge.
   let startDistance: number;
   // Location where we collide with the edge.
-  let newStart: Readonly<Vector>;
+  let newStart: Vector;
   let color: DebugColor;
   if (!corner) {
     if (edge == segment.edge) {
@@ -188,7 +188,7 @@ function testEdge(
     edge.edge.debugColor = color;
   }
   // Position where we end movement, sliding along the edge.
-  let newEnd: Readonly<Vector>;
+  let newEnd: Vector;
   const edgeLengthSquared = distanceSquared(vertex1, vertex0);
   // Movement is projected onto the vector, giving new movement vector of:
   // distance * <dir, v1 - v0> / length(v1 - v0)
@@ -224,14 +224,14 @@ function testEdge(
  * @param corner Corner to test for collisions.
  */
 function testCorner(
-  direction: Readonly<Vector>,
+  direction: Vector,
   segment: WalkSegment,
   corner: CollisionCorner,
 ): WalkSegment | undefined {
   const { start, end, edge } = segment;
   const { pos, radius } = corner;
   let startDistance: number;
-  let newStart: Readonly<Vector>;
+  let newStart: Vector;
   if (edge && edge == corner.edge0) {
     // We slid off an edge, this is the corner.
     if (end != edge.vertex1) {
@@ -297,7 +297,7 @@ function testCorner(
         radius;
     color = DebugColor.Cyan;
   }
-  let edgeVertex: Readonly<Vector> | undefined;
+  let edgeVertex: Vector | undefined;
   if (side < 0 && corner.edge0) {
     edgeVertex = corner.edge0.vertex1;
   } else if (side > 0 && corner.edge1) {
@@ -334,10 +334,7 @@ function testCorner(
  * @param movement The amount of movement that would happen if unobstructed.
  * @returns The point where movement ends.
  */
-export function walk(
-  start: Readonly<Vector>,
-  movement: Readonly<Vector>,
-): Readonly<Vector> {
+export function walk(start: Vector, movement: Vector): Vector {
   const movementDistance = length(movement);
   if (movementDistance == 0) {
     return start;

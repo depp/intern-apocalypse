@@ -75,10 +75,7 @@ const slashParameters: ParticlesParameters = {
  * @param pos Location of the target.
  * @param direction Direction the attack was going towards.
  */
-export function spawnSlash(
-  pos: Readonly<Vector>,
-  direction: Readonly<Vector>,
-): void {
+export function spawnSlash(pos: Vector, direction: Vector): void {
   const transform = matrixNew();
   setIdentityMatrix(transform);
   translateMatrix(transform, [pos.x, pos.y]);

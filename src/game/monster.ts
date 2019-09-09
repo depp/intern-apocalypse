@@ -91,7 +91,7 @@ function updateNavigation(): void {
 }
 
 /** Spawn a monster in the level. */
-export function spawnMonster(pos: Readonly<Vector>): void {
+export function spawnMonster(pos: Vector): void {
   const walker = createWalker(pos);
   const model: ModelInstance = {
     model: ModelAsset.Eyestalk,
@@ -129,7 +129,7 @@ export function spawnMonster(pos: Readonly<Vector>): void {
         this.debugArrow = walker.facing;
       }
     },
-    damage(direction: Readonly<Vector>): void {
+    damage(direction: Vector): void {
       if (this.isDead) {
         return;
       }

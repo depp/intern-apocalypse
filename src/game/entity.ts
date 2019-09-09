@@ -57,7 +57,7 @@ export const particlesInstances: ParticlesInstance[] = [];
 /** A game entity, which other objects can collide with. */
 export interface Collider extends EntityBase {
   /** The entity position. */
-  pos: Readonly<Vector>;
+  pos: Vector;
   /** The entity collision radius. */
   radius: number;
   /** If true, the entity has a "smell" which attracts monsters. */
@@ -74,7 +74,7 @@ export interface Collider extends EntityBase {
 }
 
 /** The location which attracts the monsters. */
-export let monsterTarget: Readonly<Vector> | null | undefined;
+export let monsterTarget: Vector | null | undefined;
 
 /** List of all colliders in the world. */
 export const colliders: Collider[] = [];
@@ -121,7 +121,7 @@ export function updateEntities(): void {
   clearDead(entities);
   clearDead(modelInstances);
   clearDead(particlesInstances);
-  let target: Readonly<Vector> | undefined;
+  let target: Vector | undefined;
   for (const entity of colliders) {
     if (entity.smell) {
       target = entity.pos;
@@ -135,7 +135,7 @@ export interface DebugMark {
   /** Time remaining before mark disappears. */
   time: number;
   /** Position of mark. */
-  pos: Readonly<Vector>;
+  pos: Vector;
   /** Radius of mark. */
   radius: number;
   /** Color to draw mark with. */

@@ -20,7 +20,7 @@ import {
  */
 export class Cell {
   /** The center of the cell. */
-  readonly center: Readonly<Vector>;
+  readonly center: Vector;
   /** The index of this cell, identifies this cell. */
   readonly index: number;
   /** Arbitrary edge in the cell. */
@@ -32,7 +32,7 @@ export class Cell {
   /** The distance from the player, following the navigation path. */
   navigateDistance: number | null | undefined;
 
-  constructor(center: Readonly<Vector>, index: number, firstEdge: Edge) {
+  constructor(center: Vector, index: number, firstEdge: Edge) {
     this.center = center;
     this.index = index;
     this.edge = firstEdge;
@@ -89,13 +89,13 @@ export class Cell {
  */
 export interface Edge {
   /** Clockwise vertex. */
-  vertex0: Readonly<Vector>;
+  vertex0: Vector;
 
   /** Anticlockwise vertex. */
-  vertex1: Readonly<Vector>;
+  vertex1: Vector;
 
   /** The center of an arbitrary adjacent cell, other than the root cell. */
-  center: Readonly<Vector>;
+  center: Vector;
 
   /**
    * The index of this edge within the level.
@@ -139,7 +139,7 @@ export interface Edge {
  * Find an arbitrary edge that would be changed by creating a new cell with the
  * given center. This must not be called on border cells.
  */
-function findAnySplitEdge(start: Edge, center: Readonly<Vector>): Edge {
+function findAnySplitEdge(start: Edge, center: Vector): Edge {
   let edge = start;
   while (true) {
     // There must be at least one vertex which is strictly closer to the input.
@@ -170,7 +170,7 @@ interface EdgeSplit {
   /** The back of the edge to split (except for border cells). */
   back: Edge;
   /** The vertex for the split point, which may be front.vertex1. */
-  vertex: Readonly<Vector>;
+  vertex: Vector;
 }
 
 /**
@@ -185,7 +185,7 @@ export class LevelBuilder {
   /**
    * Create the level using the given cell centers.
    */
-  createLevel(size: number, centers: readonly Readonly<Vector>[]) {
+  createLevel(size: number, centers: readonly Vector[]) {
     const center = centers[0];
     const vertexes: Vector[] = [
       vector(size, size),
@@ -214,7 +214,7 @@ export class LevelBuilder {
   /**
    * Find the cell that contains the given point.
    */
-  findCell(point: Readonly<Vector>): Cell {
+  findCell(point: Vector): Cell {
     let bestDistanceSquared = Infinity;
     let bestCell: Cell | undefined;
     for (const parent of this.cells.values()) {
@@ -247,9 +247,9 @@ export class LevelBuilder {
   }
 
   private newEdge(
-    vertex0: Readonly<Vector>,
-    vertex1: Readonly<Vector>,
-    center: Readonly<Vector>,
+    vertex0: Vector,
+    vertex1: Vector,
+    center: Vector,
     index: number,
   ): Edge {
     const edge: Edge = {
@@ -270,9 +270,9 @@ export class LevelBuilder {
    * Create a new edge pair and add them to the level.
    */
   private newEdgePair(
-    vertex0: Readonly<Vector>,
-    vertex1: Readonly<Vector>,
-    center: Readonly<Vector>,
+    vertex0: Vector,
+    vertex1: Vector,
+    center: Vector,
   ): [Edge, Edge] {
     const index = this.edgeCounter;
     this.edgeCounter += 2;
@@ -287,7 +287,7 @@ export class LevelBuilder {
    * @param center Center of the cell.
    * @param edges Array of cell edges, in anticlockwise order.
    */
-  private newCell(center: Readonly<Vector>, edges: readonly Edge[]): Cell {
+  private newCell(center: Vector, edges: readonly Edge[]): Cell {
     if (!edges.length) {
       throw new AssertionError('no edges');
     }
@@ -307,7 +307,7 @@ export class LevelBuilder {
    * Create the split that would be introduced by adding a new cell with the given
    * center.
    */
-  private createSplit(prev: Edge, newCenter: Readonly<Vector>): EdgeSplit {
+  private createSplit(prev: Edge, newCenter: Vector): EdgeSplit {
     let front = prev;
     while (true) {
       const { vertex0, vertex1, center, next } = front;
@@ -349,7 +349,7 @@ export class LevelBuilder {
    * Add a new cell to the level.
    * @param center Center of the new cell.
    */
-  addCell(center: Readonly<Vector>): void {
+  addCell(center: Vector): void {
     // Find a parent which must cede some space to the new cell. We know that
     // the cell containing the center of the new cell must do this.
     const firstCell = this.findCell(center);
@@ -414,7 +414,7 @@ export class LevelBuilder {
    * @param center Center of the circle.
    * @param radius Radius of the circle.
    */
-  findUnpassableEdges(center: Readonly<Vector>, radius: number): Edge[] {
+  findUnpassableEdges(center: Vector, radius: number): Edge[] {
     const result: Edge[] = [];
     for (const cell of this.cells.values()) {
       if (cell.index >= 0) {

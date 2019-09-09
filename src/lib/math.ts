@@ -16,12 +16,12 @@ export function canonicalAngle(angle: number): number {
   return angle;
 }
 
-/** 2D vector. */
+/** 2D vector. Immutable. */
 export interface Vector {
-  x: number;
-  y: number;
+  readonly x: number;
+  readonly y: number;
   // Proeperty doesn't actually exist.
-  _brand: 'Vector';
+  readonly _brand: 'Vector';
 }
 
 /** Create a vector. */
@@ -30,7 +30,7 @@ export function vector(x: number, y: number): Vector {
 }
 
 /** The zero vector. */
-export const zeroVector: Readonly<Vector> = vector(0, 0);
+export const zeroVector: Vector = vector(0, 0);
 
 /** Create a unit vector pointing at the given angle. */
 export function angleVector(angle: number): Vector {
@@ -38,57 +38,47 @@ export function angleVector(angle: number): Vector {
 }
 
 /** Multiply a vector by a scalar. */
-export function scaleVector(u: Readonly<Vector>, scale: number): Vector {
+export function scaleVector(u: Vector, scale: number): Vector {
   return vector(u.x * scale, u.y * scale);
 }
 
 /** Compute the length of a vector, squared. */
-export function lengthSquared(u: Readonly<Vector>): number {
+export function lengthSquared(u: Vector): number {
   return u.x ** 2 + u.y ** 2;
 }
 
 /** Compute the length of a vector, squared. */
-export function length(u: Readonly<Vector>): number {
+export function length(u: Vector): number {
   return Math.hypot(u.x, u.y);
 }
 
 /** Compute u+v*a. */
-export function madd(
-  u: Readonly<Vector>,
-  v: Readonly<Vector>,
-  a: number = 1,
-): Vector {
+export function madd(u: Vector, v: Vector, a: number = 1): Vector {
   return vector(u.x + v.x * a, u.y + v.y * a);
 }
 
 /** Compute u+(v0-v1)*a. */
 export function maddSubtract(
-  u: Readonly<Vector>,
-  v0: Readonly<Vector>,
-  v1: Readonly<Vector>,
+  u: Vector,
+  v0: Vector,
+  v1: Vector,
   a: number = 1,
 ): Vector {
   return vector(u.x + (v0.x - v1.x) * a, u.y + (v0.y - v1.y) * a);
 }
 
 /** Return the squared Euclidean distance between two vectors. */
-export function distanceSquared(
-  u: Readonly<Vector>,
-  v: Readonly<Vector>,
-): number {
+export function distanceSquared(u: Vector, v: Vector): number {
   return (u.x - v.x) ** 2 + (u.y - v.y) ** 2;
 }
 
 /** Return the Euclidean distance between two vectors. */
-export function distance(u: Readonly<Vector>, v: Readonly<Vector>): number {
+export function distance(u: Vector, v: Vector): number {
   return Math.sqrt(distanceSquared(u, v));
 }
 
 /** Return the vector (u - v) / |u - v|. */
-export function normalizeSubtract(
-  u: Readonly<Vector>,
-  v: Readonly<Vector>,
-): Readonly<Vector> {
+export function normalizeSubtract(u: Vector, v: Vector): Vector {
   const a = distance(u, v);
   return a ? maddSubtract(zeroVector, u, v, 1 / a) : zeroVector;
 }
@@ -119,16 +109,12 @@ export function wedgeSubtract(
  * If alpha is not in the range 0-1, then this will produce vectors outside the
  * segment between u and v. The result will not be clamped.
  */
-export function lerp(
-  u: Readonly<Vector>,
-  v: Readonly<Vector>,
-  alpha: number,
-): Vector {
+export function lerp(u: Vector, v: Vector, alpha: number): Vector {
   return vector(u.x + alpha * (v.x - u.x), u.y + alpha * (v.y - u.y));
 }
 
 /** Compute the normal vector for an oriented line. */
-export function lineNormal(v0: Readonly<Vector>, v1: Readonly<Vector>) {
+export function lineNormal(v0: Vector, v1: Vector) {
   const x = v0.y - v1.y,
     y = v1.x - v0.x,
     a = 1 / Math.hypot(x, y);
@@ -147,10 +133,10 @@ export function lineNormal(v0: Readonly<Vector>, v1: Readonly<Vector>) {
  * and points closer to c2.
  */
 export function findLineSplit(
-  v1: Readonly<Vector>,
-  v2: Readonly<Vector>,
-  c1: Readonly<Vector>,
-  c2: Readonly<Vector>,
+  v1: Vector,
+  v2: Vector,
+  c1: Vector,
+  c2: Vector,
 ): number {
   // || v1 + alpha (v2 - v1) - c1 ||^2 = || v1 + alpha (v2 - v1) - c2 ||^2
   //
@@ -171,9 +157,9 @@ export function findLineSplit(
  * @param radiusSquared Radius of the circle, squared.
  */
 export function lineIntersectsCircle(
-  v1: Readonly<Vector>,
-  v2: Readonly<Vector>,
-  c: Readonly<Vector>,
+  v1: Vector,
+  v2: Vector,
+  c: Vector,
   radiusSquared: number,
 ): boolean {
   if (
@@ -203,10 +189,10 @@ export function lineIntersectsCircle(
  * segments are collinear, or if the line passes in the wrong direction, -1.
  */
 export function lineLineIntersection(
-  v0: Readonly<Vector>,
-  v1: Readonly<Vector>,
-  v2: Readonly<Vector>,
-  v3: Readonly<Vector>,
+  v0: Vector,
+  v1: Vector,
+  v2: Vector,
+  v3: Vector,
 ): number {
   // Let alpha = fraction along line 1, beta = fraction along line 2.
   // alpha = (v0-v2) ^ (v3-v2) / (v3-v2) ^ (v1-v0)
@@ -232,8 +218,8 @@ export function lineLineIntersection(
  * Project a point onto a circle.
  */
 export function projectToCircle(
-  v: Readonly<Vector>,
-  center: Readonly<Vector>,
+  v: Vector,
+  center: Vector,
   radius: number,
 ): Vector {
   const dx = v.x - center.x,

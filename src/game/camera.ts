@@ -19,12 +19,12 @@ export const uiMatrix = matrixNew();
 /** The current camera target and filter coefficients. */
 let cameraTargetFilter = [zeroVector, zeroVector, zeroVector];
 
-export function getCameraTarget(): Readonly<Vector> {
+export function getCameraTarget(): Vector {
   return cameraTargetFilter[2];
 }
 
 /** Set the current target of the camera. */
-export function setCameraTarget(target: Readonly<Vector>): void {
+export function setCameraTarget(target: Vector): void {
   cameraTargetFilter[0] = target;
 }
 
