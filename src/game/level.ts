@@ -18,7 +18,7 @@ import {
  * A cell is a convex polygon. Each edge of the cell may be shared with another
  * cell.
  */
-export class Cell {
+export interface Cell {
   /** The center of the cell. */
   readonly center: Vector;
   /** The index of this cell, identifies this cell. */
@@ -28,29 +28,20 @@ export class Cell {
   /** True if you can walk through this cell. */
   walkable: boolean;
   /** The next cell that monsters should navigate to. */
-  navigateNext: Cell | null | undefined;
+  navigateNext: Cell | null;
   /** The distance from the player, following the navigation path. */
-  navigateDistance: number | null | undefined;
+  navigateDistance: number;
+  /** Calculate the centroid of the cell. */
+  centroid(): Vector;
+  /** Iterate over all cell edges, exactly once each. */
+  edges(): IterableIterator<Edge>;
+}
 
-  constructor(center: Vector, index: number, firstEdge: Edge) {
-    this.center = center;
-    this.index = index;
-    this.edge = firstEdge;
-    this.walkable = true;
-    let edge: Edge | null = firstEdge;
-    do {
-      if (edge.cell != null) {
-        throw new AssertionError('edge is already in use');
-      }
-      edge.cell = this;
-      edge = edge.next;
-    } while (edge && edge != firstEdge);
-  }
-
-  /**
-   * Calculate the centroid of the cell.
-   */
-  centroid(): Vector {
+/**
+ * Create a new cell.
+ */
+function makeCell(center: Vector, index: number, firstEdge: Edge): Cell {
+  function centroid(this: Cell): Vector {
     let area = 0,
       xarea = 0,
       yarea = 0;
@@ -62,11 +53,7 @@ export class Cell {
     }
     return vector(xarea / area, yarea / area);
   }
-
-  /**
-   * Iterate over all cell edges, exactly once each.
-   */
-  *edges(): IterableIterator<Edge> {
+  function* edges(this: Cell): IterableIterator<Edge> {
     let { edge } = this;
     if (this.index < 0) {
       while (edge.prev) {
@@ -79,6 +66,25 @@ export class Cell {
       cur = cur.next;
     } while (cur && cur != edge);
   }
+  const cell: Cell = {
+    center,
+    index,
+    edge: firstEdge,
+    walkable: true,
+    centroid,
+    edges,
+    navigateNext: null,
+    navigateDistance: 0,
+  };
+  let edge: Edge | null = firstEdge;
+  do {
+    if (edge.cell != null) {
+      throw new AssertionError('edge is already in use');
+    }
+    edge.cell = cell;
+    edge = edge.next;
+  } while (edge && edge != firstEdge);
+  return cell;
 }
 
 /**
@@ -135,6 +141,34 @@ export interface Edge {
   debugVertexColor?: DebugColor;
 }
 
+/** A game level, consisting of cells and the edges that connect them. */
+export interface Level {
+  readonly cells: ReadonlyMap<number, Cell>;
+  readonly edges: ReadonlyMap<number, Edge>;
+
+  /**
+   * Find the cell that contains the given point.
+   */
+  findCell(point: Vector): Cell;
+
+  /**
+   * Get the back side of the given edge.
+   */
+  edgeBack(edge: Edge): Edge;
+
+  /**
+   * Update precomputed properties.
+   */
+  updateProperties(): void;
+
+  /**
+   * List all edges within the given circle that cannot be walked thorugh.
+   * @param center Center of the circle.
+   * @param radius Radius of the circle.
+   */
+  findUnpassableEdges(center: Vector, radius: number): Edge[];
+}
+
 /**
  * Find an arbitrary edge that would be changed by creating a new cell with the
  * given center. This must not be called on border cells.
@@ -174,18 +208,17 @@ interface EdgeSplit {
 }
 
 /**
- * Class which constructs level data.
+ * Create a new level.
+ * @param size Distance from origin to each level edge.
+ * @param centers Center of each cell in the level.
  */
-export class LevelBuilder {
-  readonly cells = new Map<number, Cell>();
-  readonly edges = new Map<number, Edge>();
-  private cellCounter = 0;
-  private edgeCounter = 0;
+export function createLevel(size: number, centers: readonly Vector[]): Level {
+  const cells = new Map<number, Cell>();
+  const edges = new Map<number, Edge>();
+  let cellCounter = 0;
+  let edgeCounter = 0;
 
-  /**
-   * Create the level using the given cell centers.
-   */
-  createLevel(size: number, centers: readonly Vector[]) {
+  {
     const center = centers[0];
     const vertexes: Vector[] = [
       vector(size, size),
@@ -195,29 +228,29 @@ export class LevelBuilder {
     ];
     const rootEdges: Edge[] = [];
     for (let i = 0; i < vertexes.length; i++) {
-      const [e1, e2] = this.newEdgePair(
+      const [e1, e2] = newEdgePair(
         vertexes[i],
         vertexes[(i + 1) % vertexes.length],
         center,
       );
       rootEdges.push(e1);
-      const cell = new Cell(vertexes[i], -i - 1, e2);
+      const cell = makeCell(vertexes[i], -i - 1, e2);
       cell.walkable = false;
-      this.cells.set(-i - 1, cell);
+      cells.set(-i - 1, cell);
     }
-    this.newCell(center, rootEdges);
+    newCell(center, rootEdges);
     for (let i = 1; i < centers.length; i++) {
-      this.addCell(centers[i]);
+      addCell(centers[i]);
     }
   }
 
   /**
    * Find the cell that contains the given point.
    */
-  findCell(point: Vector): Cell {
+  function findCell(point: Vector): Cell {
     let bestDistanceSquared = Infinity;
     let bestCell: Cell | undefined;
-    for (const parent of this.cells.values()) {
+    for (const parent of cells.values()) {
       if (parent.index >= 0) {
         const distSquared = distanceSquared(point, parent.center);
         if (distSquared < bestDistanceSquared) {
@@ -235,18 +268,18 @@ export class LevelBuilder {
   /**
    * Get the back side of the given edge.
    */
-  edgeBack(edge: Edge): Edge {
+  function edgeBack(edge: Edge): Edge {
     if (edge == null) {
       throw new AssertionError('null edge');
     }
-    const back = this.edges.get(edge.index ^ 1);
+    const back = edges.get(edge.index ^ 1);
     if (back == null) {
       throw new AssertionError('could not find back to edge', { edge });
     }
     return back;
   }
 
-  private newEdge(
+  function newEdge(
     vertex0: Vector,
     vertex1: Vector,
     center: Vector,
@@ -262,23 +295,23 @@ export class LevelBuilder {
       prev: null,
       next: null,
     };
-    this.edges.set(index, edge);
+    edges.set(index, edge);
     return edge;
   }
 
   /**
    * Create a new edge pair and add them to the level.
    */
-  private newEdgePair(
+  function newEdgePair(
     vertex0: Vector,
     vertex1: Vector,
     center: Vector,
   ): [Edge, Edge] {
-    const index = this.edgeCounter;
-    this.edgeCounter += 2;
+    const index = edgeCounter;
+    edgeCounter += 2;
     return [
-      this.newEdge(vertex0, vertex1, center, index),
-      this.newEdge(vertex1, vertex0, center, index + 1),
+      newEdge(vertex0, vertex1, center, index),
+      newEdge(vertex1, vertex0, center, index + 1),
     ];
   }
 
@@ -287,19 +320,19 @@ export class LevelBuilder {
    * @param center Center of the cell.
    * @param edges Array of cell edges, in anticlockwise order.
    */
-  private newCell(center: Vector, edges: readonly Edge[]): Cell {
+  function newCell(center: Vector, edges: readonly Edge[]): Cell {
     if (!edges.length) {
       throw new AssertionError('no edges');
     }
-    const index = this.cellCounter++;
+    const index = cellCounter++;
     let prev = edges[edges.length - 1];
     for (const edge of edges) {
       prev.next = edge;
       edge.prev = prev;
       prev = edge;
     }
-    const cell = new Cell(center, index, prev);
-    this.cells.set(index, cell);
+    const cell = makeCell(center, index, prev);
+    cells.set(index, cell);
     return cell;
   }
 
@@ -307,7 +340,7 @@ export class LevelBuilder {
    * Create the split that would be introduced by adding a new cell with the given
    * center.
    */
-  private createSplit(prev: Edge, newCenter: Vector): EdgeSplit {
+  function createSplit(prev: Edge, newCenter: Vector): EdgeSplit {
     let front = prev;
     while (true) {
       const { vertex0, vertex1, center, next } = front;
@@ -327,13 +360,13 @@ export class LevelBuilder {
           }
           vertex = lerp(vertex0, vertex1, alpha);
         }
-        return { front, back: this.edgeBack(front), vertex };
+        return { front, back: edgeBack(front), vertex };
       }
       if (!next) {
         // Find the next border cell.
-        let back = this.edgeBack(front);
+        let back = edgeBack(front);
         while (back.prev) {
-          back = this.edgeBack(back.prev);
+          back = edgeBack(back.prev);
         }
         // This will happen for border cells.
         return { front, back, vertex: vertex1 };
@@ -349,18 +382,15 @@ export class LevelBuilder {
    * Add a new cell to the level.
    * @param center Center of the new cell.
    */
-  addCell(center: Vector): void {
+  function addCell(center: Vector): void {
     // Find a parent which must cede some space to the new cell. We know that
     // the cell containing the center of the new cell must do this.
-    const firstCell = this.findCell(center);
+    const firstCell = findCell(center);
     // Create split points for all cells bordering the new cell.
-    let split = this.createSplit(
-      findAnySplitEdge(firstCell.edge, center),
-      center,
-    );
+    let split = createSplit(findAnySplitEdge(firstCell.edge, center), center);
     const splits: EdgeSplit[] = [split];
     while (split.back.cell != firstCell) {
-      split = this.createSplit(split.back, center);
+      split = createSplit(split.back, center);
       splits.push(split);
     }
     // Generate the edges from the splits.
@@ -375,7 +405,7 @@ export class LevelBuilder {
       if (front == back && cell.index >= 0) {
         throw new AssertionError('so that');
       }
-      const [e1, e2] = this.newEdgePair(vertex0, vertex1, center);
+      const [e1, e2] = newEdgePair(vertex0, vertex1, center);
       edges.push(e2);
       let prev: Edge | null, next: Edge | null;
       const eq0 = vertex0 == back.vertex0;
@@ -406,7 +436,7 @@ export class LevelBuilder {
     }
     edges.reverse();
     // Generate the new cell.
-    this.newCell(center, edges);
+    newCell(center, edges);
   }
 
   /**
@@ -414,9 +444,9 @@ export class LevelBuilder {
    * @param center Center of the circle.
    * @param radius Radius of the circle.
    */
-  findUnpassableEdges(center: Vector, radius: number): Edge[] {
+  function findUnpassableEdges(center: Vector, radius: number): Edge[] {
     const result: Edge[] = [];
-    for (const cell of this.cells.values()) {
+    for (const cell of cells.values()) {
       if (cell.index >= 0) {
         for (const edge of cell.edges()) {
           if (
@@ -439,10 +469,10 @@ export class LevelBuilder {
   /**
    * Update precomputed properties.
    */
-  updateProperties() {
-    for (let i = 0; i < this.edgeCounter; i += 2) {
-      const edge0 = this.edges.get(i);
-      const edge1 = this.edges.get(i + 1);
+  function updateProperties() {
+    for (let i = 0; i < edgeCounter; i += 2) {
+      const edge0 = edges.get(i);
+      const edge1 = edges.get(i + 1);
       if (edge0 && edge1) {
         const w0 = edge0.cell!.walkable;
         const w1 = edge1.cell!.walkable;
@@ -451,4 +481,13 @@ export class LevelBuilder {
       }
     }
   }
+
+  return {
+    cells,
+    edges,
+    findCell,
+    edgeBack,
+    updateProperties,
+    findUnpassableEdges,
+  };
 }

@@ -1,4 +1,4 @@
-import { Cell, Edge, LevelBuilder } from './level';
+import { Cell, Edge, createLevel } from './level';
 import { Vector, vector } from '../lib/math';
 
 class Failure extends Error {}
@@ -216,8 +216,7 @@ function checkBoundary(cell: Cell, count: number): void {
 
 function runTest(test: Test): void {
   const { name, cells, bounds } = test;
-  const level = new LevelBuilder();
-  level.createLevel(5, cells.map(({ pos }) => pos));
+  const level = createLevel(5, cells.map(({ pos }) => pos));
   for (let i = 0; i < bounds.length; i++) {
     const cell = level.cells.get(-i - 1);
     if (!cell) {
