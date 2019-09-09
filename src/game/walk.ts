@@ -379,7 +379,14 @@ export function walk(start: Vector, movement: Vector): Vector {
   }
   for (const entity of colliders) {
     const { pos, radius } = entity;
-    if (distanceSquared(areaCenter, pos) < (areaRadius + radius) ** 2) {
+    // pos == start will be true exactly for the entity that is walking. It is
+    // should not be necessary to exclude the walker during collision tests,
+    // since the walker is always walking away from itself, but this makes it
+    // easier to debug.
+    if (
+      pos != start &&
+      distanceSquared(areaCenter, pos) < (areaRadius + radius) ** 2
+    ) {
       corners.push({ pos, radius: radius + walkerRadius });
     }
   }
