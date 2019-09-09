@@ -9,6 +9,7 @@ import {
   findLineSplit,
   lerp,
   lineIntersectsCircle,
+  vector,
 } from '../lib/math';
 
 /**
@@ -59,7 +60,7 @@ export class Cell {
       xarea += ((vertex0.x + vertex1.x) * a) / 6;
       yarea += ((vertex0.y + vertex1.y) * a) / 6;
     }
-    return { x: xarea / area, y: yarea / area };
+    return vector(xarea / area, yarea / area);
   }
 
   /**
@@ -187,10 +188,10 @@ export class LevelBuilder {
   createLevel(size: number, centers: readonly Readonly<Vector>[]) {
     const center = centers[0];
     const vertexes: Vector[] = [
-      { x: size, y: size },
-      { x: -size, y: size },
-      { x: -size, y: -size },
-      { x: size, y: -size },
+      vector(size, size),
+      vector(-size, size),
+      vector(-size, -size),
+      vector(size, -size),
     ];
     const rootEdges: Edge[] = [];
     for (let i = 0; i < vertexes.length; i++) {

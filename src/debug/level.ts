@@ -6,7 +6,7 @@ import { AssertionError, DebugColor, debugColors } from './debug';
 import { debugView } from '../lib/settings';
 import { ctx } from './global';
 import { Cell, Edge } from '../game/level';
-import { Vector } from '../lib/math';
+import { Vector, vector } from '../lib/math';
 import { walkerRadius } from '../game/walk';
 import { level } from '../game/world';
 import { getCameraTarget, cameraMatrix } from '../game/camera';
@@ -64,10 +64,7 @@ function joinVertex(
   const b = x1 * x2 + y1 * y2;
   const limit = 5;
   const c = distance * (b > -(limit - 1) / limit ? 1 / (1 + b) : limit);
-  return {
-    x: v1.x - c * (x1 + x2),
-    y: v1.y - c * (y1 + y2),
-  };
+  return vector(v1.x - c * (x1 + x2), v1.y - c * (y1 + y2));
 }
 
 interface HighlightSet {

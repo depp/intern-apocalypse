@@ -20,11 +20,13 @@ export function canonicalAngle(angle: number): number {
 export interface Vector {
   x: number;
   y: number;
+  // Proeperty doesn't actually exist.
+  _brand: 'Vector';
 }
 
 /** Create a vector. */
 export function vector(x: number, y: number): Vector {
-  return { x, y };
+  return { x, y } as Vector;
 }
 
 /** The zero vector. */
@@ -122,10 +124,7 @@ export function lerp(
   v: Readonly<Vector>,
   alpha: number,
 ): Vector {
-  return {
-    x: u.x + alpha * (v.x - u.x),
-    y: u.y + alpha * (v.y - u.y),
-  };
+  return vector(u.x + alpha * (v.x - u.x), u.y + alpha * (v.y - u.y));
 }
 
 /** Compute the normal vector for an oriented line. */
