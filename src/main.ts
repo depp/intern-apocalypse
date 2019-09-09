@@ -13,12 +13,14 @@ import { spawnMonster } from './game/monster';
 import { Difficulty, setDifficulty } from './game/difficulty';
 import { vector } from './lib/math';
 import { resetGame, updateGame } from './game/game';
+import { updateTime } from './game/time';
 
 /**
  * Initialize game.
  */
 export function initialize(): void {
   startInput();
+  resetGame();
 }
 
 /** The game state as of the last frame. */
@@ -78,6 +80,7 @@ export function newGame(difficulty: Difficulty): void {
  * @param curTimeMS Current time in milliseconds.
  */
 export function main(curTimeMS: DOMHighResTimeStamp): void {
+  updateTime(curTimeMS);
   if (currentState != lastState) {
     switch (currentState) {
       case State.MainMenu:
@@ -90,7 +93,10 @@ export function main(curTimeMS: DOMHighResTimeStamp): void {
     }
     lastState = currentState;
   }
-  updateGame(curTimeMS);
+  if (currentState == State.Game) {
+    updateGame();
+  }
+  updateCamera();
   endFrameInput();
   render();
 }

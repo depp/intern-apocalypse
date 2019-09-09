@@ -1,6 +1,5 @@
-import { resetTime, updateTime } from './time';
+import { resetTime } from './time';
 import { resetColliders, updateColliders, colliders } from './physics';
-import { updateCamera } from './camera';
 import {
   EntityBase,
   entities,
@@ -32,8 +31,7 @@ export function resetGame(): void {
 }
 
 /** Update the game state. */
-export function updateGame(curTimeMS: DOMHighResTimeStamp): void {
-  updateTime(curTimeMS);
+export function updateGame(): void {
   beginFrameNavigation();
   for (const entity of entities) {
     entity.update();
@@ -43,5 +41,4 @@ export function updateGame(curTimeMS: DOMHighResTimeStamp): void {
   clearDead(colliders);
   clearDead(particlesInstances);
   clearDead(modelInstances);
-  updateCamera();
 }

@@ -22,7 +22,7 @@ import { runModelView } from './debug/modelview';
 import { initRenderer } from './render/render';
 import { debugView } from './lib/settings';
 import { startAudio } from './audio/audio';
-import { Difficulty } from './game/difficulty';
+import { resetTime } from './game/time';
 
 let counter = 0;
 let lastFrameMS = 0;
@@ -69,6 +69,7 @@ function firstEvent(): void {
 }
 
 function start(): void {
+  resetTime();
   initRenderer();
   watchShaders();
   watchModels();
