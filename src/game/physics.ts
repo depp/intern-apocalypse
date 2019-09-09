@@ -11,6 +11,7 @@ import {
   wedgeSubtract,
   distance,
   vector,
+  normalizeSubtract,
 } from '../lib/math';
 import { EntityBase } from './entity';
 import { isDebug, DebugColor } from '../debug/debug';
@@ -203,11 +204,34 @@ export function updateColliders(): void {
     );
   }
 
+  // Resolve the collision with a vertex. Returns null if we do not collide with
+  // the given vertex.
+  function resolveVertex(
+    pos: Vector,
+    radius: number,
+    vertex: Vector,
+  ): Vector | null {
+    const distSquared = distanceSquared(pos, vertex);
+    if (distSquared > radius ** 2) {
+      return null;
+    }
+    return madd(vertex, normalizeSubtract(pos, vertex), radius);
+  }
+
   // Resolve a collision with static objects.
   function resolveStatic(pos: Vector, radius: number): Vector {
     let result = pos;
     for (const edge of edges) {
       const candidate = resolveEdge(pos, radius, edge);
+      if (
+        candidate &&
+        distanceSquared(candidate, pos) > distanceSquared(result, pos)
+      ) {
+        result = candidate;
+      }
+    }
+    for (const vertex of vertexes) {
+      const candidate = resolveVertex(pos, radius, vertex);
       if (
         candidate &&
         distanceSquared(candidate, pos) > distanceSquared(result, pos)
