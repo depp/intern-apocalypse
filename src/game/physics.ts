@@ -3,10 +3,9 @@ import {
   madd,
   length,
   distanceSquared,
-  vector,
   newRect,
-  rectFromCircle,
-  rectUnion,
+  initRect,
+  rectAddCircle,
 } from '../lib/math';
 import { EntityBase } from './entity';
 import { isDebug } from '../debug/debug';
@@ -140,8 +139,6 @@ export function updateColliders(): void {
 
   /** Bounds of the current group. */
   const bounds = newRect();
-  const entityBounds = newRect();
-
   for (const entity of singles) {
     if (isDebug) {
       debugMarks.push({
@@ -159,10 +156,9 @@ export function updateColliders(): void {
   let color = 1;
   for (const group of groups.values()) {
     color++;
-    rectFromCircle(bounds, group[0].pos, group[0].radius);
+    initRect(bounds);
     for (const { pos, radius } of group) {
-      rectFromCircle(entityBounds, pos, radius);
-      rectUnion(bounds, entityBounds);
+      rectAddCircle(bounds, pos, radius);
     }
 
     if (isDebug) {

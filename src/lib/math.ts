@@ -241,18 +241,18 @@ export function newRect(): Rect {
   return { x0: 0, y0: 0, x1: 0, y1: 0 };
 }
 
-/** Get the bounding box of a circle. */
-export function rectFromCircle(out: Rect, pos: Vector, radius: number): void {
-  out.x0 = pos.x - radius;
-  out.y0 = pos.y - radius;
-  out.x1 = pos.x + radius;
-  out.y1 = pos.y + radius;
+/** Initialize a rect to a degenerate rect with no points. */
+export function initRect(out: Rect): void {
+  out.x0 = Infinity;
+  out.y0 = Infinity;
+  out.x1 = -Infinity;
+  out.y1 = -Infinity;
 }
 
-/** Set out to the smallest rectangle containing out and input. */
-export function rectUnion(out: Rect, input: Rect): void {
-  out.x0 = Math.min(out.x0, input.x0);
-  out.y0 = Math.min(out.y0, input.y0);
-  out.x1 = Math.max(out.x1, input.x1);
-  out.y1 = Math.max(out.y1, input.y1);
+/** Get the bounding box of a circle. */
+export function rectAddCircle(out: Rect, pos: Vector, radius: number): void {
+  out.x0 = Math.min(out.x0, pos.x - radius);
+  out.y0 = Math.min(out.y0, pos.y - radius);
+  out.x1 = Math.max(out.x1, pos.x + radius);
+  out.y1 = Math.max(out.y1, pos.y + radius);
 }
