@@ -12,6 +12,8 @@ import {
   distance,
   vector,
   normalizeSubtract,
+  zeroVector,
+  maddSubtract,
 } from '../lib/math';
 import { EntityBase } from './entity';
 import { isDebug, DebugColor } from '../debug/debug';
@@ -71,6 +73,10 @@ export function updateColliders(): void {
     movement: number;
     pos: Vector;
     radius: number;
+    // Candidate position.
+    cpos?: Vector;
+    // Adjustment for resolving collisions with other colliders.
+    cpos2?: Vector | null;
   }
 
   // All moving entities.
@@ -102,8 +108,12 @@ export function updateColliders(): void {
   for (let i = 0; i < colliders.length; i++) {
     const entity = colliders[i];
     const movement = length(entity.velocity) * frameDT;
+    // This typing is a bit ugly.
     const cent: {
-      [N in Exclude<keyof CollisionEntity, 'root'>]: CollisionEntity[N];
+      [N in Exclude<
+        keyof CollisionEntity,
+        'root' | 'cpos' | 'cpos2'
+      >]: CollisionEntity[N];
     } = {
       rank: 0,
       entity,
@@ -285,8 +295,43 @@ export function updateColliders(): void {
     for (const entity of group) {
       const ent = entity.entity;
       const pos = madd(ent.pos, ent.velocity, frameDT);
-      const cpos = resolveStatic(pos, ent.radius);
-      ent.pos = cpos || pos;
+      entity.cpos = resolveStatic(pos, ent.radius) || pos;
+      entity.cpos2 = null;
+    }
+
+    for (let i = 0; i < group.length; i++) {
+      const e1 = group[i];
+      const pos1 = e1.cpos!;
+      for (let j = i + 1; j < group.length; j++) {
+        const e2 = group[j];
+        const pos2 = e2.cpos!;
+        const edistance = distance(pos1, pos2);
+        const overlap = e1.entity.radius + e2.entity.radius - edistance;
+        if (overlap > 0) {
+          e1.cpos2 = maddSubtract(
+            e1.cpos2 || pos1,
+            pos1,
+            pos2,
+            (0.5 * overlap) / edistance,
+          );
+          e2.cpos2 = maddSubtract(
+            e2.cpos2 || pos2,
+            pos2,
+            pos1,
+            (0.5 * overlap) / edistance,
+          );
+        }
+      }
+    }
+
+    for (const entity of group) {
+      const ent = entity.entity;
+      let pos = entity.cpos!;
+      if (entity.cpos2) {
+        pos = entity.cpos2;
+        pos = resolveStatic(pos, ent.radius) || pos;
+      }
+      ent.pos = pos;
     }
   }
 }
