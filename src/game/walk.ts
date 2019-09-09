@@ -20,7 +20,7 @@ import {
   scaleVector,
 } from '../lib/math';
 import { level } from './world';
-import { colliders } from './entity';
+import { colliders, debugMarks } from './entity';
 
 /**
  * Distance we will look backwards to calculate collisions, if we end up on the
@@ -247,9 +247,56 @@ function testCorner(
     startDistance = segment.endDistance;
     newStart = end;
   } else if (segment.corner) {
-    // Hitting a second corner.
-    // FIXME: implement.
-    return;
+    // This is broken?
+    const { pos: pos2, radius: radius2 } = segment.corner;
+    const separation = distance(pos, pos2);
+    // Distance along vector pos to pos2 where collision happens.
+    const collisionPar =
+      0.5 * (separation + (radius ** 2 - radius2 ** 2) / separation);
+    // Distance perpendicular to that vector, squared, where collision happens.
+    const collisionPerpSquared = radius ** 2 - collisionPar ** 2;
+    if (collisionPerpSquared <= 0) {
+      // Circles are too far apart.
+      return;
+    }
+    const collisionCenter = lerp(pos, pos2, collisionPar / separation);
+    const perp = lineNormal(pos, pos2);
+    const collisionPerp =
+      segment.slideDirection *
+      Math.sign(dotSubtract(pos, pos2, direction)) *
+      Math.sqrt(collisionPerpSquared);
+    newStart = madd(collisionCenter, perp, collisionPerp);
+    startDistance =
+      segment.endDistance +
+      (circleMovementPos(pos, newStart, direction) -
+        circleMovementPos(pos, end, direction)) *
+        radius;
+    if (
+      startDistance > segment.startDistance + backtrackDistance ||
+      startDistance <= 0
+    ) {
+      return;
+    }
+    if (isDebug) {
+      debugMarks.push({
+        pos: madd(collisionCenter, perp, collisionPerp),
+        color: DebugColor.Yellow,
+        radius: 0.2,
+        time: 0.5,
+      });
+      debugMarks.push({
+        pos: madd(collisionCenter, perp, -collisionPerp),
+        color: DebugColor.Red,
+        radius: 0.2,
+        time: 0.5,
+      });
+      debugMarks.push({
+        pos: pos,
+        color: DebugColor.Cyan,
+        radius: 0.1,
+        time: 0.5,
+      });
+    }
   } else {
     // Collision test: line vs circle.
     const a = distanceSquared(end, start);
