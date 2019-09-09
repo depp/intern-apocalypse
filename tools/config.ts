@@ -43,4 +43,8 @@ export interface BuildArgs {
 
   /** If true, print the time elapsed for each build step. */
   showBuildTimes: boolean;
+  /** Allow aggressive minification with Terser. */
+  minify: boolean;
+  /** Run output through Prettier. */
+  beautify: boolean;
 }

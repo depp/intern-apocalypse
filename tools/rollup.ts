@@ -7,6 +7,7 @@ import * as path from 'path';
 
 import * as rollup from 'rollup';
 import * as terserTypes from 'terser'; // Only load if needed.
+import * as prettierTypes from 'prettier';
 
 import { BuildAction, BuildContext } from './action';
 import { BuildArgs, Config } from './config';
@@ -99,7 +100,7 @@ const resolverPlugin: rollup.Plugin = {
 };
 
 /** Create a Rollup plugin for minifying code. */
-function minifyPlugin(config: Config): rollup.Plugin {
+function minifyPlugin(config: BuildArgs): rollup.Plugin {
   const terser = require('terser') as typeof terserTypes;
   return {
     name: 'Terser',
@@ -111,7 +112,7 @@ function minifyPlugin(config: Config): rollup.Plugin {
         mangle: false,
         sourceMap: true,
       };
-      if (config == Config.Competition) {
+      if (config.config == Config.Competition && config.minify) {
         options.compress = {
           // @ts-ignore: missing from @types
           booleans_as_integers: true,
@@ -134,10 +135,26 @@ function minifyPlugin(config: Config): rollup.Plugin {
       if (!code) {
         throw new Error('terser failed');
       }
-      if (config == Config.Release) {
+      if (config.config == Config.Release) {
         code = code.trimEnd() + '\n//# sourceMappingURL=game.js.map\n';
       }
       return { code, map };
+    },
+  };
+}
+
+/** Create a Rollup plugin for running code through Prettier. */
+function prettierPlugin(): rollup.Plugin {
+  const prettier = require('prettier') as typeof prettierTypes;
+  return {
+    name: 'Prettier',
+    renderChunk(input: string): { code: string } {
+      let code = prettier.format(input, {
+        parser: 'babel',
+        singleQuote: true,
+        trailingComma: 'all',
+      });
+      return { code };
     },
   };
 }
@@ -195,13 +212,16 @@ class RollupJS implements BuildAction {
       external,
     };
     if (config.config != Config.Debug) {
-      inputOptions.plugins!.push(minifyPlugin(config.config));
+      inputOptions.plugins!.push(minifyPlugin(config));
+    }
+    if (config.beautify) {
+      inputOptions.plugins!.push(prettierPlugin());
     }
     const bundle = await rollup.rollup(inputOptions);
     const outputOptions: rollup.OutputOptions = {
       format: 'module',
       name: params.global,
-      sourcemap: true,
+      sourcemap: !config.beautify,
       globals: globals,
     };
     const { output } = await bundle.generate(outputOptions);

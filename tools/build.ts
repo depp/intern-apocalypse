@@ -115,6 +115,16 @@ function parseArgs(): BuildArgs {
         default: false,
         desc: 'Show how long each build step takes',
       },
+      'minify': {
+        type: 'boolean',
+        default: true,
+        desc: 'Allow aggressive minification with Terser',
+      },
+      'beautify': {
+        type: 'boolean',
+        default: false,
+        desc: 'Beautify code (does not work with source maps)',
+      },
     })
     .command('build', 'Build a packaged zip file')
     .command('watch', 'Rebuild project as inputs change')
@@ -156,6 +166,8 @@ function parseArgs(): BuildArgs {
     host: (argv.host as string) || '',
     port: (argv.port as number) || 0,
     showBuildTimes: argv['show-build-times'],
+    minify: argv.minify,
+    beautify: argv.beautify,
   };
 }
 
