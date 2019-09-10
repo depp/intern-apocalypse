@@ -6,6 +6,7 @@ import { CodeEmitter, Opcode } from './opcode';
 import * as opcode from './opcode';
 import { SourceSpan } from '../lib/sourcepos';
 import { AssertionError } from '../debug/debug';
+import { dataMax } from '../lib/data.encode';
 
 /** Kinds of nodes. */
 export enum Kind {
@@ -231,6 +232,14 @@ export function createNode(
         `was given ${params.length} parameters, ` +
         `but requires ${operator.paramCount} parameters`,
     );
+  }
+  for (const param of params) {
+    if ((param | 0) != param) {
+      throw new AssertionError(`non-integer data`, { param });
+    }
+    if (param < 0 || dataMax < param) {
+      throw new AssertionError(`parameter out of range`, { param });
+    }
   }
   const intypes: Type[] = [];
   for (const input of inputs) {

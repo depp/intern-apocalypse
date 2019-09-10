@@ -67,9 +67,10 @@ export class CodeEmitter {
     this.code.push(opcode.value);
     for (const param of params) {
       if (param != (param | 0) || param < 0 || 255 < param) {
-        throw new AssertionError(
-          `code value out of range: ${JSON.stringify(param)}`,
-        );
+        throw new AssertionError(`code value out of range`, {
+          opcode: opcode.name,
+          param,
+        });
       }
       this.code.push(param);
     }
