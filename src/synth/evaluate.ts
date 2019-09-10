@@ -5,7 +5,13 @@
 import * as data from './data';
 import { toDataClamp, dataMax } from '../lib/data.encode';
 import { AssertionError } from '../debug/debug';
-import { SExpr, ListExpr, NumberExpr, prefixes } from '../lib/sexpr';
+import {
+  SExpr,
+  ListExpr,
+  NumberExpr,
+  prefixes,
+  NumberKind,
+} from '../lib/sexpr';
 import { SourceError, SourceSpan, noSourceLocation } from '../lib/sourcepos';
 import {
   Operator,
@@ -41,12 +47,14 @@ interface ConstantValue extends SourceSpan {
   kind: ValueKind.Constant;
   value: number;
   units: Units;
+  numberKind: NumberKind;
 }
 
 function constantValue(
   loc: SourceSpan,
   value: number,
   units: Units,
+  numberKind: NumberKind,
 ): ConstantValue {
   return {
     sourceStart: loc.sourceStart,
@@ -54,6 +62,7 @@ function constantValue(
     kind: ValueKind.Constant,
     value,
     units,
+    numberKind,
   };
 }
 
@@ -143,9 +152,23 @@ interface Number {
 
 /** Get the value of a numeric literal. */
 function getNumber(expr: NumberExpr): ConstantValue {
-  let value = parseFloat(expr.value);
-  if (isNaN(value)) {
-    throw new EvaluationError(expr, 'could not parse numeric constant');
+  let value: number;
+  let { numberKind } = expr;
+  switch (expr.numberKind) {
+    case NumberKind.Integer:
+      value = parseInt(expr.value, 10);
+      if (!isFinite(value)) {
+        throw new EvaluationError(expr, 'could not parse integer');
+      }
+      break;
+    case NumberKind.Decimal:
+      value = parseFloat(expr.value);
+      if (!isFinite(value)) {
+        throw new EvaluationError(expr, 'could not parse decimal');
+      }
+      break;
+    default:
+      throw new AssertionError(`unknown number kind ${NumberKind[numberKind]}`);
   }
   if (expr.prefix != '') {
     const factor = prefixes.get(expr.prefix);
@@ -156,6 +179,7 @@ function getNumber(expr: NumberExpr): ConstantValue {
       );
     }
     value *= factor;
+    numberKind = NumberKind.Decimal;
   }
   let units: Units;
   switch (expr.units) {
@@ -180,7 +204,7 @@ function getNumber(expr: NumberExpr): ConstantValue {
         `unknown units ${JSON.stringify(expr.units)}`,
       );
   }
-  return constantValue(expr, value, units);
+  return constantValue(expr, value, units, numberKind);
 }
 
 /** Evaluate a Lisp expression, returning node graph. */
@@ -223,7 +247,12 @@ function evaluate(env: Environment, expr: SExpr): MaybeValue {
       }
       switch (value.kind) {
         case ValueKind.Constant:
-          return constantValue(value, value.value, value.units);
+          return constantValue(
+            value,
+            value.value,
+            value.units,
+            value.numberKind,
+          );
         case ValueKind.Node:
           return nodeValue(
             createVariableRef(expr, name, value.type),
@@ -318,6 +347,18 @@ function badArgType(
 function getConstant(name: string, value: MaybeValue, units: Units): number {
   if (value.kind != ValueKind.Constant || value.units != units) {
     throw badArgType(name, value, `Constant(${Units[units]})`);
+  }
+  return value.value;
+}
+
+/** Get a unitless integer value. */
+function getInteger(name: string, value: Value): number {
+  if (
+    value.kind != ValueKind.Constant ||
+    value.units != Units.None ||
+    value.numberKind != NumberKind.Integer
+  ) {
+    throw badArgType(name, value, `Integer Constant(None)`);
   }
   return value.value;
 }
@@ -715,7 +756,7 @@ defun('phase-mod', (expr, args) => {
 
 defun('overtone', (expr, args) => {
   const [nvalue, input] = getExactArgs(expr, args, 2);
-  const n = getConstant('n', nvalue, Units.None);
+  const n = getInteger('n', nvalue);
   if (n < 1 || n > dataMax) {
     throw new EvaluationError(
       nvalue,
