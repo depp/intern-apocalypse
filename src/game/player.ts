@@ -34,6 +34,7 @@ import { Sounds } from '../audio/sounds';
 import { createWalker, Walker } from './walker';
 import { isDebug, DebugColor } from '../debug/debug';
 import { debugMarks } from '../debug/mark';
+import { spawnSlash } from './particles';
 
 /** Spawn the player in the level. */
 export function spawnPlayer(): void {
@@ -107,6 +108,7 @@ export function spawnPlayer(): void {
             if (target != this) {
               const direction = normalizeSubtract(target.pos, this.pos);
               target.damage(direction);
+              spawnSlash(target.pos, direction);
             }
           }
         }

@@ -20,7 +20,7 @@ import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
 import { Collider, colliders } from './physics';
 import { NavigationGraph, newNavigationGraph } from './navigation';
-import { levelTime } from './time';
+import { levelTime, frameDT } from './time';
 
 /** Interval, in seconds, between navigation updates. */
 const navigationUpdateInterval = 0.5;
@@ -32,7 +32,7 @@ let lastNavigationUpdateTime!: number;
 let navigationGraph: NavigationGraph | undefined | null;
 
 /** The target where monsters navigate towards. */
-let navigationTarget: Vector | undefined | null;
+let navigationTarget: Collider | undefined | null;
 
 /** Reset monster data when the level starts. */
 export function resetMonsters(): void {
@@ -45,7 +45,7 @@ function updateNavigation(): void {
   navigationTarget = null;
   for (const entity of colliders) {
     if (entity.team == Team.Player) {
-      navigationTarget = entity.pos;
+      navigationTarget = entity;
     }
   }
   if (!navigationGraph) {
@@ -53,7 +53,7 @@ function updateNavigation(): void {
   }
   if (levelTime > lastNavigationUpdateTime + navigationUpdateInterval) {
     lastNavigationUpdateTime = levelTime;
-    navigationGraph.update(navigationTarget);
+    navigationGraph.update(navigationTarget && navigationTarget.pos);
   }
 }
 
@@ -62,6 +62,8 @@ export function spawnMonster(pos: Vector): void {
   // Distance at which monster navigates instead of just traveling towards
   // player.
   const navigationThreshold = 3;
+  const attackDistance = 0.5;
+  const attackTime = 0.5;
   const params: WalkerParameters = {
     speed: 4,
     acceleration: 20,
@@ -70,6 +72,7 @@ export function spawnMonster(pos: Vector): void {
   let health = 2;
   let walker: Walker;
   let model: ModelInstance;
+  let attackTimer = 0;
   const entity: Entity & Collider = {
     pos,
     velocity: zeroVector,
@@ -79,10 +82,23 @@ export function spawnMonster(pos: Vector): void {
       const pos = this.pos;
       let movement = zeroVector;
       updateNavigation();
-      if (navigationTarget) {
-        let targetDistanceSquared = distanceSquared(pos, navigationTarget);
+      const target = navigationTarget;
+      const oldAttackTimer = attackTimer;
+      attackTimer = 0;
+      if (target) {
+        let targetDistanceSquared = distanceSquared(pos, target.pos);
         if (targetDistanceSquared < navigationThreshold ** 2) {
-          movement = normalizeSubtract(navigationTarget, pos);
+          movement = normalizeSubtract(target.pos, pos);
+          if (
+            targetDistanceSquared <
+            (this.radius + target.radius + attackDistance) ** 2
+          ) {
+            if (oldAttackTimer >= attackTime) {
+              spawnSlash(target.pos, movement);
+            } else {
+              attackTimer = oldAttackTimer + frameDT;
+            }
+          }
         } else {
           movement = navigationGraph!.navigate(pos).direction;
         }
@@ -97,7 +113,6 @@ export function spawnMonster(pos: Vector): void {
         return;
       }
       health--;
-      spawnSlash(this.pos, direction);
       if (health > 0) {
         playSound(Sounds.MonsterHit);
         this.velocity = scaleVector(direction, 12);
