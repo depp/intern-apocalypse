@@ -18,6 +18,9 @@ import { updateNavigation, navigationTarget } from './navigation';
 
 /** Spawn a monster in the level. */
 export function spawnMonster(pos: Vector): void {
+  // Distance at which monster navigates instead of just traveling towards
+  // player.
+  const navigationThreshold = 3;
   const params: WalkerParameters = {
     speed: 4,
     acceleration: 20,
@@ -35,7 +38,7 @@ export function spawnMonster(pos: Vector): void {
       let movement = zeroVector;
       if (navigationTarget) {
         let targetDistanceSquared = distanceSquared(pos, navigationTarget);
-        if (targetDistanceSquared < 4) {
+        if (targetDistanceSquared < navigationThreshold ** 2) {
           movement = normalizeSubtract(navigationTarget, pos);
         } else {
           updateNavigation();
