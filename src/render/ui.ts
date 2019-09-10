@@ -211,30 +211,75 @@ function updateMenu(): void {
   gl.bufferData(gl.ARRAY_BUFFER, tex, gl.STATIC_DRAW);
 }
 
+function drawStatusBars(): void {
+  const barWidth = 125;
+  const barHeight = 8;
+
+  const colors = '800 c00 f66 047 0ac 7dd'.split(' ');
+  const color = () => '#' + colors.pop();
+
+  for (let i = 0; i < 3; i++) {
+    ctx.save();
+    ctx.translate(canvasSize.x / 2, canvasSize.y - 16 - 32 * i);
+
+    ctx.beginPath();
+    ctx.moveTo(barWidth - barHeight, barHeight);
+    ctx.lineTo(barWidth, -barHeight);
+    ctx.lineTo(-barWidth, -barHeight);
+    ctx.lineTo(-barWidth + barHeight, barHeight);
+    ctx.closePath();
+
+    if (!i) {
+      ctx.lineWidth = 5;
+      ctx.stroke();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#fff';
+      ctx.stroke();
+      ctx.fill();
+    } else {
+      ctx.fillStyle = '#f00';
+      ctx.fill();
+
+      ctx.globalCompositeOperation = 'source-atop';
+
+      ctx.save();
+      const gradient = ctx.createRadialGradient(
+        0,
+        -barHeight * 0.6,
+        1,
+        0,
+        0,
+        barHeight,
+      );
+
+      gradient.addColorStop(0, color());
+      gradient.addColorStop(0.3, color());
+      gradient.addColorStop(1, color());
+      ctx.fillStyle = gradient;
+      const scale = 20;
+      ctx.scale(scale, 1);
+      ctx.fillRect(
+        -barWidth / scale,
+        -barHeight,
+        (barWidth * 2) / scale,
+        barHeight * 2,
+      );
+      ctx.restore();
+
+      ctx.lineWidth = 2;
+      ctx.shadowBlur = 5;
+      ctx.shadowColor = '#000';
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+}
+
 /** Update the in-game UI. */
 export function updateHUD(): void {
   initContext();
-  
-  ctx.save();
-  ctx.translate(canvasSize.x / 2, canvasSize.y - 16);
-  ctx.beginPath();
-  const barWidth = 125;
-  const barHeight = 8;
-  ctx.globalCompositeOperation = 'source-out';
-  ctx.shadowBlur = 5;
-  ctx.shadowColor = '#000';
-  ctx.moveTo(barWidth - barHeight, barHeight);
-  ctx.lineTo(barWidth, -barHeight);
-  ctx.lineTo(-barWidth, -barHeight);
-  ctx.lineTo(-barWidth + barHeight, barHeight);
-  ctx.closePath();
-  ctx.fillStyle = '#000';
-  ctx.strokeStyle = '#ccc';
-  ctx.lineWidth = 4;
-  // ctx.stroke();
-  ctx.fill();  
-  ctx.restore();
-  // 0x2665
+
+  drawStatusBars();
 
   elementCount = 6;
   const pos = new Float32Array(elementCount * 2);
