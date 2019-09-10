@@ -26,6 +26,15 @@ export interface SourcePos {
   colno: number;
 }
 
+/**
+ * A null source location, which does not correspond to any actual location in
+ * the source.
+ */
+export const noSourceLocation: HasSourceLoc = {
+  sourceStart: -1,
+  sourceEnd: -1,
+};
+
 /** An error corresponding to a location in source code. */
 export class SourceError extends Error implements SourceSpan {
   sourceStart: number;
@@ -71,7 +80,10 @@ export class SourceText {
   }
 
   /** Find the line and column of the given source location. */
-  lookup(sourcePos: number): SourcePos {
+  lookup(sourcePos: number): SourcePos | null {
+    if (sourcePos < 0) {
+      return null;
+    }
     let i = 1;
     while (i < this.linePos.length && sourcePos >= this.linePos[i]) {
       i++;

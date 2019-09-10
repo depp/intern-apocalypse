@@ -6,7 +6,7 @@ import * as data from './data';
 import { toDataClamp, dataMax } from '../lib/data.encode';
 import { AssertionError } from '../debug/debug';
 import { SExpr, ListExpr, NumberExpr, prefixes } from '../lib/sexpr';
-import { SourceError, SourceSpan } from '../lib/sourcepos';
+import { SourceError, SourceSpan, noSourceLocation } from '../lib/sourcepos';
 import {
   Operator,
   Node,
@@ -245,10 +245,7 @@ function evaluate(env: Environment, expr: SExpr): MaybeValue {
 /** Evaluate a synthesizer program and return the graph. */
 export function evaluateProgram(program: SExpr[]): Program {
   if (program.length == 0) {
-    throw new EvaluationError(
-      { sourceStart: 0, sourceEnd: 0 },
-      'empty program',
-    );
+    throw new EvaluationError(noSourceLocation, 'empty program');
   }
   const env: Environment = {
     variables: new Map<string, Value>(),
