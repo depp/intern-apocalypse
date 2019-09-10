@@ -62,6 +62,15 @@ function readParam(): number {
   return instructions[instructionPos++];
 }
 
+/** Return the buffer on the top of the stack, but do not pop it. */
+function topBuffer(): Float32Array {
+  const result = stack[stack.length - 1];
+  if (!(result instanceof Float32Array)) {
+    throw new AssertionError('type error');
+  }
+  return result;
+}
+
 // =============================================================================
 // Operator definitions
 // =============================================================================
@@ -120,23 +129,16 @@ export const operators: (() => void)[] = [
 
   /** Generate oscillator phase from pitch. */
   function oscillator(): void {
-    const [out] = getArgs(1);
+    const out = topBuffer();
     let phase = 0;
-    if (!(out instanceof Float32Array)) {
-      throw new AssertionError('type error');
-    }
     for (let i = 0; i < bufferSize; i++) {
       out[i] = phase = (phase + (1 / sampleRate) * out[i]) % 1;
     }
-    stack.push(out);
   },
 
   /** Generate sawtooth waveform from phase. */
   function sawtooth(): void {
-    const [out] = getArgs(1);
-    if (!(out instanceof Float32Array)) {
-      throw new AssertionError('type error');
-    }
+    const out = topBuffer();
     for (let i = 0; i < bufferSize; i++) {
       let x = out[i] % 1;
       if (x < 0) {
@@ -144,18 +146,13 @@ export const operators: (() => void)[] = [
       }
       out[i] = x * 2 - 1;
     }
-    stack.push(out);
   },
 
   function sine(): void {
-    const [out] = getArgs(1);
-    if (!(out instanceof Float32Array)) {
-      throw new AssertionError('type error');
-    }
+    const out = topBuffer();
     for (let i = 0; i < bufferSize; i++) {
       out[i] = Math.sin(2 * Math.PI * out[i]);
     }
-    stack.push(out);
   },
 
   /** Create a buffer filled with noise. */
@@ -172,17 +169,14 @@ export const operators: (() => void)[] = [
 
   /** Simple constant two-pole high-pass filter with fixed Q. */
   function highPass(): void {
-    const top = stack[stack.length - 1];
-    if (!(top instanceof Float32Array)) {
-      throw new AssertionError('type error');
-    }
+    const out = topBuffer();
     let a = 0;
     let b = 0;
     // We calculate the coefficient in the compiler.
     const f = decodeFrequency(readParam()) / sampleRate;
     for (let i = 0; i < bufferSize; i++) {
       b += f * a;
-      a += f * (top[i] -= b + 1.4 * a);
+      a += f * (out[i] -= b + 1.4 * a);
     }
   },
 
@@ -226,23 +220,17 @@ export const operators: (() => void)[] = [
 
   /** Apply saturation distortion to a buffer. */
   function saturate(): void {
-    const top = stack[stack.length - 1];
-    if (!(top instanceof Float32Array)) {
-      throw new AssertionError('type error');
-    }
+    const out = topBuffer();
     for (let i = 0; i < bufferSize; i++) {
-      top[i] = Math.tanh(top[i]);
+      out[i] = Math.tanh(out[i]);
     }
   },
 
   /** Replace negative values with zero. */
   function rectify(): void {
-    const top = stack[stack.length - 1];
-    if (!(top instanceof Float32Array)) {
-      throw new AssertionError('type error');
-    }
+    const out = topBuffer();
     for (let i = 0; i < bufferSize; i++) {
-      top[i] = Math.max(top[i], 0);
+      out[i] = Math.max(out[i], 0);
     }
   },
 
@@ -308,14 +296,10 @@ export const operators: (() => void)[] = [
 
   /** Convert envelope to frequency data. */
   function frequency(): void {
-    const [out] = getArgs(1);
-    if (!(out instanceof Float32Array)) {
-      throw new AssertionError('type error');
-    }
+    const out = topBuffer();
     for (let i = 0; i < bufferSize; i++) {
       out[i] = 630 * 32 ** out[i];
     }
-    stack.push(out);
   },
 
   /** Multiply a buffer by a scalar, adding the result to a second buffer. */
