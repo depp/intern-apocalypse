@@ -75,24 +75,64 @@ function topBuffer(): Float32Array {
 // Operator definitions
 // =============================================================================
 
-let envValue!: number;
-let envPos!: number;
-let envBuf: Float32Array | undefined;
+/**
+ * An envelope segment fills the envelope to the given position.
+ */
+type EnvelopeSegment = (pos: number) => void;
 
-function envWrite(pos: number, value: number): void {
-  if (envBuf == null) {
-    throw new AssertionError('null envBuf');
+/** Envelope buffer, if we are creating an envelope. */
+let envBuf: Float32Array | undefined | null;
+/** Position in envelope buffer. */
+let envPos: number | undefined;
+/** The current envelope time, in samples (generally not the same as envPos). */
+let envTime: number | undefined;
+/** The current envelope segment. */
+let envSegment: EnvelopeSegment | undefined;
+
+/** Seek in the envelope to the given time, in samples. */
+function envSeek(time: number): void {
+  if (!envSegment) {
+    throw new AssertionError('null env');
   }
-  pos = pos | 0;
-  const targetPos = Math.min(bufferSize, pos);
-  if (pos > envPos) {
-    const delta = (value - envValue) / (pos - envPos);
-    while (envPos < targetPos) {
-      envBuf[envPos++] = envValue += delta;
+  const pos = Math.min(time | 0, bufferSize);
+  envSegment(pos + 1);
+  envPos = pos;
+}
+
+/** Create a constant envelope segment. */
+function envConstant(value: number): EnvelopeSegment {
+  return pos => {
+    if (envBuf == null || envPos == null) {
+      throw new AssertionError('null env');
     }
+    envBuf.fill(value, envPos, pos);
+  };
+}
+
+/** Create a linear envelope segment. */
+function envLinear(endPos: number, endValue: number): EnvelopeSegment {
+  if (envBuf == null || envPos == null) {
+    throw new AssertionError('null env');
   }
-  envValue = value;
-  envPos = targetPos;
+  const startPos = envPos;
+  const startValue = envBuf[envPos];
+  envTime = endPos;
+  if (startPos >= endPos) {
+    return envConstant(endValue);
+  }
+  const delta = (endValue - startValue) / (endPos - startPos);
+  return pos => {
+    if (envBuf == null || envPos == null) {
+      throw new AssertionError('null env');
+    }
+    const posTarget = Math.min(pos, endPos);
+    for (let i = envPos; i < posTarget; i++) {
+      envBuf[i] = startValue + (i - startPos) * delta;
+    }
+    if (posTarget < pos) {
+      envBuf.fill(endValue, posTarget, pos);
+    }
+  };
 }
 
 /**
@@ -240,33 +280,52 @@ export const operators: (() => void)[] = [
 
   /** Start a new envelope. */
   function env_start(): void {
-    envValue = 0;
+    if (envBuf) {
+      throw new AssertionError('non-null env');
+    }
+    envBuf = new Float32Array(bufferSize + 1);
     envPos = 0;
-    envBuf = new Float32Array(bufferSize);
+    envTime = 0;
+    envSegment = envConstant(0);
   },
 
   /** Finish an envelope, push it on the stack. */
   function env_end(): void {
-    envWrite(bufferSize, envValue);
-    stack.push(envBuf!);
+    if (!envBuf) {
+      throw new AssertionError('null env');
+    }
+    envSeek(bufferSize);
+    stack.push(envBuf);
+    envBuf = null;
   },
 
   /** Envelope: set value. */
   function env_set(): void {
-    envValue = decodeLinear(readParam());
+    if (!envBuf || envTime == null) {
+      throw new AssertionError('null env');
+    }
+    envSeek(envTime);
+    envSegment = envConstant(decodeLinear(readParam()));
   },
 
   /** Envelope: linear segment. */
   function env_lin(): void {
-    envWrite(
-      envPos + decodeExponential(readParam()) * sampleRate,
+    if (!envBuf || envTime == null) {
+      throw new AssertionError('null env');
+    }
+    envSeek(envTime);
+    envSegment = envLinear(
+      envTime + decodeExponential(readParam()) * sampleRate,
       decodeLinear(readParam()),
     );
   },
 
   /** Envelope: hold value. */
   function env_delay(): void {
-    envWrite(envPos + decodeExponential(readParam()) * sampleRate, envValue);
+    if (!envBuf || envTime == null) {
+      throw new AssertionError('null env');
+    }
+    envTime += decodeExponential(readParam()) * sampleRate;
   },
 
   // ===========================================================================
