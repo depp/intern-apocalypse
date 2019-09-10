@@ -18,6 +18,9 @@ test('sourcepos', () => {
   for (let i = 0; i < locs.length; i++) {
     const got = src.lookup(i);
     const want = locs[i];
+    if (got == null) {
+      throw new Error(`loc ${i}: got null`);
+    }
     if (got.lineno != want.lineno || got.colno != want.colno) {
       throw new Error(
         `loc ${i}: got ${got.lineno}:${got.colno}, expect ${want.lineno}:${want.colno}`,

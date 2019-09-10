@@ -4,6 +4,7 @@ import { getModelNames } from '../model/models';
 import { convertModel } from '../model/convert';
 import { SourceError, SourceText } from '../lib/sourcepos';
 import { hashVariables } from './hash';
+import { logSourceError } from './source';
 
 interface ModelInfo {
   index: number;
@@ -21,8 +22,7 @@ function loadTextModel(filename: string, source: string): Model | null {
   } catch (e) {
     if (e instanceof SourceError) {
       const text = new SourceText(filename, source);
-      const loc = text.lookup(e.sourceStart);
-      console.error(`${filename}:${loc.lineno}:${loc.colno} ${e.message}`);
+      logSourceError(text, e);
       return null;
     }
     console.error(filename, e);
