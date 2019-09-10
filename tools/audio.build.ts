@@ -18,7 +18,7 @@ import { printError } from './source';
 import { encode } from '../src/lib/data.encode';
 import { AssertionError } from '../src/debug/debug';
 import { parseSExpr } from '../src/lib/sexpr';
-import { evaluateProgram } from '../src/synth/evaluate';
+import { evaluateProgram, soundParameters } from '../src/synth/evaluate';
 import { emitCode } from '../src/synth/node';
 
 const defsFile = 'src/audio/sounds.ts';
@@ -83,7 +83,7 @@ async function processSound(filename: string): Promise<string | null> {
   let data: Uint8Array;
   try {
     const exprs = parseSExpr(source);
-    const node = evaluateProgram(exprs);
+    const node = evaluateProgram(exprs, soundParameters);
     data = emitCode(node);
   } catch (e) {
     if (e instanceof SourceError) {

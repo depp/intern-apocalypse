@@ -1,6 +1,11 @@
 import { AssertionError } from '../debug/debug';
 
-const middleC = 60;
+/**
+ * The note value of middle C, C4.
+ *
+ * This is shifted from MIDI values.
+ */
+export const middleC = 48;
 
 const noteNames = new Map<string, number>([
   ['c', 0],

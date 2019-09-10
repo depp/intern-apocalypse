@@ -156,6 +156,7 @@ export const scaleInt = opcode('scaleInt', 1);
 // Variable ref
 export const deref = opcode('deref', 1);
 export const derefCopy = opcode('derefCopy', 1);
+export const note = opcode('note', 1);
 
 // Check that all opcodes have definitions.
 for (const name of nameToValue.keys()) {

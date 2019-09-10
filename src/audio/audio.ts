@@ -3,7 +3,6 @@
  */
 
 import { runProgram, sampleRate } from '../synth/engine';
-import { Sounds } from './sounds';
 import { AssertionError } from '../debug/debug';
 import { bundledData } from '../lib/global';
 import { soundOffset } from '../lib/loader';
@@ -25,7 +24,7 @@ function getSoundBuffer(index: number): AudioBuffer | null {
     if (!code) {
       return null;
     }
-    const audio = runProgram(code);
+    const audio = runProgram(code, 48);
     buffer = audioCtx.createBuffer(1, audio.length, sampleRate);
     buffer.getChannelData(0).set(audio);
     buffers[index] = buffer;

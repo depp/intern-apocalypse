@@ -271,14 +271,61 @@ function evaluate(env: Environment, expr: SExpr): MaybeValue {
   }
 }
 
+/**
+ * Program input parameter specification. Used to define the API for executing
+ * a program.
+ */
+export interface Parameter {
+  readonly name: string;
+  readonly units: Units;
+  readonly type: Type;
+}
+
+/** Parameter definitions for sound generators. */
+export const soundParameters: readonly Parameter[] = [
+  { name: 'note-value', units: Units.Note, type: Type.Scalar },
+];
+
 /** Evaluate a synthesizer program and return the graph. */
-export function evaluateProgram(program: SExpr[]): Program {
+export function evaluateProgram(
+  program: SExpr[],
+  params: readonly Parameter[],
+): Program {
   if (program.length == 0) {
     throw new EvaluationError(noSourceLocation, 'empty program');
   }
+
+  // Define initial environment.
   const env: Environment = {
     variables: new Map<string, Value>(),
   };
+  for (let i = 0; i < params.length; i++) {
+    const { name, units, type } = params[i];
+    if (env.variables.has(name)) {
+      throw new EvaluationError(
+        noSourceLocation,
+        `duplicate parameter ${JSON.stringify(name)}`,
+      );
+    }
+    let op: Operator;
+    switch (type) {
+      case Type.Scalar:
+        op = node.scalarParam;
+        break;
+      case Type.Buffer:
+        op = node.bufferParam;
+        break;
+      default:
+        const dummy: never = type;
+        throw new AssertionError('unknown type');
+    }
+    env.variables.set(
+      name,
+      nodeValue(createNode(noSourceLocation, op, [i], []), units, type),
+    );
+  }
+
+  // Evaluate top-level forms.
   for (let i = 0; i < program.length - 1; i++) {
     const value = evaluate(env, program[i]);
     if (value.kind != ValueKind.Void) {
@@ -296,6 +343,8 @@ export function evaluateProgram(program: SExpr[]): Program {
       `program has type ${printValueType(value)}, expected Buffer(Volt)`,
     );
   }
+
+  // Collect variables.
   const variables = new Map<string, Node>();
   for (const [name, value] of env.variables) {
     switch (value.kind) {
@@ -310,6 +359,7 @@ export function evaluateProgram(program: SExpr[]): Program {
     }
   }
   return {
+    parameterCount: params.length,
     variables,
     result: value.node,
   };
@@ -518,16 +568,25 @@ function getExactArgs(expr: ListExpr, args: Value[], count: number): Value[] {
 }
 
 // =============================================================================
-// Numeric values
+// Parameters
 // =============================================================================
 
 defun('note', (expr, args) => {
-  const [frequency] = getExactArgs(expr, args, 1);
-  const fvalue = getConstant('frequency', frequency, Units.Hertz);
+  const [offsetExpr] = getExactArgs(expr, args, 1);
+  const offset = getInteger('offset', offsetExpr);
+  const zero = 48;
+  const min = -zero;
+  const max = dataMax - zero;
+  if (offset < min || max < offset) {
+    throw new EvaluationError(
+      offsetExpr,
+      `offset ${offset} ouf of range, ` + `must be in the range ${min}-${max}`,
+    );
+  }
   return nodeValue(
-    createNode(expr, node.num_note, [toDataClamp(data.encodeNote(fvalue))], []),
+    createNode(expr, node.note, [offset + zero], []),
     Units.Hertz,
-    Type.Scalar,
+    Type.Buffer,
   );
 });
 

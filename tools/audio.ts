@@ -8,7 +8,7 @@ import * as child_process from 'child_process';
 import * as yargs from 'yargs';
 import { file, setGracefulCleanup } from 'tmp-promise';
 
-import { evaluateProgram } from '../src/synth/evaluate';
+import { evaluateProgram, soundParameters } from '../src/synth/evaluate';
 import { disassembleProgram } from '../src/synth/opcode';
 import { sampleRate, runProgram } from '../src/synth/engine';
 import { encode } from '../src/lib/data.encode';
@@ -19,13 +19,22 @@ import { parseSExpr } from '../src/lib/sexpr';
 import { emitCode } from '../src/synth/node';
 import { AssertionError } from '../src/debug/debug';
 import { pathWithExt } from './util';
+import { middleC, parseNote } from '../src/score/note';
 
 setGracefulCleanup();
+
+interface Note {
+  /** Note value (as from parseNote). */
+  value: number;
+  /** Sample offset when note starts. */
+  offset: number;
+}
 
 interface AudioArgs {
   write: boolean;
   input: string[];
   play: boolean;
+  notes: Note[];
   disassemble: boolean;
   verbose: boolean;
   loop: boolean;
@@ -46,6 +55,16 @@ function parseArgs(): AudioArgs {
         type: 'boolean',
         default: false,
         desc: 'Play sounds',
+      },
+      notes: {
+        type: 'string',
+        default: '',
+        desc: 'Note values to play, separated by commas',
+      },
+      tempo: {
+        type: 'number',
+        default: 120,
+        desc: 'Tempo to play notes at (quarter notes)',
       },
       disassemble: {
         alias: 'd',
@@ -72,10 +91,35 @@ function parseArgs(): AudioArgs {
     .help()
     .version(false)
     .strict().argv;
+  let notes: Note[];
+  if (!argv.notes.length) {
+    notes = [{ value: middleC, offset: 0 }];
+  } else {
+    notes = [];
+    let offset = 0;
+    const offsetIncrement = ((sampleRate * 60) / argv.tempo) | 0;
+    for (const text of argv.notes.split(',')) {
+      if (text != '') {
+        const value = parseNote(text);
+        if (!value) {
+          console.error(`invalid note: ${JSON.stringify(text)}`);
+          process.exit(2);
+          throw new AssertionError('unreachable');
+        }
+        notes.push({ value, offset });
+        offset += offsetIncrement;
+      }
+    }
+    if (!notes.length) {
+      console.error('empty list of notes');
+      process.exit(2);
+    }
+  }
   const args: AudioArgs = {
     write: argv.write,
     input: argv._,
     play: argv.play,
+    notes,
     disassemble: argv.disassemble,
     verbose: argv.disassemble,
     loop: argv.loop,
@@ -113,7 +157,7 @@ function compile(
     log('Parsing...');
     const exprs = parseSExpr(inputText);
     log('Evaluating...');
-    const node = evaluateProgram(exprs);
+    const node = evaluateProgram(exprs, soundParameters);
     log('Emitting code...');
     code = emitCode(node);
   } catch (e) {
@@ -154,8 +198,27 @@ function compile(
 }
 
 /** Generate WAVE file data from audio program. */
-function makeWave(code: Uint8Array): Buffer {
-  const audio = runProgram(code);
+function makeWave(code: Uint8Array, notes: readonly Note[]): Buffer {
+  const buffers: Float32Array[] = [];
+  let outLen = 0;
+  for (const note of notes) {
+    const audio = runProgram(code, note.value);
+    buffers.push(audio);
+    outLen = Math.max(outLen, note.offset + audio.length);
+  }
+  let audio: Float32Array;
+  if (buffers.length == 1) {
+    audio = buffers[0];
+  } else {
+    audio = new Float32Array(outLen);
+    for (let i = 0; i < notes.length; i++) {
+      const { offset } = notes[i];
+      const buffer = buffers[i];
+      for (let j = 0; j < buffer.length; j++) {
+        audio[offset + j] += buffer[j];
+      }
+    }
+  }
   return waveData({
     sampleRate,
     channelCount: 1,
@@ -257,7 +320,7 @@ async function runMain(
     return false;
   }
   if (writer != null) {
-    const data = makeWave(code);
+    const data = makeWave(code, args.notes);
     await writer.write(data);
     if (args.play) {
       await playAudio(writer.path);

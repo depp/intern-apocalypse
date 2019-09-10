@@ -14,6 +14,8 @@ export enum Units {
   Phase,
   /** Alternate units for unitless ratios. */
   Decibel,
+  /** Note value, similar to MIDI. */
+  Note,
 }
 
 /** Fundamental components of units, as multiplied base units with exponents. */

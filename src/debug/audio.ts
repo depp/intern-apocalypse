@@ -3,7 +3,7 @@ import { sounds } from '../audio/audio';
 import { getSoundNames } from '../audio/sounds';
 import { SourceError, SourceText } from '../lib/sourcepos';
 import { parseSExpr } from '../lib/sexpr';
-import { evaluateProgram } from '../synth/evaluate';
+import { evaluateProgram, soundParameters } from '../synth/evaluate';
 import { emitCode } from '../synth/node';
 import { hashVariables } from './hash';
 import { logSourceError } from './source';
@@ -21,7 +21,7 @@ function loadAudioProgram(filename: string, source: string): Uint8Array | null {
   let code: Uint8Array;
   try {
     const expr = parseSExpr(source);
-    const node = evaluateProgram(expr);
+    const node = evaluateProgram(expr, soundParameters);
     code = emitCode(node);
   } catch (e) {
     if (e instanceof SourceError) {

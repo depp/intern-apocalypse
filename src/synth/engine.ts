@@ -29,7 +29,7 @@ let bufferSize = sampleRate * 2;
 let random = new Random(9);
 
 /** Synthesizer numeric execution stack. */
-const stack: (number | Float32Array)[] = [];
+let stack: (number | Float32Array)[];
 
 /** Get an unused buffer, push it onto the stack, and return it. */
 function pushBuffer(): Float32Array {
@@ -330,9 +330,9 @@ export const operators: (() => void)[] = [
     }
   },
 
-  // =============================================================================
+  // ===========================================================================
   // Variables
-  // =============================================================================
+  // ===========================================================================
 
   /** Dereference a variable, indexed from the bottom of the stack. */
   function deref(): void {
@@ -355,6 +355,17 @@ export const operators: (() => void)[] = [
     }
     stack.push(new Float32Array(value));
   },
+
+  /** Create a buffer containing the musical note, as a frequency. */
+  function note(): void {
+    const offset = readParam() - 48;
+    const out = pushBuffer();
+    const value = stack[0];
+    if (typeof value != 'number') {
+      throw new AssertionError('type error');
+    }
+    out.fill(decodeNote(value + offset));
+  },
 ];
 
 // =============================================================================
@@ -364,11 +375,15 @@ export const operators: (() => void)[] = [
 /**
  * Execute an audio program.
  * @param code The compiled program to run.
+ * @param params Input parameters to pass to the program.
  */
-export function runProgram(code: Uint8Array): Float32Array {
+export function runProgram(
+  code: Uint8Array,
+  ...params: (number | Float32Array)[]
+): Float32Array {
   instructions = code;
   instructionPos = 0;
-  stack.length = 0;
+  stack = params;
   while (instructionPos < code.length) {
     const func = operators[code[instructionPos++]];
     if (func == null) {

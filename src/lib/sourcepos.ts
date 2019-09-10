@@ -30,7 +30,7 @@ export interface SourcePos {
  * A null source location, which does not correspond to any actual location in
  * the source.
  */
-export const noSourceLocation: HasSourceLoc = {
+export const noSourceLocation: SourceSpan = {
   sourceStart: -1,
   sourceEnd: -1,
 };

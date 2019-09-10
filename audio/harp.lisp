@@ -1,5 +1,5 @@
 ;; Base oscillators.
-(define osc (oscillator (note 256Hz)))
+(define osc (oscillator (note 0)))
 (define osc2 (overtone 2 osc))
 (define osc3 (overtone 3 osc))
 

@@ -54,6 +54,7 @@ export type Node = ValueNode | VariableNode;
 
 /** A complete audio program. */
 export interface Program {
+  parameterCount: number;
   variables: Map<string, Node>;
   result: Node;
 }
@@ -164,10 +165,16 @@ export function emitCode(program: Program): Uint8Array {
         throw new AssertionError('unknown node kind');
     }
   }
-  let slot = 0;
+  let slot = program.parameterCount;
   for (const info of variableInfo.values()) {
-    // Variables used only once are inlined.
-    if (info.useCount > 1) {
+    const { value } = info;
+    let doInline =
+      // Parameter references are always inlined.
+      value.operator == scalarParam ||
+      value.operator == bufferParam ||
+      // Variables used only once are inlined.
+      info.useCount <= 1;
+    if (!doInline) {
       emitNode(info.value);
       info.slot = slot++;
     }
@@ -262,7 +269,7 @@ export function createNode(
     throw new Error(
       `operator ${opName(operator, params)} ` +
         `was given inputs ${typeList(intypes)}, ` +
-        `but requires ${typeList(intypes)}`,
+        `but requires ${typeList(indecls)}`,
     );
   }
   return {
@@ -373,3 +380,8 @@ export const mix = opSimple(
 );
 export const zero = opSimple(opcode.zero, [], [Type.Buffer]);
 export const scaleInt = opSimple(opcode.scaleInt, [Type.Buffer], [Type.Buffer]);
+
+// Parameter references
+export const scalarParam = opSimple(opcode.deref, [], [Type.Scalar]);
+export const bufferParam = opSimple(opcode.derefCopy, [], [Type.Buffer]);
+export const note = opSimple(opcode.note, [], [Type.Buffer]);

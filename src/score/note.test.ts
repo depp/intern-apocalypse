@@ -1,6 +1,7 @@
-import { parseNote } from './note';
+import { parseNote, middleC } from './note';
 
 test('parseNote', () => {
+  // These are MIDI values.
   const cases: [string, number][] = [
     ['c4', 60],
     ['c#4', 61],
@@ -14,7 +15,9 @@ test('parseNote', () => {
     ['c5', 72],
     ['c3', 48],
   ];
-  for (const [input, expected] of cases) {
+  for (const [input, midi] of cases) {
+    // Convert from
+    const expected = midi + middleC - 60;
     const output = parseNote(input);
     if (output != expected) {
       throw new Error(
