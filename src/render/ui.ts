@@ -97,6 +97,35 @@ function wrapText(text: string, width: number): string[] {
   return lines;
 }
 
+/** Update the texture with the contents of the canvas. */
+function updateTexture(): void {
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    offscreenCanvas,
+  );
+  gl.generateMipmap(gl.TEXTURE_2D);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+}
+
+/** Update the vertex buffer data. */
+function updateBuffers(
+  pos: Float32Array,
+  color: Uint32Array,
+  tex: Float32Array,
+): void {
+  gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, color, gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, tex, gl.STATIC_DRAW);
+}
+
 /** Update the menu graphics data. */
 function updateMenu(): void {
   if (!currentMenu) {
@@ -140,7 +169,7 @@ function updateMenu(): void {
 
   elementCount = itemcount * 6;
   const pos = new Float32Array(elementCount * 2);
-  const color = new Int32Array(elementCount);
+  const color = new Uint32Array(elementCount);
   const tex = new Float32Array(elementCount * 2);
   const aspect = canvasSize.x / canvasSize.y;
   const usize = canvasSize.x / textureSize.x;
@@ -191,24 +220,8 @@ function updateMenu(): void {
     off += 6;
   }
 
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.RGBA,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    offscreenCanvas,
-  );
-  gl.generateMipmap(gl.TEXTURE_2D);
-  gl.bindTexture(gl.TEXTURE_2D, null);
-
-  gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW);
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, color, gl.STATIC_DRAW);
-  gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, tex, gl.STATIC_DRAW);
+  updateTexture();
+  updateBuffers(pos, color, tex);
 }
 
 function drawStatusBars(): void {
@@ -220,7 +233,7 @@ function drawStatusBars(): void {
 
   for (let i = 0; i < 3; i++) {
     ctx.save();
-    ctx.translate(canvasSize.x / 2, canvasSize.y - 16 - 32 * i);
+    ctx.translate(150, 16 + 32 * i);
 
     ctx.beginPath();
     ctx.moveTo(barWidth - barHeight, barHeight);
@@ -230,9 +243,9 @@ function drawStatusBars(): void {
     ctx.closePath();
 
     if (!i) {
-      ctx.lineWidth = 5;
+      ctx.lineWidth = 6;
       ctx.stroke();
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 3;
       ctx.strokeStyle = '#fff';
       ctx.stroke();
       ctx.fill();
@@ -243,14 +256,7 @@ function drawStatusBars(): void {
       ctx.globalCompositeOperation = 'source-atop';
 
       ctx.save();
-      const gradient = ctx.createRadialGradient(
-        0,
-        -barHeight * 0.6,
-        1,
-        0,
-        0,
-        barHeight,
-      );
+      const gradient = ctx.createRadialGradient(0, -3, 1, 0, 0, barHeight);
 
       gradient.addColorStop(0, color());
       gradient.addColorStop(0.3, color());
@@ -276,14 +282,18 @@ function drawStatusBars(): void {
 }
 
 /** Update the in-game UI. */
-export function updateHUD(): void {
+export function startHUD(): void {
   initContext();
-
   drawStatusBars();
+  updateTexture();
+  drawFullTexture();
+}
 
+/** Set the buffer to draw the full UI texture. */
+function drawFullTexture() {
   elementCount = 6;
   const pos = new Float32Array(elementCount * 2);
-  const color = new Int32Array(elementCount);
+  const color = new Uint32Array(elementCount);
   const tex = new Float32Array(elementCount * 2);
   const aspect = canvasSize.x / canvasSize.y;
   const usize = 1 / textureSize.x;
@@ -294,25 +304,7 @@ export function updateHUD(): void {
     tex.set([canvasSize.x * u * usize, canvasSize.y * v * vsize], i * 2);
   }
   color.fill(-1);
-
-  gl.bindTexture(gl.TEXTURE_2D, texture);
-  gl.texImage2D(
-    gl.TEXTURE_2D,
-    0,
-    gl.RGBA,
-    gl.RGBA,
-    gl.UNSIGNED_BYTE,
-    offscreenCanvas,
-  );
-  gl.generateMipmap(gl.TEXTURE_2D);
-  gl.bindTexture(gl.TEXTURE_2D, null);
-
-  gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW);
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, color, gl.STATIC_DRAW);
-  gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, tex, gl.STATIC_DRAW);
+  updateBuffers(pos, color, tex);
 }
 
 /**

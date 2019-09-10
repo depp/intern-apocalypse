@@ -8,7 +8,7 @@ import { startInput, endFrameInput } from './lib/input';
 import { spawnPlayer } from './game/player';
 import { render } from './render/render';
 import { State, currentState, setState } from './lib/global';
-import { startMenu, pushMenu, endMenu, popMenu, updateHUD } from './render/ui';
+import { startMenu, pushMenu, endMenu, popMenu, startHUD } from './render/ui';
 import { spawnMonster } from './game/monster';
 import { Difficulty, setDifficulty } from './game/difficulty';
 import { vector } from './lib/math';
@@ -88,7 +88,7 @@ export function main(curTimeMS: DOMHighResTimeStamp): void {
         break;
       case State.Game:
         endMenu();
-        updateHUD();
+        startHUD();
         break;
     }
     lastState = currentState;
