@@ -219,7 +219,7 @@ function drawStatusBars(): void {
   const barWidth = 125;
   const barHeight = 8;
 
-  const colors = '800 c00 f66 047 0ac 7dd'.split(' ');
+  const colors = '800 c00 f66 047 0ac 7dd fff'.split(' ');
   const color = () => '#' + colors.pop();
 
   for (let i = 0; i < 3; i++) {
@@ -237,11 +237,10 @@ function drawStatusBars(): void {
       ctx.lineWidth = 6;
       ctx.stroke();
       ctx.lineWidth = 3;
-      ctx.strokeStyle = '#fff';
+      ctx.strokeStyle = color();
       ctx.stroke();
       ctx.fill();
     } else {
-      ctx.fillStyle = '#f00';
       ctx.fill();
 
       ctx.globalCompositeOperation = 'source-atop';
