@@ -95,6 +95,7 @@ export function spawnMonster(pos: Vector): void {
           ) {
             if (oldAttackTimer >= attackTime) {
               spawnSlash(target.pos, movement);
+              target.damage(movement);
             } else {
               attackTimer = oldAttackTimer + frameDT;
             }

@@ -2,10 +2,15 @@ import { gl, canvas, getMousePos } from '../lib/global';
 import { AssertionError, isDebug } from '../debug/debug';
 import { uiShader, UiAttrib } from './shaders';
 import { quad, packColor } from './util';
-import { uiMatrix } from '../game/camera';
 import { roundUpPow2 } from '../lib/util';
-import { Vector, vector, lerp1D } from '../lib/math';
+import { Vector, vector } from '../lib/math';
 import { levelTime } from '../game/time';
+import {
+  playerHealth,
+  playerHealthMax,
+  playerMana,
+  playerManaMax,
+} from '../game/player';
 
 /** If true, we are drawing the HUD. */
 let hudMode: boolean | undefined;
@@ -300,10 +305,10 @@ function drawFullTexture() {
 
 /** Update the hud data. */
 function updateHUD(): void {
-  elementCount = 4 * 6;
-  const pos = new Float32Array(elementCount * 2);
-  const color = new Uint32Array(elementCount);
-  const tex = new Float32Array(elementCount * 2);
+  const maxSize = 4 * 6;
+  const pos = new Float32Array(maxSize * 2);
+  const color = new Uint32Array(maxSize);
+  const tex = new Float32Array(maxSize * 2);
   let off = 0;
   function put(
     u0: number,
@@ -320,13 +325,19 @@ function updateHUD(): void {
     off += 6;
   }
   color.fill(-1);
-  const health = 1 - Math.min((levelTime % 4) / 2, 1);
-  put(0, 0, 50, 0, 300, 32);
-  put(0, 32, 50, 0, health < 1 ? 25 + 250 * health : 300, 32);
-  const mana = 1 - Math.min((levelTime % 11) / 7, 1);
-  const d = mana < 1 ? 275 - 250 * mana : 0;
-  put(0, 0, 450, 0, 300, 32);
-  put(0 + d, 64, 450 + d, 0, 300 - d, 32);
+  if (playerHealthMax) {
+    const health = playerHealth / playerHealthMax;
+    const off = playerManaMax ? 0 : 200;
+    put(0, 0, 50 + off, 0, 300, 32);
+    put(0, 32, 50 + off, 0, health < 1 ? 25 + 250 * health : 300, 32);
+  }
+  if (playerManaMax) {
+    const mana = playerMana / playerManaMax;
+    const d = mana < 1 ? 275 - 250 * mana : 0;
+    put(0, 0, 450, 0, 300, 32);
+    put(0 + d, 64, 450 + d, 0, 300 - d, 32);
+  }
+  elementCount = off;
   updateBuffers(pos, color, tex);
 }
 

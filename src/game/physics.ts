@@ -198,7 +198,7 @@ export function updateColliders(): void {
     const edgeLen = distance(vertex0, vertex1);
     // Perpendicular component.
     const perp = wedgeSubtract(vertex1, vertex0, pos, vertex0) / edgeLen;
-    if (perp > radius || perp < 0) {
+    if (Math.abs(perp) > radius) {
       return null;
     }
     // Parallel component.

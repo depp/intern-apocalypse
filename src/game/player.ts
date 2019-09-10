@@ -36,6 +36,12 @@ import { isDebug, DebugColor } from '../debug/debug';
 import { debugMarks } from '../debug/mark';
 import { spawnSlash } from './particles';
 
+export let playerHealth = 10;
+export let playerHealthMax = 10;
+
+export let playerMana = 0;
+export let playerManaMax = 0;
+
 /** Spawn the player in the level. */
 export function spawnPlayer(): void {
   let pos = vector(0, 0);
@@ -133,7 +139,12 @@ export function spawnPlayer(): void {
       );
       rotateMatrixFromDirection(swordTransform, Axis.Z, 1, 1 - blend);
     },
-    damage() {},
+    damage() {
+      playerHealth--;
+      if (playerHealth < 0) {
+        playerHealth = 0;
+      }
+    },
   };
   walker = createWalker(entity);
   model = {
