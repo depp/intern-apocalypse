@@ -1,20 +1,20 @@
 /** An object which records a span of text in source code. */
 export interface SourceSpan {
   /** Start of the span, offset from beginning of file. */
-  sourceStart: number;
+  readonly sourceStart: number;
   /**
    * End of the span, offset from beginning of file. Equal to the start offset
    * plus the length of the span.
    */
-  sourceEnd: number;
+  readonly sourceEnd: number;
 }
 
 /** An object which records a piece of text in source code. */
 export interface SourceToken {
   /** Start of the text, offset from beginning of file. */
-  sourcePos: number;
+  readonly sourcePos: number;
   /** The text, as it appears in the source file. */
-  text: string;
+  readonly text: string;
 }
 
 /** An object which records a span of text. */
