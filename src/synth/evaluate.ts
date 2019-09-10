@@ -3,7 +3,7 @@
  */
 
 import * as data from './data';
-import { toDataClamp } from '../lib/data.encode';
+import { toDataClamp, dataMax } from '../lib/data.encode';
 import { AssertionError } from '../debug/debug';
 import { SExpr, ListExpr, NumberExpr, prefixes } from '../lib/sexpr';
 import { SourceError, SourceSpan } from '../lib/sourcepos';
@@ -714,6 +714,22 @@ defun('phase-mod', (expr, args) => {
     );
   }
   return nodeValue(output, Units.Phase, Type.Buffer);
+});
+
+defun('overtone', (expr, args) => {
+  const [nvalue, input] = getExactArgs(expr, args, 2);
+  const n = getConstant('n', nvalue, Units.None);
+  if (n < 1 || n > dataMax) {
+    throw new EvaluationError(
+      nvalue,
+      `overtone index is ${n}, must be in the range 1-${dataMax}`,
+    );
+  }
+  return nodeValue(
+    createNode(expr, node.scaleInt, [n], [castToPhase('phase', input)]),
+    Units.Phase,
+    Type.Buffer,
+  );
 });
 
 // =============================================================================

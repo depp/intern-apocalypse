@@ -150,6 +150,7 @@ export const constant = opcode('constant', 0);
 export const frequency = opcode('frequency', 0);
 export const mix = opcode('mix', 1);
 export const zero = opcode('zero', 0);
+export const scaleInt = opcode('scaleInt', 1);
 
 // Variable ref
 export const deref = opcode('deref', 1);

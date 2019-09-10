@@ -321,6 +321,15 @@ export const operators: (() => void)[] = [
     pushBuffer();
   },
 
+  /** Scale a buffer by an integer. */
+  function scaleInt(): void {
+    const out = topBuffer();
+    const scale = readParam();
+    for (let i = 0; i < bufferSize; i++) {
+      out[i] *= scale;
+    }
+  },
+
   // =============================================================================
   // Variables
   // =============================================================================

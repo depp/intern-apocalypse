@@ -363,3 +363,4 @@ export const mix = opSimple(
   [Type.Buffer],
 );
 export const zero = opSimple(opcode.zero, [], [Type.Buffer]);
+export const scaleInt = opSimple(opcode.scaleInt, [Type.Buffer], [Type.Buffer]);
