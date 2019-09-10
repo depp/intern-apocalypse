@@ -26,6 +26,7 @@ interface PositionedMenu extends Menu {
 
 /** A menu item which has been positioned. */
 interface PositionedMenuItem extends MenuItem {
+  lines?: string[];
   size: number;
   flexspace: number;
   space: number;
@@ -71,6 +72,30 @@ function initContext(): void {
   offscreenCanvas.height = textureSize.y;
 }
 
+function getFont(item: PositionedMenuItem): string {
+  return `${(item.size * 32) | 0}px Luminari`;
+}
+
+function wrapText(text: string, width: number): string[] {
+  const words = text.split(/\s+/);
+  let line = words.shift()!;
+  if (!line) {
+    return [];
+  }
+  const lines: string[] = [];
+  for (const word of words) {
+    const candidate = line + ' ' + word;
+    if (ctx.measureText(candidate).width > width) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+  }
+  lines.push(line);
+  return lines;
+}
+
 /** Update the menu graphics data. */
 function updateMenu(): void {
   if (!currentMenu) {
@@ -79,6 +104,8 @@ function updateMenu(): void {
   const items = currentMenu.items;
   initContext();
 
+  const baseLineHeight = 40;
+
   // Calculate the positions of the menu items.
   let fixspace = 0;
   let flexspace = 0;
@@ -86,8 +113,10 @@ function updateMenu(): void {
   for (const item of items) {
     flexspace += item.flexspace;
     if (item.text) {
+      ctx.font = getFont(item);
       itemcount++;
-      fixspace += 48 * item.size;
+      item.lines = wrapText(item.text, canvasSize.x * 0.95);
+      fixspace += baseLineHeight * item.size * item.lines.length;
     }
     fixspace += item.space;
   }
@@ -97,9 +126,10 @@ function updateMenu(): void {
   for (const item of items) {
     item.y0 = ypos | 0;
     item.v0 = vpos | 0;
-    if (item.text) {
-      ypos += 48 * item.size;
-      vpos += 48 * item.size;
+    if (item.lines) {
+      const delta = baseLineHeight * item.size * item.lines.length;
+      ypos += delta;
+      vpos += delta;
     }
     ypos += item.space + flexamt * item.flexspace;
     item.y1 = ypos | 0;
@@ -116,13 +146,14 @@ function updateMenu(): void {
   let off = 0;
 
   for (const item of items) {
-    if (!item.text) {
+    if (!item.lines) {
       continue;
     }
 
+    const lineHeight = baseLineHeight * item.size;
     ctx.save();
-    ctx.translate(canvasSize.x / 2, (item.v0 + item.v1) / 2);
-    ctx.font = `bold ${item.size * 32}px Luminari`;
+    ctx.translate(canvasSize.x / 2, item.v0 + lineHeight * 0.5);
+    ctx.font = getFont(item);
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
@@ -133,7 +164,10 @@ function updateMenu(): void {
     // ctx.lineJoin = 'round';
     // ctx.strokeText(item.text, 0, 0);
     // ctx.fillRect(-150, -2, 300, 4);
-    ctx.fillText(item.text, 0, 0);
+    for (const line of item.lines) {
+      ctx.fillText(line, 0, 0);
+      ctx.translate(0, lineHeight);
+    }
     ctx.restore();
 
     for (const [i, x, , u, v] of quad) {
