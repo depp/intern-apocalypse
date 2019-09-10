@@ -83,14 +83,14 @@ export function updateCamera(): void {
   const adjust = num / Math.max(mf ** 2 - 1, num);
 
   const a = 1 / Math.hypot(elevation, 1);
+
+  // Set distance.
+  translateMatrix(cameraMatrix, [0, 0, -cameraSettings.distance]);
+
   // Rotate.
   rotateMatrixFromDirection(cameraMatrix, Axis.X, elevation, -1);
 
-  // Transpose.
+  // Set target.
   const { x, y } = cameraTargetFilter[2];
-  translateMatrix(cameraMatrix, [
-    -x,
-    distance * a - y + adjust,
-    -distance * a * elevation - 0.5,
-  ]);
+  translateMatrix(cameraMatrix, [-x, -y + adjust, -0.5]);
 }
