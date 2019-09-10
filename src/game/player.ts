@@ -34,7 +34,7 @@ import { Sounds } from '../audio/sounds';
 import { createWalker, Walker } from './walker';
 import { isDebug, DebugColor } from '../debug/debug';
 import { debugMarks } from '../debug/mark';
-import { spawnSlash } from './particles';
+import { spawnSlash, spawnDeath } from './particles';
 
 export let playerHealth = 10;
 export let playerHealthMax = 10;
@@ -143,6 +143,9 @@ export function spawnPlayer(): void {
       playerHealth--;
       if (playerHealth < 0) {
         playerHealth = 0;
+        this.isDead = model.isDead = sword.isDead = true;
+        spawnDeath(model.transform, model.model);
+        spawnDeath(sword.transform, sword.model);
       } else {
         applyCameraShake(0.1);
       }
