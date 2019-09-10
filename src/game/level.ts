@@ -33,10 +33,6 @@ export interface Cell {
   bounds: Rect;
   /** True if you can walk through this cell. */
   walkable: boolean;
-  /** The next cell that monsters should navigate to. */
-  navigateNext: Cell | null;
-  /** The distance from the player, following the navigation path. */
-  navigateDistance: number;
   /** Calculate the centroid of the cell. */
   centroid(): Vector;
   /** Iterate over all cell edges, exactly once each. */
@@ -80,8 +76,6 @@ function makeCell(center: Vector, index: number, firstEdge: Edge): Cell {
     walkable: true,
     centroid,
     edges,
-    navigateNext: null,
-    navigateDistance: 0,
   };
   let edge: Edge | null = firstEdge;
   do {

@@ -7,14 +7,55 @@ import {
 } from '../lib/math';
 import { ModelAsset } from '../model/models';
 import { createWalker, WalkerParameters, Walker } from './walker';
-import { ModelInstance, modelInstances, entities, Entity } from './entity';
+import {
+  ModelInstance,
+  modelInstances,
+  entities,
+  Entity,
+  Team,
+} from './entity';
 import { spawnDeath, spawnSlash } from './particles';
 import { isDebug } from '../debug/debug';
 import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
-import { level } from './world';
 import { Collider, colliders } from './physics';
-import { updateNavigation, navigationTarget } from './navigation';
+import { NavigationGraph, newNavigationGraph } from './navigation';
+import { levelTime } from './time';
+
+/** Interval, in seconds, between navigation updates. */
+const navigationUpdateInterval = 0.5;
+
+/** Level time when navigation graph was last updated.. */
+let lastNavigationUpdateTime!: number;
+
+/** The graph for level navigation. */
+let navigationGraph: NavigationGraph | undefined | null;
+
+/** The target where monsters navigate towards. */
+let navigationTarget: Vector | undefined | null;
+
+/** Reset monster data when the level starts. */
+export function resetMonsters(): void {
+  lastNavigationUpdateTime = -1;
+  navigationGraph = null;
+}
+
+/** Update the monster navigation data. */
+function updateNavigation(): void {
+  navigationTarget = null;
+  for (const entity of colliders) {
+    if (entity.team == Team.Player) {
+      navigationTarget = entity.pos;
+    }
+  }
+  if (!navigationGraph) {
+    navigationGraph = newNavigationGraph();
+  }
+  if (levelTime > lastNavigationUpdateTime + navigationUpdateInterval) {
+    lastNavigationUpdateTime = levelTime;
+    navigationGraph.update(navigationTarget);
+  }
+}
 
 /** Spawn a monster in the level. */
 export function spawnMonster(pos: Vector): void {
@@ -33,20 +74,17 @@ export function spawnMonster(pos: Vector): void {
     pos,
     velocity: zeroVector,
     radius: 0.5,
+    team: Team.Monster,
     update() {
       const pos = this.pos;
       let movement = zeroVector;
+      updateNavigation();
       if (navigationTarget) {
         let targetDistanceSquared = distanceSquared(pos, navigationTarget);
         if (targetDistanceSquared < navigationThreshold ** 2) {
           movement = normalizeSubtract(navigationTarget, pos);
         } else {
-          updateNavigation();
-          const cell = level.findCell(pos);
-          const next = cell.navigateNext;
-          if (next) {
-            movement = normalizeSubtract(next.center, pos);
-          }
+          movement = navigationGraph!.navigate(pos).direction;
         }
       }
       walker.update(params, movement);

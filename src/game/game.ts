@@ -7,7 +7,7 @@ import {
   modelInstances,
   resetEntities,
 } from './entity';
-import { beginFrameNavigation, resetNavigation } from './navigation';
+import { resetMonsters } from './monster';
 
 /** Remove dead entities from a list. */
 export function clearDead<T extends EntityBase>(list: T[]): void {
@@ -25,14 +25,13 @@ export function clearDead<T extends EntityBase>(list: T[]): void {
 /** Reset the game. This makes it ready for a new level. */
 export function resetGame(): void {
   resetTime();
-  resetNavigation();
+  resetMonsters();
   resetEntities();
   resetColliders();
 }
 
 /** Update the game state. */
 export function updateGame(): void {
-  beginFrameNavigation();
   for (const entity of entities) {
     entity.update();
   }

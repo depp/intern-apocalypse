@@ -15,7 +15,7 @@ import {
   zeroVector,
   maddSubtract,
 } from '../lib/math';
-import { EntityBase } from './entity';
+import { EntityBase, Team } from './entity';
 import { isDebug, DebugColor } from '../debug/debug';
 import { frameDT } from './time';
 import { debugMarks } from '../debug/mark';
@@ -30,6 +30,8 @@ export interface Collider extends EntityBase {
   velocity: Vector;
   /** The entity collision radius. */
   radius: number;
+  /** The team that this entity is on. */
+  team: Team;
 
   /**
    * Damage this entity.

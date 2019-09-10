@@ -12,7 +12,13 @@ import {
   zeroVector,
 } from '../lib/math';
 import { frameDT } from './time';
-import { ModelInstance, modelInstances, entities, Entity } from './entity';
+import {
+  ModelInstance,
+  modelInstances,
+  entities,
+  Entity,
+  Team,
+} from './entity';
 import { Collider, findColliders, colliders } from './physics';
 import { ModelAsset } from '../model/models';
 import { playerSettings } from '../lib/settings';
@@ -28,7 +34,6 @@ import { Sounds } from '../audio/sounds';
 import { createWalker, Walker } from './walker';
 import { isDebug, DebugColor } from '../debug/debug';
 import { debugMarks } from '../debug/mark';
-import { setNavigationTarget } from './navigation';
 
 /** Spawn the player in the level. */
 export function spawnPlayer(): void {
@@ -49,10 +54,8 @@ export function spawnPlayer(): void {
     pos,
     velocity: zeroVector,
     radius: 0.5,
+    team: Team.Player,
     update() {
-      // Make monsters seek us.
-      setNavigationTarget(this.pos);
-
       // Update player position.
       let movement = vector(
         buttonAxis(Button.Left, Button.Right),

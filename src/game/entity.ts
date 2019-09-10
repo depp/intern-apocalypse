@@ -1,6 +1,12 @@
 import { ModelAsset } from '../model/models';
 import { Matrix } from '../lib/matrix';
 
+/** Entity teams. */
+export const enum Team {
+  Player,
+  Monster,
+}
+
 /** Base interface for all entity types. */
 export interface EntityBase {
   isDead?: boolean;
