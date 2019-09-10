@@ -5,6 +5,10 @@ import { quad, packColor } from './util';
 import { uiMatrix } from '../game/camera';
 import { roundUpPow2 } from '../lib/util';
 import { Vector, vector, lerp1D } from '../lib/math';
+import { levelTime } from '../game/time';
+
+/** If true, we are drawing the HUD. */
+let hudMode: boolean | undefined;
 
 export interface Menu {
   click?(): void;
@@ -219,7 +223,7 @@ function drawStatusBars(): void {
   const barWidth = 125;
   const barHeight = 8;
 
-  const colors = '800 c00 f66 047 0ac 7dd fff'.split(' ');
+  const colors = '047 0ac 7dd 800 c00 f66 aaa'.split(' ');
   const color = () => '#' + colors.pop();
 
   for (let i = 0; i < 3; i++) {
@@ -273,10 +277,10 @@ function drawStatusBars(): void {
 
 /** Update the in-game UI. */
 export function startHUD(): void {
+  hudMode = true;
   initContext();
   drawStatusBars();
   updateTexture();
-  drawFullTexture();
 }
 
 /** Set the buffer to draw the full UI texture. */
@@ -294,6 +298,38 @@ function drawFullTexture() {
   updateBuffers(pos, color, tex);
 }
 
+/** Update the hud data. */
+function updateHUD(): void {
+  elementCount = 4 * 6;
+  const pos = new Float32Array(elementCount * 2);
+  const color = new Uint32Array(elementCount);
+  const tex = new Float32Array(elementCount * 2);
+  let off = 0;
+  function put(
+    u0: number,
+    v0: number,
+    x0: number,
+    y0: number,
+    w: number,
+    h: number,
+  ): void {
+    for (const [i, x, y] of quad) {
+      pos.set([x0 + x * w, y0 + y * h], (off + i) * 2);
+      tex.set([u0 + x * w, v0 + y * h], (off + i) * 2);
+    }
+    off += 6;
+  }
+  color.fill(-1);
+  const health = 1 - Math.min((levelTime % 4) / 2, 1);
+  put(0, 0, 50, 0, 300, 32);
+  put(0, 32, 50, 0, health < 1 ? 25 + 250 * health : 300, 32);
+  const mana = 1 - Math.min((levelTime % 11) / 7, 1);
+  const d = mana < 1 ? 275 - 250 * mana : 0;
+  put(0, 0, 450, 0, 300, 32);
+  put(0 + d, 64, 450 + d, 0, 300 - d, 32);
+  updateBuffers(pos, color, tex);
+}
+
 /**
  * Render the menu.
  */
@@ -301,6 +337,10 @@ export function renderUI(): void {
   const p = uiShader;
   if (isDebug && !p.program) {
     return;
+  }
+
+  if (hudMode) {
+    updateHUD();
   }
 
   if (!elementCount) {
@@ -403,6 +443,7 @@ export function popMenu(): void {
 
 /** Start displaying menus. A menu must be pushed afterwards. */
 export function startMenu(): void {
+  hudMode = false;
   currentMenu = null;
   canvas.addEventListener('click', menuClick);
 }
