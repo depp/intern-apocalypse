@@ -357,9 +357,6 @@ export function runProgram(code: Uint8Array): Float32Array {
     }
     func();
   }
-  if (stack.length != 1) {
-    throw new AssertionError('type error');
-  }
   const result = stack.pop();
   if (!(result instanceof Float32Array)) {
     throw new AssertionError('type error');
