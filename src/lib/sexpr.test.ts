@@ -5,6 +5,7 @@ import {
   parseSExpr,
   SExpr,
   ListExpr,
+  NumberKind,
 } from './sexpr';
 
 function formatToken(tok: Token): string {
@@ -56,6 +57,8 @@ test('parse', () => {
     return { type: 'symbol', sourceStart: 0, sourceEnd: 0, name };
   }
   function num(value: string, prefix: string = '', units: string = ''): SExpr {
+    const numberKind =
+      value.indexOf('.') == -1 ? NumberKind.Integer : NumberKind.Decimal;
     return {
       type: 'number',
       sourceStart: 0,
@@ -63,6 +66,7 @@ test('parse', () => {
       value,
       prefix,
       units,
+      numberKind,
     };
   }
   const expect: SExpr = list(
@@ -87,7 +91,7 @@ test('parse', () => {
       case 'number':
         return `number(${JSON.stringify(x.value)}, ${JSON.stringify(
           x.prefix,
-        )}, ${JSON.stringify(x.units)})`;
+        )}, ${JSON.stringify(x.units)}, ${NumberKind[x.numberKind]})`;
       case 'list':
         return `[${x.items.map(print).join(' ')}]`;
       default:
@@ -107,7 +111,8 @@ test('parse', () => {
           y.type == 'number' &&
           x.value == y.value &&
           x.prefix == y.prefix &&
-          x.units == y.units
+          x.units == y.units &&
+          x.numberKind == y.numberKind
         ) {
           return;
         }

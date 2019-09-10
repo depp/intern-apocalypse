@@ -84,6 +84,12 @@ export interface SymbolExpr extends SourceSpan {
   readonly name: string;
 }
 
+/** Types of integer constants. */
+export enum NumberKind {
+  Integer,
+  Decimal,
+}
+
 /** S-expression literal number. */
 export interface NumberExpr extends SourceSpan {
   readonly type: 'number';
@@ -93,6 +99,8 @@ export interface NumberExpr extends SourceSpan {
   readonly prefix: string;
   /** Units, e.g. 'Hz'. */
   readonly units: string;
+  /** Whether this is an integer or decimal. */
+  readonly numberKind: NumberKind;
 }
 
 /** S-expression list. */
@@ -156,6 +164,8 @@ export function parseSExpr(source: string): SExpr[] {
           prefix = units.charAt(0);
           units = units.substring(1);
         }
+        const numberKind =
+          value.indexOf('.') == -1 ? NumberKind.Integer : NumberKind.Decimal;
         list.push({
           type: 'number',
           sourceStart: start.sourcePos,
@@ -163,6 +173,7 @@ export function parseSExpr(source: string): SExpr[] {
           value,
           prefix,
           units,
+          numberKind,
         });
         return true;
       case TokenType.OpenParen:
