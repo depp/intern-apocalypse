@@ -14,16 +14,17 @@ import { sampleRate, runProgram } from '../src/synth/engine';
 import { encode } from '../src/lib/data.encode';
 import { SourceError, SourceText } from '../src/lib/sourcepos';
 import { waveData, floatTo16 } from './audio.wave';
-import { readStream } from './stream';
 import { printError } from './source';
 import { parseSExpr } from '../src/lib/sexpr';
 import { emitCode } from '../src/synth/node';
+import { AssertionError } from '../src/debug/debug';
+import { pathWithExt } from './util';
 
 setGracefulCleanup();
 
 interface AudioArgs {
-  output: string | null;
-  input: string | null;
+  write: boolean;
+  input: string[];
   play: boolean;
   disassemble: boolean;
   verbose: boolean;
@@ -34,8 +35,18 @@ interface AudioArgs {
 function parseArgs(): AudioArgs {
   const argv = yargs
     .options({
-      output: { alias: 'o', type: 'string', desc: 'Output WAVE file' },
-      play: { alias: 'p', type: 'boolean', default: false, desc: 'Play sound' },
+      write: {
+        alias: 'w',
+        type: 'boolean',
+        default: false,
+        desc: 'Write output WAVE files',
+      },
+      play: {
+        alias: 'p',
+        type: 'boolean',
+        default: false,
+        desc: 'Play sounds',
+      },
       disassemble: {
         alias: 'd',
         type: 'boolean',
@@ -46,7 +57,7 @@ function parseArgs(): AudioArgs {
         alias: 'l',
         type: 'boolean',
         default: false,
-        desc: 'Play repeatedly as input changes',
+        desc: 'Play a single sound repeatedly as input changes',
       },
       verbose: {
         alias: 'v',
@@ -55,30 +66,30 @@ function parseArgs(): AudioArgs {
         desc: 'Verbose logging',
       },
     })
-    .command('$0 [input]', 'Compile an audio script', yargs =>
+    .command('$0', 'Compile audio scripts', yargs =>
       yargs.positional('input', { desc: 'Input audio script' }),
     )
     .help()
     .version(false)
     .strict().argv;
-  if (argv._.length) {
-    console.error(`unexpected argument ${JSON.stringify(argv._[0])}`);
-    process.exit(2);
-  }
   const args: AudioArgs = {
-    output: argv.output || null,
-    input: (argv.input as string | undefined) || null,
+    write: argv.write,
+    input: argv._,
     play: argv.play,
     disassemble: argv.disassemble,
     verbose: argv.disassemble,
     loop: argv.loop,
   };
+  if (!args.input.length) {
+    console.error('need at least one input');
+    process.exit(2);
+  }
   if (args.loop) {
     args.play = true;
-  }
-  if (args.loop && args.input == null) {
-    console.error('cannot read from stdin with --loop');
-    process.exit(2);
+    if (args.input.length > 1) {
+      console.error('cannot use multiple files with --loop');
+      process.exit(2);
+    }
   }
   return args;
 }
@@ -115,18 +126,19 @@ function compile(
   }
 
   if (args.disassemble) {
-    process.stdout.write('Assembly:\n');
+    process.stdout.write('\n');
+    process.stdout.write('  Assembly:\n');
     const disassembly = disassembleProgram(code);
     for (const line of disassembly) {
-      process.stdout.write('  ' + line + '\n');
+      process.stdout.write('    ' + line + '\n');
     }
-    process.stdout.write('\n');
   }
 
-  process.stdout.write('Code:\n');
+  process.stdout.write('\n');
+  process.stdout.write('  Code:\n');
   for (let i = 0; i < code.length; i += 16) {
     process.stdout.write(
-      '  ' +
+      '    ' +
         Array.from(code.slice(i, i + 16))
           .map(x => x.toString().padStart(2, ' '))
           .join(' ') +
@@ -135,10 +147,8 @@ function compile(
   }
 
   process.stdout.write('\n');
-
-  process.stdout.write('Encoded:\n');
-  process.stdout.write('  ' + encode(code) + '\n');
-  process.stdout.write('\n');
+  process.stdout.write('  Encoded:\n');
+  process.stdout.write('    ' + encode(code) + '\n');
 
   return code;
 }
@@ -158,16 +168,7 @@ interface Reader {
   read(): Promise<string>;
 }
 
-function makeReader(args: AudioArgs): Reader {
-  const { input } = args;
-  if (input == null) {
-    return {
-      path: '<stdin>',
-      read() {
-        return readStream(process.stdin);
-      },
-    };
-  }
+function fileReader(input: string): Reader {
   return {
     path: input,
     read() {
@@ -181,16 +182,16 @@ interface Writer {
   write(data: Buffer): Promise<void>;
 }
 
-async function makeWriter(args: AudioArgs): Promise<Writer> {
-  const { output } = args;
-  if (output != null) {
-    return {
-      path: output,
-      async write(data) {
-        await fs.promises.writeFile(output, data);
-      },
-    };
-  }
+function makeFileWriter(output: string): Writer {
+  return {
+    path: output,
+    async write(data) {
+      await fs.promises.writeFile(output, data);
+    },
+  };
+}
+
+async function makeTempWriter(): Promise<Writer> {
   let r = await file({ postfix: '.wav' });
   return {
     path: r.path,
@@ -296,20 +297,43 @@ async function loopMain(
   }
 }
 
+/** Return the output WAVE filename for the given input filename. */
+function outputName(input: string): string {
+  return pathWithExt(input, '.wav');
+}
+
 async function main(): Promise<void> {
   const args = parseArgs();
   verbose = args.verbose;
   let status = 0;
 
   try {
-    const reader = makeReader(args);
-    const writer = await makeWriter(args);
     if (args.loop) {
+      if (args.input.length != 1) {
+        throw new AssertionError('bad args: input.length != 1');
+      }
+      const [input] = args.input;
+      const reader = fileReader(input);
+      let writer: Writer;
+      if (args.write) {
+        writer = makeFileWriter(outputName(input));
+      } else {
+        writer = await makeTempWriter();
+      }
       await loopMain(args, reader, writer);
     } else {
-      const success = await runMain(args, reader, writer);
-      if (!success) {
-        status = 1;
+      let writer: Writer | null = null;
+      if (args.play && !args.write) {
+        writer = await makeTempWriter();
+      }
+      for (const input of args.input) {
+        const reader = fileReader(input);
+        let iwriter = args.write ? makeFileWriter(outputName(input)) : writer;
+        process.stdout.write(`\nSound: ${input}\n`);
+        const success = await runMain(args, reader, iwriter);
+        if (!success) {
+          status = 1;
+        }
       }
     }
   } catch (e) {
