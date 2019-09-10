@@ -386,7 +386,7 @@ function getExactArgs(expr: ListExpr, args: Value[], count: number): Value[] {
 }
 
 // =============================================================================
-// Constant definitions
+// Numeric values
 // =============================================================================
 
 defun('note', (expr, args) => {
@@ -400,7 +400,7 @@ defun('note', (expr, args) => {
 });
 
 // =============================================================================
-// Operator definitions
+// Oscillators and generators
 // =============================================================================
 
 defun('oscillator', (expr, args) => {
@@ -444,6 +444,10 @@ defun('noise', (expr, args) => {
   );
 });
 
+// =============================================================================
+// Filters
+// =============================================================================
+
 defun('highPass', (expr, args) => {
   const [frequency, input] = getExactArgs(expr, args, 2);
   const fval = getConstant('frequency', frequency, Units.Hertz);
@@ -484,6 +488,10 @@ defun('highPass', (expr, args) => {
   }),
 );
 
+// =============================================================================
+// Distortion
+// =============================================================================
+
 defun('saturate', (expr, args) => {
   const [input] = getExactArgs(expr, args, 1);
   return nodeValue(
@@ -506,6 +514,10 @@ defun('rectify', (expr, args) => {
     Type.Buffer,
   );
 });
+
+// =============================================================================
+// Utilities
+// =============================================================================
 
 defun('*', (expr, args) => {
   if (args.length < 2) {

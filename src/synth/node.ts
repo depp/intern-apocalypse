@@ -157,11 +157,13 @@ function opConstant(op: Opcode<1>): Operator {
 // Operator definitions
 // =============================================================================
 
+// Numeric values
 export const num_lin = opConstant(opcode.num_lin);
 export const num_expo = opConstant(opcode.num_expo);
 export const num_note = opConstant(opcode.num_note);
 export const num_freq = opConstant(opcode.num_freq);
 
+// Oscillators and generators
 export const oscillator = opSimple(
   opcode.oscillator,
   [Type.Buffer],
@@ -170,12 +172,27 @@ export const oscillator = opSimple(
 export const sawtooth = opSimple(opcode.sawtooth, [Type.Buffer], [Type.Buffer]);
 export const sine = opSimple(opcode.sine, [Type.Buffer], [Type.Buffer]);
 export const noise = opSimple(opcode.noise, [], [Type.Buffer]);
+
+// Filters
 export const highPass = opSimple(opcode.highPass, [Type.Buffer], [Type.Buffer]);
 export const stateVariableFilter = opSimple(
   opcode.stateVariableFilter,
   [Type.Buffer, Type.Buffer],
   [Type.Buffer],
 );
+
+// Distortion
+export const saturate = opSimple(opcode.saturate, [Type.Buffer], [Type.Buffer]);
+export const rectify = opSimple(opcode.rectify, [Type.Buffer], [Type.Buffer]);
+
+// Envelopes
+export const env_start = opSimple(opcode.env_start, [], []);
+export const env_end = opSimple(opcode.env_end, [], [Type.Buffer]);
+export const env_set = opSimple(opcode.env_set, [], []);
+export const env_lin = opSimple(opcode.env_lin, [], []);
+export const env_delay = opSimple(opcode.env_delay, [], []);
+
+// Utilities
 export const multiply = opSimple(
   opcode.multiply,
   [Type.Buffer, Type.Buffer],
@@ -187,17 +204,9 @@ export const frequency = opSimple(
   [Type.Buffer],
   [Type.Buffer],
 );
-export const saturate = opSimple(opcode.saturate, [Type.Buffer], [Type.Buffer]);
-export const rectify = opSimple(opcode.rectify, [Type.Buffer], [Type.Buffer]);
 export const mix = opSimple(
   opcode.mix,
   [Type.Buffer, Type.Buffer],
   [Type.Buffer],
 );
 export const zero = opSimple(opcode.zero, [], [Type.Buffer]);
-
-export const env_start = opSimple(opcode.env_start, [], []);
-export const env_end = opSimple(opcode.env_end, [], [Type.Buffer]);
-export const env_set = opSimple(opcode.env_set, [], []);
-export const env_lin = opSimple(opcode.env_lin, [], []);
-export const env_delay = opSimple(opcode.env_delay, [], []);

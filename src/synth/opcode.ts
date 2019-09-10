@@ -117,33 +117,39 @@ export function disassembleProgram(code: Uint8Array): string[] {
 
 // Those correspond directly to functions in synth.ts.
 
-// Data encodings.
+// Numeric values
 export const num_lin = opcode('num_lin', 1);
 export const num_expo = opcode('num_expo', 1);
 export const num_note = opcode('num_note', 1);
 export const num_freq = opcode('num_freq', 1);
 
-// Simple operators.
+// Oscillators and generators
 export const oscillator = opcode('oscillator', 0);
 export const sawtooth = opcode('sawtooth', 0);
 export const sine = opcode('sine', 0);
 export const noise = opcode('noise', 0);
+
+// Filters
 export const highPass = opcode('highPass', 1);
 export const stateVariableFilter = opcode('stateVariableFilter', 2);
-export const multiply = opcode('multiply', 0);
-export const constant = opcode('constant', 0);
-export const frequency = opcode('frequency', 0);
+
+// Distortion
 export const saturate = opcode('saturate', 0);
 export const rectify = opcode('rectify', 0);
-export const mix = opcode('mix', 1);
-export const zero = opcode('zero', 0);
 
-// Envelopes.
+// Envelopes
 export const env_start = opcode('env_start', 0);
 export const env_end = opcode('env_end', 0);
 export const env_set = opcode('env_set', 1);
 export const env_lin = opcode('env_lin', 2);
 export const env_delay = opcode('env_delay', 1);
+
+// Utilities
+export const multiply = opcode('multiply', 0);
+export const constant = opcode('constant', 0);
+export const frequency = opcode('frequency', 0);
+export const mix = opcode('mix', 1);
+export const zero = opcode('zero', 0);
 
 // Check that all opcodes have definitions.
 for (const name of nameToValue.keys()) {

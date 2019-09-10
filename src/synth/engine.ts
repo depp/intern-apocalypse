@@ -90,6 +90,10 @@ function envWrite(pos: number, value: number): void {
  * Array of main operators.
  */
 export const operators: (() => void)[] = [
+  // ===========================================================================
+  // Numeric values
+  // ===========================================================================
+
   /** Numeric literal, linear encoding. */
   function num_lin(): void {
     stack.push(decodeLinear(readParam()));
@@ -109,6 +113,10 @@ export const operators: (() => void)[] = [
   function num_freq(): void {
     stack.push(decodeFrequency(readParam()));
   },
+
+  // ===========================================================================
+  // Oscillators and generators
+  // ===========================================================================
 
   /** Generate oscillator phase from pitch. */
   function oscillator(): void {
@@ -212,6 +220,10 @@ export const operators: (() => void)[] = [
     stack.push([lp, hp, bp][mode]);
   },
 
+  // ===========================================================================
+  // Distortion
+  // ===========================================================================
+
   /** Apply saturation distortion to a buffer. */
   function saturate(): void {
     const top = stack[stack.length - 1];
@@ -233,6 +245,10 @@ export const operators: (() => void)[] = [
       top[i] = Math.max(top[i], 0);
     }
   },
+
+  // ===========================================================================
+  // Envelopes
+  // ===========================================================================
 
   /** Start a new envelope. */
   function env_start(): void {
@@ -264,6 +280,10 @@ export const operators: (() => void)[] = [
   function env_delay(): void {
     envWrite(envPos + decodeExponential(readParam()) * sampleRate, envValue);
   },
+
+  // ===========================================================================
+  // Utilities
+  // ===========================================================================
 
   /** Multiply two buffers. */
   function multiply(): void {
