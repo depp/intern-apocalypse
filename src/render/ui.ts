@@ -70,6 +70,7 @@ function initContext(): void {
   textureSize = vector(roundUpPow2(canvasSize.x), roundUpPow2(canvasSize.y));
   offscreenCanvas.width = textureSize.x;
   offscreenCanvas.height = textureSize.y;
+  // ctx.clearRect(0, 0, textureSize.x, textureSize.y);
 }
 
 function getFont(item: PositionedMenuItem): string {
@@ -189,6 +190,65 @@ function updateMenu(): void {
 
     off += 6;
   }
+
+  gl.bindTexture(gl.TEXTURE_2D, texture);
+  gl.texImage2D(
+    gl.TEXTURE_2D,
+    0,
+    gl.RGBA,
+    gl.RGBA,
+    gl.UNSIGNED_BYTE,
+    offscreenCanvas,
+  );
+  gl.generateMipmap(gl.TEXTURE_2D);
+  gl.bindTexture(gl.TEXTURE_2D, null);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, color, gl.STATIC_DRAW);
+  gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
+  gl.bufferData(gl.ARRAY_BUFFER, tex, gl.STATIC_DRAW);
+}
+
+/** Update the in-game UI. */
+export function updateHUD(): void {
+  initContext();
+  
+  ctx.save();
+  ctx.translate(canvasSize.x / 2, canvasSize.y - 16);
+  ctx.beginPath();
+  const barWidth = 125;
+  const barHeight = 8;
+  ctx.globalCompositeOperation = 'source-out';
+  ctx.shadowBlur = 5;
+  ctx.shadowColor = '#000';
+  ctx.moveTo(barWidth - barHeight, barHeight);
+  ctx.lineTo(barWidth, -barHeight);
+  ctx.lineTo(-barWidth, -barHeight);
+  ctx.lineTo(-barWidth + barHeight, barHeight);
+  ctx.closePath();
+  ctx.fillStyle = '#000';
+  ctx.strokeStyle = '#ccc';
+  ctx.lineWidth = 4;
+  // ctx.stroke();
+  ctx.fill();  
+  ctx.restore();
+  // 0x2665
+
+  elementCount = 6;
+  const pos = new Float32Array(elementCount * 2);
+  const color = new Int32Array(elementCount);
+  const tex = new Float32Array(elementCount * 2);
+  const aspect = canvasSize.x / canvasSize.y;
+  const usize = 1 / textureSize.x;
+  const vsize = 1 / textureSize.y;
+
+  for (const [i, x, y, u, v] of quad) {
+    pos.set([x * aspect, y], i * 2);
+    tex.set([canvasSize.x * u * usize, canvasSize.y * v * vsize], i * 2);
+  }
+  color.fill(-1);
 
   gl.bindTexture(gl.TEXTURE_2D, texture);
   gl.texImage2D(
