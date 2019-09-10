@@ -28,7 +28,7 @@ import {
   Axis,
   rotateMatrixFromDirection,
 } from '../lib/matrix';
-import { setCameraTarget } from './camera';
+import { setCameraTarget, applyCameraShake } from './camera';
 import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
 import { createWalker, Walker } from './walker';
@@ -143,6 +143,8 @@ export function spawnPlayer(): void {
       playerHealth--;
       if (playerHealth < 0) {
         playerHealth = 0;
+      } else {
+        applyCameraShake(0.1);
       }
     },
   };

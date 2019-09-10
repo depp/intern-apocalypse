@@ -9,9 +9,11 @@ import {
   rotateMatrixFromDirection,
   translateMatrix,
   matrixNew,
+  rotateMatrixFromAngle,
 } from '../lib/matrix';
 import { Vector, vector, zeroVector, lerp } from '../lib/math';
 import { frameDT } from './time';
+import { globalRandom } from '../lib/random';
 
 /** The view projection matrix for the UI. */
 export const uiMatrix = matrixNew();
@@ -31,6 +33,15 @@ export function setCameraTarget(target: Vector): void {
 /** The view projection matrix. */
 export const cameraMatrix = matrixNew();
 
+let cameraShake0 = new Float32Array(6);
+let cameraShake1 = new Float32Array(6);
+
+export function applyCameraShake(amount: number): void {
+  for (let i = 0; i < 6; i++) {
+    cameraShake1[i] += globalRandom.range(-amount, amount);
+  }
+}
+
 /**
  * Update the camera.
  */
@@ -42,6 +53,7 @@ export function updateCamera(): void {
   uiMatrix[10] = 1;
   uiMatrix[15] = 1;
 
+  // Update the camera position.
   const smoothRatio = Math.exp(-cameraSettings.speed * frameDT);
   for (let i = 0; i < 2; i++) {
     cameraTargetFilter[i + 1] = lerp(
@@ -49,6 +61,13 @@ export function updateCamera(): void {
       cameraTargetFilter[i + 1],
       smoothRatio,
     );
+  }
+
+  // Update the camera shake.
+  [cameraShake0, cameraShake1] = [cameraShake1, cameraShake0];
+  for (let i = 0; i < 6; i++) {
+    cameraShake0[i] =
+      0.05 ** frameDT * (1.7 * cameraShake1[i] - 0.8 * cameraShake0[i]);
   }
 
   const { distance, elevation, zoom, zNear, zFar } = cameraSettings;
@@ -89,8 +108,12 @@ export function updateCamera(): void {
 
   // Rotate.
   rotateMatrixFromDirection(cameraMatrix, Axis.X, elevation, -1);
+  for (let axis = 0; axis < 3; axis++) {
+    rotateMatrixFromAngle(cameraMatrix, axis, cameraShake0[axis] * 0.3);
+  }
 
   // Set target.
   const { x, y } = cameraTargetFilter[2];
   translateMatrix(cameraMatrix, [-x, -y + adjust, -0.5]);
+  translateMatrix(cameraMatrix, cameraShake0.slice(3));
 }
