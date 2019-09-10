@@ -171,9 +171,6 @@ function updateMenu(): void {
   const pos = new Float32Array(elementCount * 2);
   const color = new Uint32Array(elementCount);
   const tex = new Float32Array(elementCount * 2);
-  const aspect = canvasSize.x / canvasSize.y;
-  const usize = canvasSize.x / textureSize.x;
-  const vsize = canvasSize.y / textureSize.y;
   let off = 0;
 
   for (const item of items) {
@@ -201,15 +198,9 @@ function updateMenu(): void {
     }
     ctx.restore();
 
-    for (const [i, x, , u, v] of quad) {
-      pos.set(
-        [x * aspect, 1 - (2 * lerp1D(item.y0, item.y1, v)) / canvasSize.y],
-        (off + i) * 2,
-      );
-      tex.set(
-        [u * usize, (lerp1D(item.v0, item.v1, v) / canvasSize.y) * vsize],
-        (off + i) * 2,
-      );
+    for (const [i, x, y] of quad) {
+      pos.set([x * canvasSize.x, y ? item.y1 : item.y0], (off + i) * 2);
+      tex.set([x * canvasSize.x, y ? item.v1 : item.v0], (off + i) * 2);
     }
     color.fill(
       packColor(Math.random(), Math.random(), Math.random()),
@@ -295,13 +286,10 @@ function drawFullTexture() {
   const pos = new Float32Array(elementCount * 2);
   const color = new Uint32Array(elementCount);
   const tex = new Float32Array(elementCount * 2);
-  const aspect = canvasSize.x / canvasSize.y;
-  const usize = 1 / textureSize.x;
-  const vsize = 1 / textureSize.y;
 
-  for (const [i, x, y, u, v] of quad) {
-    pos.set([x * aspect, y], i * 2);
-    tex.set([canvasSize.x * u * usize, canvasSize.y * v * vsize], i * 2);
+  for (const [i, x, y] of quad) {
+    pos.set([x * canvasSize.x, y * canvasSize.x], i * 2);
+    tex.set([x * canvasSize.x, y * canvasSize.x], i * 2);
   }
   color.fill(-1);
   updateBuffers(pos, color, tex);
@@ -341,7 +329,13 @@ export function renderUI(): void {
   gl.bindTexture(gl.TEXTURE_2D, texture);
 
   // Uniforms
-  gl.uniformMatrix4fv(p.ModelViewProjection, false, uiMatrix);
+  gl.uniform4f(
+    p.Scale,
+    2 / canvasSize.x,
+    -2 / canvasSize.y,
+    1 / textureSize.x,
+    1 / textureSize.y,
+  );
   gl.uniform1i(p.Texture, 0);
 
   // Draw

@@ -4,7 +4,7 @@ import { bundledData } from '../lib/global';
 import { shaderOffset } from '../lib/loader';
 
 export interface UiProgram extends ShaderProgram {
-  ModelViewProjection: WebGLUniformLocation | null;
+  Scale: WebGLUniformLocation | null;
   Texture: WebGLUniformLocation | null;
 }
 export const uiShader = {} as UiProgram;
@@ -59,7 +59,7 @@ export function getShaderSpecs(): ShaderSpec[] {
       vertex: 'ui.vert',
       fragment: 'ui.frag',
       attributes: ['aPos', 'aColor', 'aTexCoord'],
-      uniforms: ['ModelViewProjection', 'Texture'],
+      uniforms: ['Scale', 'Texture'],
       object: uiShader,
     },
     {
@@ -102,7 +102,7 @@ export function getShaderSpecs(): ShaderSpec[] {
 export function loadShaders(): void {
   compileShader(
     uiShader,
-    ['ModelViewProjection', 'Texture'],
+    ['Scale', 'Texture'],
     ['aPos', 'aColor', 'aTexCoord'],
     bundledData[shaderOffset + 7],
     bundledData[shaderOffset + 6],
