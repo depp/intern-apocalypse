@@ -151,6 +151,9 @@ export const frequency = opcode('frequency', 0);
 export const mix = opcode('mix', 1);
 export const zero = opcode('zero', 0);
 
+// Variable ref
+export const deref = opcode('deref', 1);
+
 // Check that all opcodes have definitions.
 for (const name of nameToValue.keys()) {
   if (!byName.has(name)) {

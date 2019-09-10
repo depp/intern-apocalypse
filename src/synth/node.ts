@@ -5,6 +5,13 @@
 import { CodeEmitter, Opcode } from './opcode';
 import * as opcode from './opcode';
 import { SourceSpan } from '../lib/sourcepos';
+import { AssertionError } from '../debug/debug';
+
+/** Kinds of nodes. */
+export enum Kind {
+  Value,
+  Variable,
+}
 
 /** The type of an input or output to a processing node. */
 export enum Type {
@@ -26,30 +33,136 @@ export interface Operator {
   emit(ctx: CodeEmitter, params: number[]): void;
 }
 
-/** A node in the processing graph. */
-export interface Node extends SourceSpan {
+/** A node in the processing graph that produces a value directly. */
+export interface ValueNode extends SourceSpan {
+  kind: Kind.Value;
   operator: Operator;
   params: number[];
   inputs: Node[];
 }
 
-function emitNode(ctx: CodeEmitter, node: Node): void {
-  for (const input of node.inputs) {
-    emitNode(ctx, input);
-  }
-  return node.operator.emit(ctx, node.params);
+/** A node in the processing graph that reuses a previously defined value. */
+export interface VariableNode extends SourceSpan {
+  kind: Kind.Variable;
+  name: string;
+  type: Type;
+}
+
+/** A node in the processing graph. */
+export type Node = ValueNode | VariableNode;
+
+/** A complete audio program. */
+export interface Program {
+  variables: Map<string, Node>;
+  result: Node;
 }
 
 /** Emit the code to evaluate a processing graph. */
-export function emitCode(node: Node): Uint8Array {
+export function emitCode(program: Program): Uint8Array {
+  const { variables, result } = program;
+
+  // Compile information about all variables.
+  interface VariableInfo {
+    useCount: number;
+    value: Node;
+    slot: number | null;
+    defined: boolean;
+  }
+  const variableInfo = new Map<string, VariableInfo>();
+  function scanNode(node: Node) {
+    switch (node.kind) {
+      case Kind.Value:
+        for (const input of node.inputs) {
+          scanNode(input);
+        }
+        break;
+      case Kind.Variable:
+        const { name } = node;
+        const info = variableInfo.get(name);
+        if (info == null) {
+          const definition = variables.get(name);
+          if (definition == null) {
+            throw new AssertionError(
+              `reference to undefined variable ${JSON.stringify(name)}`,
+            );
+          }
+          variableInfo.set(name, {
+            useCount: 1,
+            value: definition,
+            slot: null,
+            defined: false,
+          });
+          scanNode(definition);
+        } else {
+          info.useCount++;
+        }
+        break;
+      default:
+        const dummy: never = node;
+        throw new AssertionError('unknown node kind');
+    }
+  }
+  scanNode(result);
+
+  // Emit the code.
   const ctx = new CodeEmitter();
-  emitNode(ctx, node);
+  function emitNode(node: Node): void {
+    switch (node.kind) {
+      case Kind.Value:
+        for (const input of node.inputs) {
+          emitNode(input);
+        }
+        node.operator.emit(ctx, node.params);
+        break;
+      case Kind.Variable:
+        const { name } = node;
+        const info = variableInfo.get(name);
+        if (info == null) {
+          throw new AssertionError(
+            `reference to undefined variable ${JSON.stringify(name)}`,
+          );
+        }
+        if (!info.defined) {
+          throw new AssertionError(
+            `reference to variable ${JSON.stringify(name)} ` +
+              'is before its definition',
+          );
+        }
+        if (info.slot != null) {
+          ctx.emit(opcode.deref, info.slot);
+        } else {
+          emitNode(info.value);
+        }
+        break;
+      default:
+        const dummy: never = node;
+        throw new AssertionError('unknown node kind');
+    }
+  }
+  let slot = 0;
+  for (const info of variableInfo.values()) {
+    // Variables used only once are inlined.
+    if (info.useCount > 1) {
+      emitNode(info.value);
+      info.slot = slot++;
+    }
+    info.defined = true;
+  }
+  emitNode(program.result);
   return ctx.getCode();
 }
 
 /** Get the list out outputs for a node. */
 function getOutputs(node: Node): readonly Type[] {
-  return node.operator.outputs(node.params);
+  switch (node.kind) {
+    case Kind.Value:
+      return node.operator.outputs(node.params);
+    case Kind.Variable:
+      return [node.type];
+    default:
+      const dummy: never = node;
+      throw new AssertionError('unknown node kind');
+  }
 }
 
 /** Format an operator name and parameters for debugging. */
@@ -87,7 +200,7 @@ export function createNode(
   operator: Operator,
   params: number[],
   inputs: Node[],
-): Node {
+): ValueNode {
   if (params.length != operator.paramCount) {
     throw new Error(
       `operator ${operator.name} ` +
@@ -122,9 +235,25 @@ export function createNode(
   return {
     sourceStart: expr.sourceStart,
     sourceEnd: expr.sourceEnd,
+    kind: Kind.Value,
     operator,
     params,
     inputs,
+  };
+}
+
+/** Create a reference to a variable. */
+export function createVariableRef(
+  expr: SourceSpan,
+  name: string,
+  type: Type,
+): VariableNode {
+  return {
+    sourceStart: expr.sourceStart,
+    sourceEnd: expr.sourceEnd,
+    kind: Kind.Variable,
+    name,
+    type,
   };
 }
 

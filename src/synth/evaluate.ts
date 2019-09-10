@@ -7,15 +7,27 @@ import { toDataClamp } from '../lib/data.encode';
 import { AssertionError } from '../debug/debug';
 import { SExpr, ListExpr, NumberExpr, prefixes } from '../lib/sexpr';
 import { SourceError, SourceSpan } from '../lib/sourcepos';
-import { Operator, Node, createNode, Type } from './node';
+import {
+  Operator,
+  Node,
+  Program,
+  createNode,
+  createVariableRef,
+  Type,
+} from './node';
 import * as node from './node';
 import { Units, UnitError, multiplyUnits } from './units';
 import { sampleRate } from './engine';
+
+// =============================================================================
+// Types
+// =============================================================================
 
 /** Kinds of values returned by expressions. */
 enum ValueKind {
   Constant,
   Node,
+  Void,
 }
 
 /** The type of an evaluated value. */
@@ -64,7 +76,21 @@ function nodeValue(node: Node, units: Units, type: Type): NodeValue {
   };
 }
 
+/** A void value, the result of evaluating a statement. */
+interface VoidValue extends SourceSpan {
+  kind: ValueKind.Void;
+}
+
+function voidValue(loc: SourceSpan): VoidValue {
+  return {
+    sourceStart: loc.sourceStart,
+    sourceEnd: loc.sourceEnd,
+    kind: ValueKind.Void,
+  };
+}
+
 type Value = ConstantValue | NodeValue;
+type MaybeValue = Value | VoidValue;
 
 /** Format a type for humans. */
 function printType(valtype: ValueType): string {
@@ -73,12 +99,14 @@ function printType(valtype: ValueType): string {
 }
 
 /** Format the type of a value for humans. */
-function printValueType(value: Value): string {
+function printValueType(value: MaybeValue): string {
   switch (value.kind) {
     case ValueKind.Node:
       return printType(value);
     case ValueKind.Constant:
       return `Constant(${Units[value.units]})`;
+    case ValueKind.Void:
+      return 'Void';
     default:
       const dummy: never = value;
       throw new AssertionError('invalid value kind');
@@ -88,11 +116,21 @@ function printValueType(value: Value): string {
 /** An error during evaluation of a synthesizer program. */
 class EvaluationError extends SourceError {}
 
+/** Evaluation environment. */
+interface Environment {
+  /** Map from variables to their values. */
+  variables: Map<string, Value>;
+}
+
+// =============================================================================
+// Evaluation
+// =============================================================================
+
 /**
  * A definition of a Lisp operator. Takes an S-expression as input and returns
  * the processing graph output, with units.
  */
-type OperatorDefinition = (expr: ListExpr) => Value;
+type OperatorDefinition = (env: Environment, expr: ListExpr) => MaybeValue;
 
 /** All Lisp functions, by name. */
 const operators = new Map<string, OperatorDefinition>();
@@ -146,7 +184,7 @@ function getNumber(expr: NumberExpr): ConstantValue {
 }
 
 /** Evaluate a Lisp expression, returning node graph. */
-function evaluate(expr: SExpr): Value {
+function evaluate(env: Environment, expr: SExpr): MaybeValue {
   switch (expr.type) {
     case 'list':
       if (!expr.items.length) {
@@ -173,9 +211,29 @@ function evaluate(expr: SExpr): Value {
           `no such function ${JSON.stringify(opname)}`,
         );
       }
-      return definition(expr);
+      return definition(env, expr);
     case 'symbol':
-      throw new EvaluationError(expr, 'cannot evaluate symbol');
+      const { name } = expr;
+      const value = env.variables.get(name);
+      if (value == null) {
+        throw new EvaluationError(
+          expr,
+          `undefined variable ${JSON.stringify(name)}`,
+        );
+      }
+      switch (value.kind) {
+        case ValueKind.Constant:
+          return constantValue(value, value.value, value.units);
+        case ValueKind.Node:
+          return nodeValue(
+            createVariableRef(expr, name, value.type),
+            value.units,
+            value.type,
+          );
+        default:
+          const dummy: never = value;
+          throw new AssertionError('unknown value kind');
+      }
     case 'number':
       return getNumber(expr);
     default:
@@ -185,17 +243,23 @@ function evaluate(expr: SExpr): Value {
 }
 
 /** Evaluate a synthesizer program and return the graph. */
-export function evaluateProgram(program: SExpr[]): Node {
-  if (program.length != 1) {
-    if (program.length == 0) {
-      throw new EvaluationError(
-        { sourceStart: 0, sourceEnd: 0 },
-        'empty program',
-      );
-    }
-    throw new EvaluationError(program[1], 'too many top-level expressions');
+export function evaluateProgram(program: SExpr[]): Program {
+  if (program.length == 0) {
+    throw new EvaluationError(
+      { sourceStart: 0, sourceEnd: 0 },
+      'empty program',
+    );
   }
-  const value = evaluate(program[0]);
+  const env: Environment = {
+    variables: new Map<string, Value>(),
+  };
+  for (let i = 0; i < program.length - 1; i++) {
+    const value = evaluate(env, program[i]);
+    if (value.kind != ValueKind.Void) {
+      throw new EvaluationError(value, 'expected statement, got expression');
+    }
+  }
+  const value = evaluate(env, program[program.length - 1]);
   if (
     value.kind != ValueKind.Node ||
     value.units != Units.Volt ||
@@ -206,7 +270,23 @@ export function evaluateProgram(program: SExpr[]): Node {
       `program has type ${printValueType(value)}, expected Buffer(Volt)`,
     );
   }
-  return value.node;
+  const variables = new Map<string, Node>();
+  for (const [name, value] of env.variables) {
+    switch (value.kind) {
+      case ValueKind.Node:
+        variables.set(name, value.node);
+        break;
+      case ValueKind.Constant:
+        break;
+      default:
+        const dummy: never = value;
+        throw new AssertionError('unknown value kind');
+    }
+  }
+  return {
+    variables,
+    result: value.node,
+  };
 }
 
 /** Define a Lisp operator. */
@@ -227,7 +307,7 @@ function wrapNode(node: Node, operator: Operator): Node {
 /** Throw an exception for a bad argument type. */
 function badArgType(
   name: string,
-  value: Value,
+  value: MaybeValue,
   expected: string,
 ): EvaluationError {
   throw new EvaluationError(
@@ -238,7 +318,7 @@ function badArgType(
 }
 
 /** Get a scalar compile-time constant. */
-function getConstant(name: string, value: Value, units: Units): number {
+function getConstant(name: string, value: MaybeValue, units: Units): number {
   if (value.kind != ValueKind.Constant || value.units != units) {
     throw badArgType(name, value, `Constant(${Units[units]})`);
   }
@@ -246,7 +326,7 @@ function getConstant(name: string, value: Value, units: Units): number {
 }
 
 /** Get a gain compile-time constant. */
-function getGain(name: string, value: Value): number {
+function getGain(name: string, value: MaybeValue): number {
   if (value.kind == ValueKind.Constant) {
     switch (value.units) {
       case Units.None:
@@ -351,18 +431,32 @@ function castToPhase(name: string, value: Value): Node {
   );
 }
 
+/** Return an error fon an unexpected void value. */
+function expectNonVoid(value: VoidValue): EvaluationError {
+  return new EvaluationError(
+    value,
+    'expected a value, but the expression has no value',
+  );
+}
+
+/**
+ * Function definition type, operates on the node graph and returns a new node.
+ */
+type FunctionDefinition = (expr: ListExpr, args: Value[]) => Value;
+
 /**
  * Define a function. A function is just an operator that evaluates all of its
  * arguments.
  */
-function defun(
-  name: string,
-  evaluateFunction: (expr: ListExpr, args: Value[]) => Value,
-): void {
-  define(name, function(expr: ListExpr): Value {
+function defun(name: string, evaluateFunction: FunctionDefinition): void {
+  define(name, (env: Environment, expr: ListExpr): Value => {
     const args: Value[] = [];
     for (let i = 1; i < expr.items.length; i++) {
-      args.push(evaluate(expr.items[i]));
+      const value = evaluate(env, expr.items[i]);
+      if (value.kind == ValueKind.Void) {
+        throw expectNonVoid(value);
+      }
+      args.push(value);
     }
     try {
       return evaluateFunction(expr, args);
@@ -634,7 +728,7 @@ function defenv(name: string, evaluateFunction: EnvelopeSegment): void {
   envelopeOperators.set(name, evaluateFunction);
 }
 
-function evaluateEnv(expr: SExpr): Node {
+function evaluateEnv(env: Environment, expr: SExpr): Node {
   if (expr.type != 'list') {
     throw new EvaluationError(expr, 'envelope segment must be a list');
   }
@@ -664,7 +758,11 @@ function evaluateEnv(expr: SExpr): Node {
   }
   const args: Value[] = [];
   for (let i = 1; i < expr.items.length; i++) {
-    args.push(evaluate(expr.items[i]));
+    const value = evaluate(env, expr.items[i]);
+    if (value.kind == ValueKind.Void) {
+      throw expectNonVoid(value);
+    }
+    args.push(value);
   }
   try {
     return evaluateFunction(expr, args);
@@ -676,10 +774,10 @@ function evaluateEnv(expr: SExpr): Node {
   }
 }
 
-define('envelope', expr => {
+define('envelope', (env, expr) => {
   const nodes: Node[] = [createNode(expr, node.env_start, [], [])];
   for (let i = 1; i < expr.items.length; i++) {
-    nodes.push(evaluateEnv(expr.items[i]));
+    nodes.push(evaluateEnv(env, expr.items[i]));
   }
   return nodeValue(
     createNode(expr, node.env_end, [], nodes),
@@ -713,4 +811,37 @@ defenv('delay', (expr, args) => {
     data.encodeExponential(getConstant('time', timeValue, Units.Second)),
   );
   return createNode(expr, node.env_delay, [timeParam], []);
+});
+
+// =============================================================================
+// Variables
+// =============================================================================
+
+define('define', (env: Environment, expr: ListExpr): MaybeValue => {
+  const count = expr.items.length - 1;
+  if (count != 2) {
+    throw new EvaluationError(
+      expr,
+      `define got ${count} arguments, but needs 2`,
+    );
+  }
+  const [, nameExpr, valueExpr] = expr.items;
+  if (nameExpr.type != 'symbol') {
+    throw new EvaluationError(nameExpr, 'variable name must be a symbol');
+  }
+  const { name } = nameExpr;
+  const value = evaluate(env, valueExpr);
+  if (value.kind == ValueKind.Void) {
+    throw expectNonVoid(value);
+  }
+  const { variables } = env;
+  const existing = variables.get(name);
+  if (existing) {
+    throw new EvaluationError(
+      nameExpr,
+      `a variable named ${JSON.stringify(name)} is already defined`,
+    );
+  }
+  variables.set(name, value);
+  return voidValue(expr);
 });

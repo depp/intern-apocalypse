@@ -336,6 +336,19 @@ export const operators: (() => void)[] = [
   function zero(): void {
     pushBuffer();
   },
+
+  // =============================================================================
+  // Variables
+  // =============================================================================
+
+  /** Dereference a variable, indexed from the bottom of the stack. */
+  function deref(): void {
+    const index = readParam();
+    if (index >= stack.length) {
+      throw new AssertionError('invalid variable ref');
+    }
+    stack.push(stack[index]);
+  },
 ];
 
 // =============================================================================
