@@ -105,6 +105,7 @@ function updateMenu(): void {
   initContext();
 
   const baseLineHeight = 40;
+  const textureMargin = 8;
 
   // Calculate the positions of the menu items.
   let fixspace = 0;
@@ -124,15 +125,15 @@ function updateMenu(): void {
   let ypos = 0;
   let vpos = 0;
   for (const item of items) {
-    item.y0 = ypos | 0;
+    item.y0 = (ypos | 0) - textureMargin;
     item.v0 = vpos | 0;
     if (item.lines) {
       const delta = baseLineHeight * item.size * item.lines.length;
       ypos += delta;
-      vpos += delta;
+      vpos += delta + textureMargin * 2;
     }
     ypos += item.space + flexamt * item.flexspace;
-    item.y1 = ypos | 0;
+    item.y1 = (ypos | 0) + textureMargin;
     item.v1 = vpos | 0;
   }
 
@@ -152,7 +153,7 @@ function updateMenu(): void {
 
     const lineHeight = baseLineHeight * item.size;
     ctx.save();
-    ctx.translate(canvasSize.x / 2, item.v0 + lineHeight * 0.5);
+    ctx.translate(canvasSize.x / 2, item.v0 + lineHeight * 0.5 + textureMargin);
     ctx.font = getFont(item);
 
     ctx.textAlign = 'center';
