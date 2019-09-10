@@ -28,6 +28,8 @@ interface Note {
   value: number;
   /** Sample offset when note starts. */
   offset: number;
+  /** Note gate duration, in seconds. */
+  gateTime: number;
 }
 
 interface AudioArgs {
@@ -66,6 +68,10 @@ function parseArgs(): AudioArgs {
         default: 120,
         desc: 'Tempo to play notes at (quarter notes)',
       },
+      gate: {
+        type: 'number',
+        desc: 'Gate duration, in seconds',
+      },
       disassemble: {
         alias: 'd',
         type: 'boolean',
@@ -92,12 +98,19 @@ function parseArgs(): AudioArgs {
     .version(false)
     .strict().argv;
   let notes: Note[];
+  /** Note length, in seconds. */
+  const noteLength = 60 / argv.tempo;
+  /** Amount of time each note is held. */
+  let gateTime = noteLength;
+  if (argv.gate != null) {
+    gateTime = argv.gate;
+  }
   if (!argv.notes.length) {
-    notes = [{ value: middleC, offset: 0 }];
+    notes = [{ value: middleC, offset: 0, gateTime }];
   } else {
     notes = [];
     let offset = 0;
-    const offsetIncrement = ((sampleRate * 60) / argv.tempo) | 0;
+    const offsetIncrement = (sampleRate * noteLength) | 0;
     for (const text of argv.notes.split(',')) {
       if (text != '') {
         const value = parseNote(text);
@@ -106,7 +119,7 @@ function parseArgs(): AudioArgs {
           process.exit(2);
           throw new AssertionError('unreachable');
         }
-        notes.push({ value, offset });
+        notes.push({ value, offset, gateTime });
         offset += offsetIncrement;
       }
     }
@@ -202,7 +215,7 @@ function makeWave(code: Uint8Array, notes: readonly Note[]): Buffer {
   const buffers: Float32Array[] = [];
   let outLen = 0;
   for (const note of notes) {
-    const audio = runProgram(code, note.value);
+    const audio = runProgram(code, note.value, note.gateTime);
     buffers.push(audio);
     outLen = Math.max(outLen, note.offset + audio.length);
   }

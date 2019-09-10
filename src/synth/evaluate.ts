@@ -284,6 +284,7 @@ export interface Parameter {
 /** Parameter definitions for sound generators. */
 export const soundParameters: readonly Parameter[] = [
   { name: 'note-value', units: Units.Note, type: Type.Scalar },
+  { name: 'gate-time', units: Units.Second, type: Type.Scalar },
 ];
 
 /** Evaluate a synthesizer program and return the graph. */
@@ -924,6 +925,11 @@ defenv('delay', (expr, args) => {
     data.encodeExponential(getConstant('time', timeValue, Units.Second)),
   );
   return createNode(expr, node.env_delay, [timeParam], []);
+});
+
+defenv('gate', (expr, args) => {
+  getExactArgs(expr, args, 0);
+  return createNode(expr, node.env_gate, [], []);
 });
 
 // =============================================================================

@@ -315,7 +315,7 @@ export const operators: (() => void)[] = [
     }
     envSeek(envTime);
     envSegment = envLinear(
-      envTime + decodeExponential(readParam()) * sampleRate,
+      envTime + ((decodeExponential(readParam()) * sampleRate) | 0),
       decodeLinear(readParam()),
     );
   },
@@ -325,7 +325,16 @@ export const operators: (() => void)[] = [
     if (!envBuf || envTime == null) {
       throw new AssertionError('null env');
     }
-    envTime += decodeExponential(readParam()) * sampleRate;
+    envTime += (decodeExponential(readParam()) * sampleRate) | 0;
+  },
+
+  /** Envelope: hold value until gate. */
+  function env_gate(): void {
+    const gateTime = stack[1];
+    if (typeof gateTime != 'number') {
+      throw new AssertionError('type error');
+    }
+    envTime = (gateTime * sampleRate) | 0;
   },
 
   // ===========================================================================

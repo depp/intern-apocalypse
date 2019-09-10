@@ -8,4 +8,5 @@
      -6dB (sawtooth osc))
     (frequency (envelope (set 0.2) (lin 1000ms -0.2)))
     1.0)
-   (envelope (lin 0.5ms 1) (lin 50ms 0.5) (delay 600ms) (lin 400ms 0)))
+   (envelope (lin 0.5ms 1) (lin 50ms 0.5) (delay 600ms)
+	     (gate) (lin 100ms 0)))

@@ -360,6 +360,7 @@ export const env_end = opSimple(opcode.env_end, [], [Type.Buffer]);
 export const env_set = opSimple(opcode.env_set, [], []);
 export const env_lin = opSimple(opcode.env_lin, [], []);
 export const env_delay = opSimple(opcode.env_delay, [], []);
+export const env_gate = opSimple(opcode.env_gate, [], []);
 
 // Utilities
 export const multiply = opSimple(
