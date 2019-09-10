@@ -64,7 +64,8 @@ export function emitCode(program: Program): Uint8Array {
   // Compile information about all variables.
   interface VariableInfo {
     useCount: number;
-    value: Node;
+    value: ValueNode;
+    type: Type;
     slot: number | null;
     defined: boolean;
   }
@@ -80,15 +81,31 @@ export function emitCode(program: Program): Uint8Array {
         const { name } = node;
         const info = variableInfo.get(name);
         if (info == null) {
-          const definition = variables.get(name);
+          let definition = variables.get(name);
           if (definition == null) {
             throw new AssertionError(
               `reference to undefined variable ${JSON.stringify(name)}`,
             );
           }
+          while (definition.kind == Kind.Variable) {
+            const { name } = definition;
+            definition = variables.get(name);
+            if (definition == null) {
+              throw new AssertionError(
+                `reference to undefined variable ${JSON.stringify(name)}`,
+              );
+            }
+          }
+          const outputs = getOutputs(definition);
+          if (outputs.length != 1) {
+            throw new AssertionError('variable is not single valued', {
+              count: outputs.length,
+            });
+          }
           variableInfo.set(name, {
             useCount: 1,
             value: definition,
+            type: outputs[0],
             slot: null,
             defined: false,
           });
@@ -129,7 +146,14 @@ export function emitCode(program: Program): Uint8Array {
           );
         }
         if (info.slot != null) {
-          ctx.emit(opcode.deref, info.slot);
+          info.useCount--;
+          let op: Opcode<1>;
+          if (info.useCount > 0 && info.type == Type.Buffer) {
+            op = opcode.derefCopy;
+          } else {
+            op = opcode.deref;
+          }
+          ctx.emit(op, info.slot);
         } else {
           emitNode(info.value);
         }

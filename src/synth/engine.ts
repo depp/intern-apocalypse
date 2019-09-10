@@ -333,6 +333,19 @@ export const operators: (() => void)[] = [
     }
     stack.push(stack[index]);
   },
+
+  /** Copy a buffer, indexed from the bottom of the stack, copying it. */
+  function derefCopy(): void {
+    const index = readParam();
+    if (index >= stack.length) {
+      throw new AssertionError('invalid variable ref');
+    }
+    const value = stack[index];
+    if (!(value instanceof Float32Array)) {
+      throw new AssertionError('type error');
+    }
+    stack.push(new Float32Array(value));
+  },
 ];
 
 // =============================================================================

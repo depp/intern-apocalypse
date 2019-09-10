@@ -153,6 +153,7 @@ export const zero = opcode('zero', 0);
 
 // Variable ref
 export const deref = opcode('deref', 1);
+export const derefCopy = opcode('derefCopy', 1);
 
 // Check that all opcodes have definitions.
 for (const name of nameToValue.keys()) {
