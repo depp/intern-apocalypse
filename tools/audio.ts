@@ -210,6 +210,20 @@ function compile(
   return code;
 }
 
+/** Reduce the gain so a buffer doesn't clip. */
+function autoGain(data: Float32Array): void {
+  let maxValue = 0;
+  for (let i = 0; i < data.length; i++) {
+    maxValue = Math.max(maxValue, Math.abs(data[i]));
+  }
+  if (maxValue > 1) {
+    const gain = 1 / maxValue;
+    for (let i = 0; i < data.length; i++) {
+      data[i] *= gain;
+    }
+  }
+}
+
 /** Generate WAVE file data from audio program. */
 function makeWave(code: Uint8Array, notes: readonly Note[]): Buffer {
   const buffers: Float32Array[] = [];
@@ -232,6 +246,7 @@ function makeWave(code: Uint8Array, notes: readonly Note[]): Buffer {
       }
     }
   }
+  autoGain(audio);
   return waveData({
     sampleRate,
     channelCount: 1,
