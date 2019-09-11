@@ -20,7 +20,7 @@
  40Hz
  (mix
   -6dB (* (sine (phase-mod osc
-			   -12dB mod2))
+			   -16dB mod2))
 	  env1)
   -6dB (* (sine (phase-mod osc
 			   -12dB mod3))
