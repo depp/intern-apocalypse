@@ -201,6 +201,9 @@ export function runProgram(
     mode: FilterMode,
     invq: number,
   ): void {
+    if (mode < 0 || 2 < mode) {
+      throw new AssertionError('invalid mode', { mode });
+    }
     let a = 0;
     let b = 0;
     let c;
@@ -286,10 +289,12 @@ export function runProgram(
       const [audio, frequency] = getArgs(2);
       const mode = readParam();
       const invq = decodeExponential(readParam());
-      if (mode > 3) {
-        throw new AssertionError('invalid mode');
+      if (mode == 3) {
+        filter(audio, frequency, FilterMode.LowPass, invq);
+        filter(audio, frequency, FilterMode.LowPass, invq);
+      } else {
+        filter(audio, frequency, mode, invq);
       }
-      filter(audio, frequency, mode, invq);
       stack.push(audio);
     },
 

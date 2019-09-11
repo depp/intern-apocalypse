@@ -557,12 +557,16 @@ defun('highPass', (expr, args) => {
   );
 });
 
-['lowPass2', 'highPass2', 'bandPass2'].forEach((name, mode) =>
+['lowPass2', 'highPass2', 'bandPass2', 'lowPass4'].forEach((name, mode) =>
   defun(name, (expr, args) => {
     const [input, frequency, q] = getExactArgs(expr, args, 3);
-    const qval = getConstant('q', q, Units.None);
+    let qval = getConstant('q', q, Units.None);
     if (qval < 0.7) {
       throw new EvaluationError(q, `q is ${qval}, must be >= 0.7`);
+    }
+    if (mode == 3) {
+      // Reduce q for 4-th order filter.
+      qval = Math.sqrt(qval * Math.sqrt(0.5));
     }
     return nodeValue(
       createNode(
