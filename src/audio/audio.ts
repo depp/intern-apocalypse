@@ -24,7 +24,7 @@ function getSoundBuffer(index: number): AudioBuffer | null {
     if (!code) {
       return null;
     }
-    const audio = runProgram(code, 48, 1);
+    const audio = runProgram(code);
     buffer = audioCtx.createBuffer(1, audio.length, sampleRate);
     buffer.getChannelData(0).set(audio);
     buffers[index] = buffer;

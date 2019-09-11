@@ -25,11 +25,14 @@ export const sampleRate = 48000;
 /** The number of samples in each buffer. */
 let bufferSize = sampleRate * 2;
 
+let noteValue: number;
+let gateTime: number;
+
 /** Random number generator for audio. */
 let random = new Random(9);
 
 /** Synthesizer numeric execution stack. */
-let stack: (number | Float32Array)[];
+let stack: Float32Array[];
 
 /** Get an unused buffer, push it onto the stack, and return it. */
 function pushBuffer(): Float32Array {
@@ -41,7 +44,7 @@ function pushBuffer(): Float32Array {
 /**
  * Read oporator arguments from the top of the stack, popping them.
  */
-function getArgs(argCount: number): (Float32Array | number)[] {
+function getArgs(argCount: number): Float32Array[] {
   if (stack.length < argCount) {
     throw new AssertionError('stack underflow');
   }
@@ -65,8 +68,8 @@ function readParam(): number {
 /** Return the buffer on the top of the stack, but do not pop it. */
 function topBuffer(): Float32Array {
   const result = stack[stack.length - 1];
-  if (!(result instanceof Float32Array)) {
-    throw new AssertionError('type error');
+  if (!result) {
+    throw new AssertionError('stack underflow');
   }
   return result;
 }
@@ -231,12 +234,6 @@ export const operators: (() => void)[] = [
     let c;
     const mode = readParam();
     const invq = decodeExponential(readParam());
-    if (
-      !(input instanceof Float32Array) ||
-      !(frequency instanceof Float32Array)
-    ) {
-      throw new AssertionError('type error');
-    }
     const lp = new Float32Array(bufferSize);
     const hp = new Float32Array(bufferSize);
     const bp = new Float32Array(bufferSize);
@@ -345,10 +342,6 @@ export const operators: (() => void)[] = [
 
   /** Envelope: hold value until gate. */
   function env_gate(): void {
-    const gateTime = stack[1];
-    if (typeof gateTime != 'number') {
-      throw new AssertionError('type error');
-    }
     envTime = (gateTime * sampleRate) | 0;
   },
 
@@ -359,9 +352,6 @@ export const operators: (() => void)[] = [
   /** Multiply two buffers. */
   function multiply(): void {
     const [out, input] = getArgs(2);
-    if (!(out instanceof Float32Array) || !(input instanceof Float32Array)) {
-      throw new AssertionError('type error');
-    }
     for (let i = 0; i < bufferSize; i++) {
       out[i] *= input[i];
     }
@@ -386,9 +376,6 @@ export const operators: (() => void)[] = [
     const [out, input] = getArgs(2);
     const p = readParam();
     const level = decodeExponential(p);
-    if (!(out instanceof Float32Array) || !(input instanceof Float32Array)) {
-      throw new AssertionError('type error');
-    }
     for (let i = 0; i < bufferSize; i++) {
       out[i] += level * input[i];
     }
@@ -429,9 +416,6 @@ export const operators: (() => void)[] = [
       throw new AssertionError('invalid variable ref');
     }
     const value = stack[index];
-    if (!(value instanceof Float32Array)) {
-      throw new AssertionError('type error');
-    }
     stack.push(new Float32Array(value));
   },
 
@@ -439,11 +423,7 @@ export const operators: (() => void)[] = [
   function note(): void {
     const offset = readParam() - 48;
     const out = pushBuffer();
-    const value = stack[0];
-    if (typeof value != 'number') {
-      throw new AssertionError('type error');
-    }
-    out.fill(decodeNote(value + offset));
+    out.fill(decodeNote(noteValue + offset));
   },
 ];
 
@@ -454,15 +434,20 @@ export const operators: (() => void)[] = [
 /**
  * Execute an audio program.
  * @param code The compiled program to run.
+ * @param note The note value.
+ * @param gate The gade duration, in seconds.
  * @param params Input parameters to pass to the program.
  */
 export function runProgram(
   code: Uint8Array,
-  ...params: (number | Float32Array)[]
+  note: number = 48,
+  gate: number = 0,
 ): Float32Array {
   instructions = code;
   instructionPos = 0;
-  stack = params;
+  noteValue = note;
+  gateTime = gate;
+  stack = [];
   while (instructionPos < code.length) {
     const func = operators[code[instructionPos++]];
     if (func == null) {
@@ -471,7 +456,7 @@ export function runProgram(
     func();
   }
   const result = stack.pop();
-  if (!(result instanceof Float32Array)) {
+  if (!result) {
     throw new AssertionError('type error');
   }
   return result;

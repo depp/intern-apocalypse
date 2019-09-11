@@ -14,22 +14,16 @@ export enum Kind {
   Variable,
 }
 
-/** The type of an input or output to a processing node. */
-export enum Type {
-  Scalar,
-  Buffer,
-}
-
 /** An operator describes a type of node, such as "sawtooth" or "multiply". */
 export interface Operator {
   /** Name of this operator, usually equal to an opcode name. */
   name: string;
   /** Number of compile-time constant parameters the operator accepts. */
   paramCount: number;
-  /** Type signature of inputs. */
-  inputs(params: number[]): Type[];
-  /** Type signature of outputs. */
-  outputs(params: number[]): Type[];
+  /** Number of inputs. */
+  inputCount(params: number[]): number;
+  /** Number of outputs. */
+  outpuoutputCounts(params: number[]): number;
   /** Write an operation to a code stream. */
   emit(ctx: CodeEmitter, params: number[]): void;
 }
@@ -46,7 +40,6 @@ export interface ValueNode extends SourceSpan {
 export interface VariableNode extends SourceSpan {
   kind: Kind.Variable;
   name: string;
-  type: Type;
 }
 
 /** A node in the processing graph. */
@@ -67,7 +60,6 @@ export function emitCode(program: Program): Uint8Array {
   interface VariableInfo {
     useCount: number;
     value: ValueNode;
-    type: Type;
     slot: number | null;
     defined: boolean;
   }
@@ -98,16 +90,15 @@ export function emitCode(program: Program): Uint8Array {
               );
             }
           }
-          const outputs = getOutputs(definition);
-          if (outputs.length != 1) {
+          const numOutputs = getOutputCount(definition);
+          if (numOutputs != 1) {
             throw new AssertionError('variable is not single valued', {
-              count: outputs.length,
+              numOutputs,
             });
           }
           variableInfo.set(name, {
             useCount: 1,
             value: definition,
-            type: outputs[0],
             slot: null,
             defined: false,
           });
@@ -150,7 +141,7 @@ export function emitCode(program: Program): Uint8Array {
         if (info.slot != null) {
           info.useCount--;
           let op: Opcode<1>;
-          if (info.useCount > 0 && info.type == Type.Buffer) {
+          if (info.useCount > 0) {
             op = opcode.derefCopy;
           } else {
             op = opcode.deref;
@@ -170,8 +161,7 @@ export function emitCode(program: Program): Uint8Array {
     const { value } = info;
     let doInline =
       // Parameter references are always inlined.
-      value.operator == scalarParam ||
-      value.operator == bufferParam ||
+      value.operator == parameter ||
       // Variables used only once are inlined.
       info.useCount <= 1;
     if (!doInline) {
@@ -185,12 +175,12 @@ export function emitCode(program: Program): Uint8Array {
 }
 
 /** Get the list out outputs for a node. */
-function getOutputs(node: Node): readonly Type[] {
+function getOutputCount(node: Node): number {
   switch (node.kind) {
     case Kind.Value:
-      return node.operator.outputs(node.params);
+      return node.operator.outpuoutputCounts(node.params);
     case Kind.Variable:
-      return [node.type];
+      return 1;
     default:
       const dummy: never = node;
       throw new AssertionError('unknown node kind');
@@ -209,20 +199,6 @@ function opName(operator: Operator, params: number[]): string {
     }
     out += ')';
   }
-  return out;
-}
-
-/** Format a list of types for debugging. */
-function typeList(types: Type[]): string {
-  let out = '[';
-  if (types.length) {
-    out += Type[types[0]];
-    for (let i = 1; i < types.length; i++) {
-      out += ', ';
-      out += Type[types[i]];
-    }
-  }
-  out += ']';
   return out;
 }
 
@@ -248,28 +224,17 @@ export function createNode(
       throw new AssertionError(`parameter out of range`, { param });
     }
   }
-  const intypes: Type[] = [];
+  let inputCount = 0;
   for (const input of inputs) {
-    intypes.push(...getOutputs(input));
+    inputCount += getOutputCount(input);
   }
-  const indecls = operator.inputs(params);
+  const indecls = operator.inputCount(params);
   let match: boolean;
-  if (intypes.length != indecls.length) {
-    match = false;
-  } else {
-    match = true;
-    for (let i = 0; i < intypes.length; i++) {
-      if (intypes[i] != indecls[i]) {
-        match = false;
-        break;
-      }
-    }
-  }
-  if (!match) {
+  if (inputCount != indecls) {
     throw new Error(
       `operator ${opName(operator, params)} ` +
-        `was given inputs ${typeList(intypes)}, ` +
-        `but requires ${typeList(indecls)}`,
+        `was given ${inputCount} inputs, ` +
+        `but requires ${indecls}`,
     );
   }
   return {
@@ -286,30 +251,28 @@ export function createNode(
 export function createVariableRef(
   expr: SourceSpan,
   name: string,
-  type: Type,
 ): VariableNode {
   return {
     sourceStart: expr.sourceStart,
     sourceEnd: expr.sourceEnd,
     kind: Kind.Variable,
     name,
-    type,
   };
 }
 
 function opSimple(
   op: Opcode<number>,
-  inputs: Type[],
-  outputs: Type[],
+  inputs: number,
+  outputs: number,
 ): Operator {
   const signature = { inputs, outputs };
   return {
     name: op.name,
     paramCount: op.paramCount,
-    inputs() {
+    inputCount() {
       return inputs;
     },
-    outputs() {
+    outpuoutputCounts() {
       return outputs;
     },
     emit(ctx, params) {
@@ -318,66 +281,41 @@ function opSimple(
   };
 }
 
-function opConstant(op: Opcode<1>): Operator {
-  return opSimple(op, [], [Type.Scalar]);
-}
-
 // =============================================================================
 // Operator definitions
 // =============================================================================
 
 // Oscillators and generators
-export const oscillator = opSimple(
-  opcode.oscillator,
-  [Type.Buffer],
-  [Type.Buffer],
-);
-export const sawtooth = opSimple(opcode.sawtooth, [Type.Buffer], [Type.Buffer]);
-export const sine = opSimple(opcode.sine, [Type.Buffer], [Type.Buffer]);
-export const noise = opSimple(opcode.noise, [], [Type.Buffer]);
+export const oscillator = opSimple(opcode.oscillator, 1, 1);
+export const sawtooth = opSimple(opcode.sawtooth, 1, 1);
+export const sine = opSimple(opcode.sine, 1, 1);
+export const noise = opSimple(opcode.noise, 0, 1);
 
 // Filters
-export const highPass = opSimple(opcode.highPass, [Type.Buffer], [Type.Buffer]);
-export const stateVariableFilter = opSimple(
-  opcode.stateVariableFilter,
-  [Type.Buffer, Type.Buffer],
-  [Type.Buffer],
-);
+export const highPass = opSimple(opcode.highPass, 1, 1);
+export const stateVariableFilter = opSimple(opcode.stateVariableFilter, 2, 1);
 
 // Distortion
-export const saturate = opSimple(opcode.saturate, [Type.Buffer], [Type.Buffer]);
-export const rectify = opSimple(opcode.rectify, [Type.Buffer], [Type.Buffer]);
+export const saturate = opSimple(opcode.saturate, 1, 1);
+export const rectify = opSimple(opcode.rectify, 1, 1);
 
 // Envelopes
-export const env_start = opSimple(opcode.env_start, [], []);
-export const env_end = opSimple(opcode.env_end, [], [Type.Buffer]);
-export const env_set = opSimple(opcode.env_set, [], []);
-export const env_lin = opSimple(opcode.env_lin, [], []);
-export const env_exp = opSimple(opcode.env_exp, [], []);
-export const env_delay = opSimple(opcode.env_delay, [], []);
-export const env_gate = opSimple(opcode.env_gate, [], []);
+export const env_start = opSimple(opcode.env_start, 0, 0);
+export const env_end = opSimple(opcode.env_end, 0, 1);
+export const env_set = opSimple(opcode.env_set, 0, 0);
+export const env_lin = opSimple(opcode.env_lin, 0, 0);
+export const env_exp = opSimple(opcode.env_exp, 0, 0);
+export const env_delay = opSimple(opcode.env_delay, 0, 0);
+export const env_gate = opSimple(opcode.env_gate, 0, 0);
 
 // Utilities
-export const multiply = opSimple(
-  opcode.multiply,
-  [Type.Buffer, Type.Buffer],
-  [Type.Buffer],
-);
-export const constant = opSimple(opcode.constant, [], [Type.Buffer]);
-export const frequency = opSimple(
-  opcode.frequency,
-  [Type.Buffer],
-  [Type.Buffer],
-);
-export const mix = opSimple(
-  opcode.mix,
-  [Type.Buffer, Type.Buffer],
-  [Type.Buffer],
-);
-export const zero = opSimple(opcode.zero, [], [Type.Buffer]);
-export const scaleInt = opSimple(opcode.scaleInt, [Type.Buffer], [Type.Buffer]);
+export const multiply = opSimple(opcode.multiply, 2, 1);
+export const constant = opSimple(opcode.constant, 0, 1);
+export const frequency = opSimple(opcode.frequency, 1, 1);
+export const mix = opSimple(opcode.mix, 2, 1);
+export const zero = opSimple(opcode.zero, 0, 1);
+export const scaleInt = opSimple(opcode.scaleInt, 1, 1);
 
 // Parameter references
-export const scalarParam = opSimple(opcode.deref, [], [Type.Scalar]);
-export const bufferParam = opSimple(opcode.derefCopy, [], [Type.Buffer]);
-export const note = opSimple(opcode.note, [], [Type.Buffer]);
+export const parameter = opSimple(opcode.derefCopy, 0, 1);
+export const note = opSimple(opcode.note, 0, 1);

@@ -13,14 +13,7 @@ import {
   NumberKind,
 } from '../lib/sexpr';
 import { SourceError, SourceSpan, noSourceLocation } from '../lib/sourcepos';
-import {
-  Operator,
-  Node,
-  Program,
-  createNode,
-  createVariableRef,
-  Type,
-} from './node';
+import { Operator, Node, Program, createNode, createVariableRef } from './node';
 import * as node from './node';
 import { Units, UnitError, multiplyUnits } from './units';
 import { sampleRate } from './engine';
@@ -34,12 +27,6 @@ enum ValueKind {
   Constant,
   Node,
   Void,
-}
-
-/** The type of an evaluated value. */
-interface ValueType {
-  units: Units;
-  type: Type;
 }
 
 /** A compile-time constant value. */
@@ -71,17 +58,15 @@ interface NodeValue extends SourceSpan {
   kind: ValueKind.Node;
   node: Node;
   units: Units;
-  type: Type;
 }
 
-function nodeValue(node: Node, units: Units, type: Type): NodeValue {
+function nodeValue(node: Node, units: Units): NodeValue {
   return {
     sourceStart: node.sourceStart,
     sourceEnd: node.sourceEnd,
     kind: ValueKind.Node,
     node,
     units,
-    type,
   };
 }
 
@@ -101,17 +86,11 @@ function voidValue(loc: SourceSpan): VoidValue {
 type Value = ConstantValue | NodeValue;
 type MaybeValue = Value | VoidValue;
 
-/** Format a type for humans. */
-function printType(valtype: ValueType): string {
-  const { units, type } = valtype;
-  return `${Type[type]}(${Units[units]})`;
-}
-
 /** Format the type of a value for humans. */
 function printValueType(value: MaybeValue): string {
   switch (value.kind) {
     case ValueKind.Node:
-      return printType(value);
+      return `Buffer(${Units[value.units]})`;
     case ValueKind.Constant:
       return `Constant(${Units[value.units]})`;
     case ValueKind.Void:
@@ -254,11 +233,7 @@ function evaluate(env: Environment, expr: SExpr): MaybeValue {
             value.numberKind,
           );
         case ValueKind.Node:
-          return nodeValue(
-            createVariableRef(expr, name, value.type),
-            value.units,
-            value.type,
-          );
+          return nodeValue(createVariableRef(expr, name), value.units);
         default:
           const dummy: never = value;
           throw new AssertionError('unknown value kind');
@@ -278,14 +253,10 @@ function evaluate(env: Environment, expr: SExpr): MaybeValue {
 export interface Parameter {
   readonly name: string;
   readonly units: Units;
-  readonly type: Type;
 }
 
 /** Parameter definitions for sound generators. */
-export const soundParameters: readonly Parameter[] = [
-  { name: 'note-value', units: Units.Note, type: Type.Scalar },
-  { name: 'gate-time', units: Units.Second, type: Type.Scalar },
-];
+export const soundParameters: readonly Parameter[] = [];
 
 /** Evaluate a synthesizer program and return the graph. */
 export function evaluateProgram(
@@ -301,28 +272,16 @@ export function evaluateProgram(
     variables: new Map<string, Value>(),
   };
   for (let i = 0; i < params.length; i++) {
-    const { name, units, type } = params[i];
+    const { name, units } = params[i];
     if (env.variables.has(name)) {
       throw new EvaluationError(
         noSourceLocation,
         `duplicate parameter ${JSON.stringify(name)}`,
       );
     }
-    let op: Operator;
-    switch (type) {
-      case Type.Scalar:
-        op = node.scalarParam;
-        break;
-      case Type.Buffer:
-        op = node.bufferParam;
-        break;
-      default:
-        const dummy: never = type;
-        throw new AssertionError('unknown type');
-    }
     env.variables.set(
       name,
-      nodeValue(createNode(noSourceLocation, op, [i], []), units, type),
+      nodeValue(createNode(noSourceLocation, node.parameter, [i], []), units),
     );
   }
 
@@ -334,11 +293,7 @@ export function evaluateProgram(
     }
   }
   const value = evaluate(env, program[program.length - 1]);
-  if (
-    value.kind != ValueKind.Node ||
-    value.units != Units.Volt ||
-    value.type != Type.Buffer
-  ) {
+  if (value.kind != ValueKind.Node || value.units != Units.Volt) {
     throw new EvaluationError(
       value,
       `program has type ${printValueType(value)}, expected Buffer(Volt)`,
@@ -428,47 +383,19 @@ function getGain(name: string, value: MaybeValue): number {
 }
 
 /** Accept exactly one type. */
-function getExact(name: string, value: Value, units: Units, type: Type): Node {
-  if (
-    value.kind == ValueKind.Node &&
-    value.units == units &&
-    value.type == type
-  ) {
-    return value.node;
-  }
-  throw badArgType(name, value, printType({ units, type }));
-}
-
-/** Accept a scalar with the given units. */
-function getScalar(name: string, value: Value, units: Units): Node {
-  return getExact(name, value, units, Type.Scalar);
-}
-
-/** Accept a buffer with the given units. */
 function getBuffer(name: string, value: Value, units: Units): Node {
-  return getExact(name, value, units, Type.Buffer);
-}
-
-/** Accept any scalar type. */
-function getAnyScalar(name: string, value: Value): Node {
-  if (value.kind == ValueKind.Node && value.type == Type.Scalar) {
+  if (value.kind == ValueKind.Node && value.units == units) {
     return value.node;
   }
-  throw badArgType(name, value, 'Scalar(any)');
+  throw badArgType(name, value, `Buffer(${Units[units]})`);
 }
 
 /** Accept any buffer type. */
 function getAnyBuffer(name: string, value: Value): Node {
-  if (value.kind == ValueKind.Node && value.type == Type.Buffer) {
+  if (value.kind == ValueKind.Node) {
     return value.node;
   }
   throw badArgType(name, value, 'Buffer(any)');
-}
-
-/** Accept a buffer or scalar with the given units. */
-function castToBuffer(name: string, value: Value, units: Units): Node {
-  // Removed.
-  return getExact(name, value, units, Type.Buffer);
 }
 
 /**
@@ -488,16 +415,9 @@ function castToPhase(name: string, value: Value): Node {
     case ValueKind.Node:
       switch (value.units) {
         case Units.Phase:
-          if (value.type == Type.Buffer) {
-            return value.node;
-          }
-          break;
+          return value.node;
         case Units.Hertz:
-          switch (value.type) {
-            case Type.Buffer:
-              return wrapNode(value.node, node.oscillator);
-          }
-          break;
+          return wrapNode(value.node, node.oscillator);
       }
       break;
   }
@@ -575,7 +495,6 @@ defun('note', (expr, args) => {
   return nodeValue(
     createNode(expr, node.note, [offset + zero], []),
     Units.Hertz,
-    Type.Buffer,
   );
 });
 
@@ -590,10 +509,9 @@ defun('oscillator', (expr, args) => {
       expr,
       node.oscillator,
       [],
-      [castToBuffer('frequency', frequency, Units.Hertz)],
+      [getBuffer('frequency', frequency, Units.Hertz)],
     ),
     Units.Phase,
-    Type.Buffer,
   );
 });
 
@@ -602,7 +520,6 @@ defun('sawtooth', (expr, args) => {
   return nodeValue(
     createNode(expr, node.sawtooth, [], [castToPhase('phase', phase)]),
     Units.Volt,
-    Type.Buffer,
   );
 });
 
@@ -611,17 +528,12 @@ defun('sine', (expr, args) => {
   return nodeValue(
     createNode(expr, node.sine, [], [castToPhase('phase', phase)]),
     Units.Volt,
-    Type.Buffer,
   );
 });
 
 defun('noise', (expr, args) => {
   getExactArgs(expr, args, 0);
-  return nodeValue(
-    createNode(expr, node.noise, [], []),
-    Units.Volt,
-    Type.Buffer,
-  );
+  return nodeValue(createNode(expr, node.noise, [], []), Units.Volt);
 });
 
 // =============================================================================
@@ -641,7 +553,6 @@ defun('highPass', (expr, args) => {
       [getBuffer('input', input, Units.Volt)],
     ),
     Units.Volt,
-    Type.Buffer,
   );
 });
 
@@ -659,11 +570,10 @@ defun('highPass', (expr, args) => {
         [mode, toDataClamp(data.encodeExponential(1 / qval))],
         [
           getAnyBuffer('input', input),
-          castToBuffer('frequency', frequency, Units.Hertz),
+          getBuffer('frequency', frequency, Units.Hertz),
         ],
       ),
       input.units,
-      Type.Buffer,
     );
   }),
 );
@@ -682,7 +592,6 @@ defun('saturate', (expr, args) => {
       [getBuffer('input', input, Units.Volt)],
     ),
     Units.Volt,
-    Type.Buffer,
   );
 });
 
@@ -691,7 +600,6 @@ defun('rectify', (expr, args) => {
   return nodeValue(
     createNode(expr, node.rectify, [], [getBuffer('input', input, Units.Volt)]),
     Units.Volt,
-    Type.Buffer,
   );
 });
 
@@ -710,7 +618,7 @@ defun('*', (expr, args) => {
   const buffers: Node[] = [];
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    if (arg.kind == ValueKind.Node && arg.type == Type.Buffer) {
+    if (arg.kind == ValueKind.Node) {
       buffers.push(arg.node);
     } else {
       throw badArgType(`arg${i}`, arg, 'Buffer');
@@ -733,7 +641,7 @@ defun('*', (expr, args) => {
   for (let i = 1; i < buffers.length; i++) {
     result = createNode(expr, node.multiply, [], [result, buffers[i]]);
   }
-  return nodeValue(result, units, Type.Buffer);
+  return nodeValue(result, units);
 });
 
 defun('frequency', (expr, args) => {
@@ -746,7 +654,6 @@ defun('frequency', (expr, args) => {
       [getBuffer('input', input, Units.None)],
     ),
     Units.Hertz,
-    Type.Buffer,
   );
 });
 
@@ -768,7 +675,7 @@ defun('mix', (expr, args) => {
       [output, getBuffer(`audio${i}`, args[i * 2 + 1], Units.Volt)],
     );
   }
-  return nodeValue(output, Units.Volt, Type.Buffer);
+  return nodeValue(output, Units.Volt);
 });
 
 defun('phase-mod', (expr, args) => {
@@ -790,7 +697,7 @@ defun('phase-mod', (expr, args) => {
       [output, mod],
     );
   }
-  return nodeValue(output, Units.Phase, Type.Buffer);
+  return nodeValue(output, Units.Phase);
 });
 
 defun('overtone', (expr, args) => {
@@ -805,7 +712,6 @@ defun('overtone', (expr, args) => {
   return nodeValue(
     createNode(expr, node.scaleInt, [n], [castToPhase('phase', input)]),
     Units.Phase,
-    Type.Buffer,
   );
 });
 
@@ -872,11 +778,7 @@ define('envelope', (env, expr) => {
   for (let i = 1; i < expr.items.length; i++) {
     nodes.push(evaluateEnv(env, expr.items[i]));
   }
-  return nodeValue(
-    createNode(expr, node.env_end, [], nodes),
-    Units.None,
-    Type.Buffer,
-  );
+  return nodeValue(createNode(expr, node.env_end, [], nodes), Units.None);
 });
 
 defenv('set', (expr, args) => {
