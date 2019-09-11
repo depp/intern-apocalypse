@@ -8,6 +8,7 @@ import * as child_process from 'child_process';
 import * as yargs from 'yargs';
 import { file, setGracefulCleanup } from 'tmp-promise';
 
+import * as cli from './cli';
 import { evaluateProgram, soundParameters } from '../src/synth/evaluate';
 import { disassembleProgram } from '../src/synth/opcode';
 import { sampleRate, runProgram } from '../src/synth/engine';
@@ -20,6 +21,7 @@ import { emitCode } from '../src/synth/node';
 import { AssertionError } from '../src/debug/debug';
 import { pathWithExt } from './util';
 import { middleC, parseNote } from '../src/score/note';
+import { UsageError } from './cli';
 
 setGracefulCleanup();
 
@@ -115,17 +117,14 @@ function parseArgs(): AudioArgs {
       if (text != '') {
         const value = parseNote(text);
         if (!value) {
-          console.error(`invalid note: ${JSON.stringify(text)}`);
-          process.exit(2);
-          throw new AssertionError('unreachable');
+          throw new UsageError(`invalid note: ${JSON.stringify(text)}`);
         }
         notes.push({ value, offset, gateTime });
         offset += offsetIncrement;
       }
     }
     if (!notes.length) {
-      console.error('empty list of notes');
-      process.exit(2);
+      throw new UsageError('empty list of notes');
     }
   }
   const args: AudioArgs = {
@@ -134,30 +133,22 @@ function parseArgs(): AudioArgs {
     play: argv.play,
     notes,
     disassemble: argv.disassemble,
-    verbose: argv.disassemble,
+    verbose: argv.verbose,
     loop: argv.loop,
   };
   if (!args.input.length) {
-    console.error('need at least one input');
-    process.exit(2);
+    throw new UsageError('need at least one input');
   }
   if (args.loop) {
     args.play = true;
     if (args.input.length > 1) {
-      console.error('cannot use multiple files with --loop');
-      process.exit(2);
+      throw new UsageError('cannot use multiple files with --loop');
     }
   }
   return args;
 }
 
-let verbose = false;
-
-function log(msg: string) {
-  if (verbose) {
-    console.log(msg);
-  }
-}
+let verbose!: (msg: string) => void;
 
 /** Compile an audio file. */
 function compile(
@@ -167,11 +158,11 @@ function compile(
 ): Uint8Array | null {
   let code: Uint8Array;
   try {
-    log('Parsing...');
+    verbose('Parsing...');
     const exprs = parseSExpr(inputText);
-    log('Evaluating...');
+    verbose('Evaluating...');
     const node = evaluateProgram(exprs, soundParameters);
-    log('Emitting code...');
+    verbose('Emitting code...');
     code = emitCode(node);
   } catch (e) {
     if (e instanceof SourceError) {
@@ -394,8 +385,20 @@ function outputName(input: string): string {
 }
 
 async function main(): Promise<void> {
-  const args = parseArgs();
-  verbose = args.verbose;
+  let args: AudioArgs;
+  try {
+    args = parseArgs();
+  } catch (e) {
+    if (e instanceof UsageError) {
+      cli.error(e.message);
+      process.exit(2);
+      return;
+    }
+    cli.exception(e);
+    process.exit(1);
+    return;
+  }
+  verbose = args.verbose ? cli.log : () => {};
   let status = 0;
 
   try {
@@ -428,7 +431,7 @@ async function main(): Promise<void> {
       }
     }
   } catch (e) {
-    console.error(e);
+    cli.exception(e);
     status = 1;
   }
 
