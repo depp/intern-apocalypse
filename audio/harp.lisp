@@ -3,28 +3,25 @@
 (define osc2 (overtone 2 osc))
 (define osc3 (overtone 3 osc))
 
+(define env1 (envelope (exp 0.5ms 1) (exp 400ms 0)))
+(define env2 (envelope (exp 20ms 1) (exp 800ms 0)))
+
 ;; Modulators.
-(define mod1
-  (* (sine osc3)
-     (envelope (set 1.0) (lin 300ms 0.0))))
-(define mod2
-  (* (sine
-      (phase-mod
-       osc3
-       -9dB mod1))
-     (envelope (set 1.0) (lin 1000ms 0.3))))
-(define mod3
-  (* (sine osc2)
-     (envelope (set 1.0) (lin 1000ms 0.3))))
+(define mod1 (* (sine osc3)
+		env1))
+(define mod2 (* (sine (phase-mod osc3
+				 -12dB mod1))
+		env1))
+(define mod3 (* (sine osc2)
+		env2))
 
 ;; Output.
-(* (mix
-    -6dB (sine
-	  (phase-mod
-	   osc
-	   -12dB mod2))
-    -6dB (sine
-	  (phase-mod
-	   osc
-	   -12dB mod3)))
-   (envelope (set 1) (lin 2s 0.0)))
+(highPass
+ 40Hz
+ (mix
+  -6dB (* (sine (phase-mod osc
+			   -12dB mod2))
+	  env1)
+  -6dB (* (sine (phase-mod osc
+			   -12dB mod3))
+	  env2)))
