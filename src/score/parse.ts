@@ -166,9 +166,10 @@ export function parseRhythm(chunk: Chunk): NoteRhythm {
 enum Kind {
   Track,
   Pattern,
-  EmittedPattern,
-  Notes,
-  Transpose,
+  Values,
+  Emit,
+  HardTranspose,
+  SoftTranspose,
   Tempo,
 }
 
@@ -192,24 +193,22 @@ interface Pattern extends ItemBase {
   notes: NoteRhythm[];
 }
 
-/** Reference to a rythmic patter which has been written out. */
-interface EmittedPattern {
-  kind: Kind.EmittedPattern;
-  index: number;
-  /** Number of note values required. */
-  size: number;
+/** Sequence of notes. */
+interface Values extends ItemBase {
+  kind: Kind.Values;
+  name: Chunk;
+  values: NoteValue[];
 }
 
-/** Sequence of notes. */
-interface Notes extends ItemBase {
-  kind: Kind.Notes;
-  patternName: Chunk;
-  notes: NoteValue[];
+/** Emit notes. */
+interface Emit extends ItemBase {
+  kind: Kind.Emit;
+  items: Chunk[];
 }
 
 /** Transposition command. */
 interface Transpose extends ItemBase {
-  kind: Kind.Transpose;
+  kind: Kind.HardTranspose | Kind.SoftTranspose;
   amount: number;
 }
 
@@ -220,7 +219,7 @@ interface Tempo extends ItemBase {
 }
 
 /** An item in a parsed score. */
-type Item = Track | Pattern | Notes | Transpose | Tempo;
+type Item = Track | Pattern | Values | Emit | Transpose | Tempo;
 
 // =============================================================================
 // Score parsing
@@ -272,39 +271,49 @@ deftype('pattern', function parsePattern(loc, fields): Pattern {
   };
 });
 
-deftype('notes', function parseNotes(loc, fields): Notes {
+deftype('values', function parseNotes(loc, fields): Values {
   if (fields.length < 1) {
     throw new SourceError(
       loc,
-      `notes requires at least 1 field, got ${fields.length}`,
+      `values requires at least 1 field, got ${fields.length}`,
     );
   }
-  const patternName = fields[0].text;
-  const notes: NoteValue[] = [];
+  const values: NoteValue[] = [];
   for (let i = 1; i < fields.length; i++) {
-    notes.push(parseNoteValue(fields[i]));
+    values.push(parseNoteValue(fields[i]));
   }
   return {
-    kind: Kind.Notes,
+    kind: Kind.Values,
     loc,
-    patternName: fields[0],
-    notes,
+    name: fields[0],
+    values,
   };
 });
 
+deftype('emit', function parseEmit(loc, fields): Emit {
+  return { kind: Kind.Emit, loc, items: fields };
+});
+
 deftype('transpose', function parseTranspose(loc, fields): Transpose {
-  if (fields.length != 1) {
+  if (fields.length != 2) {
     throw new SourceError(
       loc,
-      `transpose requires 1 field, got ${fields.length}`,
+      `transpose requires 2 fields, got ${fields.length}`,
     );
   }
-  const amount = parseIntExact(fields[0]);
-  return {
-    kind: Kind.Transpose,
-    loc,
-    amount,
-  };
+  let kind = Kind.HardTranspose | Kind.SoftTranspose;
+  switch (fields[0].text.toLowerCase()) {
+    case 'hard':
+      kind = Kind.HardTranspose;
+      break;
+    case 'soft':
+      kind = Kind.SoftTranspose;
+      break;
+    default:
+      throw new SourceError(fields[0], 'unknown transposition type');
+  }
+  const amount = parseIntExact(fields[1]);
+  return { kind, loc, amount };
 });
 
 deftype('tempo', function parseTempo(loc, fields): Tempo {
@@ -312,11 +321,7 @@ deftype('tempo', function parseTempo(loc, fields): Tempo {
     throw new SourceError(loc, `tempo requires 1 field, got ${fields.length}`);
   }
   const tempo = parseIntExact(fields[0]);
-  return {
-    kind: Kind.Tempo,
-    loc,
-    tempo,
-  };
+  return { kind: Kind.Tempo, loc, tempo };
 });
 
 function parseScoreItems(source: string): Item[] {
@@ -347,17 +352,96 @@ function parseScoreItems(source: string): Item[] {
 // Score conversion
 // =============================================================================
 
+/** Test if two buffers contain the same data. */
+function equalData(x: Uint8Array, y: Uint8Array): boolean {
+  if (x.length != y.length) {
+    return false;
+  }
+  for (let i = 0; i < x.length; i++) {
+    if (x[i] != y[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function duplicateName(name: Chunk): SourceError {
+  return new SourceError(name, `duplicate name: ${JSON.stringify(name.text)}`);
+}
+
+interface DataChunk {
+  kind: Kind.Pattern | Kind.Values;
+  data: Uint8Array;
+  size: number;
+}
+
 /** The state of a score being written. */
 interface ScoreWriter {
   sounds: ReadonlyMap<string, number>;
-  output: DataWriter;
+  data: DataWriter;
+  commands: DataWriter;
   trackName: string | null;
   trackNames: string[];
-  patterns: Map<string, Pattern | EmittedPattern>;
-  nextPatternIndex: number;
-  trackTranspose: number;
-  globalTranspose: number;
+  emittedChunks: Uint8Array[];
+  namedChunks: Map<string, DataChunk>;
+  transposeGlobal: number;
+  transposeLocal: number;
   hasTempo: boolean;
+}
+
+function setChunk(w: ScoreWriter, name: Chunk, value: DataChunk): void {
+  let key = '.' + name.text;
+  const { namedChunks, trackName } = w;
+  if (namedChunks.has(key)) {
+    throw duplicateName(name);
+  }
+  if (trackName != null) {
+    key = trackName + key;
+    if (namedChunks.has(key)) {
+      throw duplicateName(name);
+    }
+  }
+  namedChunks.set(key, value);
+}
+
+interface DataChunkResult {
+  kind: Kind.Pattern | Kind.Values;
+  size: number;
+  index: number;
+}
+
+function getChunk(w: ScoreWriter, name: Chunk): DataChunkResult {
+  const { emittedChunks, namedChunks, trackName } = w;
+  let key = '.' + name.text;
+  let value = namedChunks.get(key);
+  if (value == null) {
+    if (trackName != null) {
+      key = trackName + key;
+      value = namedChunks.get(key);
+    }
+  }
+  if (value == null) {
+    throw new SourceError(name, `undefined: ${JSON.stringify(name.text)}`);
+  }
+  const { kind, data, size } = value;
+  let index: number | undefined;
+  for (let i = 0; i < emittedChunks.length; i++) {
+    if (equalData(emittedChunks[i], data)) {
+      index = i;
+      break;
+    }
+  }
+  if (index == null) {
+    if (data.length == 0) {
+      throw new AssertionError('empty data', { name: name.text });
+    }
+    w.data.write(data.length);
+    w.data.writeArray(data);
+    index = emittedChunks.length;
+    emittedChunks.push(data);
+  }
+  // console.log(`Name: {name.text}, index: ${index}`)
+  return { kind, size, index };
 }
 
 function writeTrack(w: ScoreWriter, item: Track): void {
@@ -372,34 +456,12 @@ function writeTrack(w: ScoreWriter, item: Track): void {
     // Caller forgot to supply this instrument.
     throw new AssertionError(`undefined instrument`, { name: instrument.text });
   }
-  w.output.write(Opcode.Track, index, soundIndex);
+  w.commands.write(Opcode.Track, index, soundIndex);
   w.trackName = name.text;
-  w.trackTranspose = w.globalTranspose;
+  w.transposeLocal = w.transposeGlobal;
 }
 
-function duplicatePattern(name: Chunk): SourceError {
-  return new SourceError(
-    name,
-    `duplicate pattern name: ${JSON.stringify(name.text)}`,
-  );
-}
-
-function addPattern(w: ScoreWriter, item: Pattern): void {
-  const { name } = item;
-  let key = '.' + name.text;
-  if (w.trackName) {
-    if (w.patterns.has(key)) {
-      throw duplicatePattern(name);
-    }
-    key = w.trackName + key;
-  }
-  if (w.patterns.has(key)) {
-    throw duplicatePattern(name);
-  }
-  w.patterns.set(key, item);
-}
-
-function writeNoteRhythm(w: ScoreWriter, note: NoteRhythm): void {
+function writeNoteRhythm(dw: DataWriter, note: NoteRhythm): void {
   const { baseDuration, durationModifier, noteIndex } = note;
   let value = 0;
   // Duration
@@ -426,96 +488,103 @@ function writeNoteRhythm(w: ScoreWriter, note: NoteRhythm): void {
     value += noteIndex;
   }
   // Output
-  w.output.write(value);
+  dw.write(value);
 }
 
-function writePattern(
-  w: ScoreWriter,
-  item: Pattern,
-  key: string,
-): EmittedPattern {
-  const { name, notes } = item;
-  const index = w.nextPatternIndex++;
-  w.output.write(Opcode.Pattern, notes.length);
+function writePattern(w: ScoreWriter, item: Pattern): void {
+  const dw = new DataWriter();
+  const { kind, name, notes } = item;
   let size = 0;
   for (const note of notes) {
-    if (note.noteIndex != null) {
+    if (note.noteIndex) {
       size = Math.max(size, note.noteIndex);
     }
-    writeNoteRhythm(w, note);
+    writeNoteRhythm(dw, note);
   }
-  const value: EmittedPattern = {
-    kind: Kind.EmittedPattern,
-    index,
-    size,
-  };
-  w.patterns.set(key, value);
-  return value;
+  setChunk(w, name, { kind, data: dw.getData(), size });
 }
 
-function getPattern(w: ScoreWriter, name: Chunk): EmittedPattern {
-  if (w.trackName == null) {
-    throw new AssertionError('trackName == null');
+function writeValues(w: ScoreWriter, item: Values): void {
+  const { transposeLocal } = w;
+  const { kind, name, values } = item;
+  const dw = new DataWriter();
+  for (const value of values) {
+    dw.write(value.value + transposeLocal);
   }
-  let key;
-  let value: Pattern | EmittedPattern | null | undefined;
-  for (const prefix of [w.trackName, '']) {
-    const candidate = prefix + '.' + name.text;
-    value = w.patterns.get(candidate);
-    if (value != null) {
-      key = candidate;
-      break;
-    }
-  }
-  if (value == null) {
-    throw new SourceError(
-      name,
-      `undefined pattern ${JSON.stringify(name.text)}`,
-    );
-  }
-  switch (value.kind) {
-    case Kind.Pattern:
-      if (key == null) {
-        throw new AssertionError('key == null');
-      }
-      return writePattern(w, value, key);
-    case Kind.EmittedPattern:
-      return value;
-    default:
-      const dummy: never = value;
-      throw new AssertionError('invalid pattern kind');
-  }
+  setChunk(w, name, { kind, data: dw.getData(), size: values.length });
 }
 
-function writeNotes(w: ScoreWriter, item: Notes): void {
+function writeEmit(w: ScoreWriter, item: Emit): void {
   if (!w.hasTempo) {
     throw new SourceError(item.loc, 'tempo directive required');
   }
   if (w.trackName == null) {
     throw new SourceError(item.loc, 'notes must appear inside track');
   }
-  const { patternName, notes } = item;
-  const pattern = getPattern(w, patternName);
-  if (pattern.size != notes.length) {
-    throw new SourceError(
-      item.loc,
-      `pattern requires ${pattern.size} notes, ` +
-        `but ${notes.length} notes are provided`,
-    );
+  const { items } = item;
+  const enum State {
+    None,
+    Pattern,
+    Values,
   }
-  w.output.write(Opcode.Notes + pattern.index);
-  for (const note of notes) {
-    const value = note.value + w.trackTranspose;
-    if (value < 0 || dataMax < value) {
-      throw new SourceError(note, `note value out of range: ${value}`);
+  let state = State.None;
+  let pattern: number | undefined;
+  let patternItem: Chunk | undefined;
+  for (const it of items) {
+    const { kind, index } = getChunk(w, it);
+    switch (kind) {
+      case Kind.Pattern:
+        if (state == State.Pattern) {
+          if (patternItem == null) {
+            throw new AssertionError('invalid state');
+          }
+          throw new SourceError(patternItem, 'pattern has no values');
+        }
+        state = State.Pattern;
+        pattern = index;
+        patternItem = it;
+        break;
+      case Kind.Values:
+        if (pattern == null) {
+          throw new SourceError(it, 'need pattern before values');
+        }
+        state = State.Values;
+        w.commands.write(Opcode.Notes + pattern, index);
+        break;
+      default:
+        const dummy: any = kind;
+        throw new AssertionError('unknown kind');
     }
-    w.output.write(value);
   }
+  switch (state) {
+    case State.None:
+      throw new SourceError(item.loc, 'empty emit directive');
+    case State.Pattern:
+      if (patternItem == null) {
+        throw new AssertionError('invalid state');
+      }
+      throw new SourceError(patternItem, 'pattern has no values');
+  }
+}
+
+function writeHardTranspose(w: ScoreWriter, item: Transpose): void {
+  if (w.trackName == null) {
+    w.transposeGlobal = item.amount;
+  } else {
+    w.transposeLocal = w.transposeGlobal + item.amount;
+  }
+}
+
+function writeSoftTranspose(w: ScoreWriter, item: Transpose): void {
+  if (w.trackName == null) {
+    throw new SourceError(item.loc, 'soft transpose requires track');
+  }
+  throw new Error('unimplemented');
 }
 
 function writeTempo(w: ScoreWriter, item: Tempo): void {
   const value = Math.round((item.tempo - 50) / 2);
-  w.output.write(Opcode.Tempo, value);
+  w.commands.write(Opcode.Tempo, value);
   w.hasTempo = true;
 }
 
@@ -525,17 +594,19 @@ function writeItem(w: ScoreWriter, item: Item): void {
       writeTrack(w, item);
       break;
     case Kind.Pattern:
-      addPattern(w, item);
+      writePattern(w, item);
       break;
-    case Kind.Notes:
-      writeNotes(w, item);
+    case Kind.Values:
+      writeValues(w, item);
       break;
-    case Kind.Transpose:
-      if (w.trackName == null) {
-        w.globalTranspose = item.amount;
-      } else {
-        w.trackTranspose = w.globalTranspose + item.amount;
-      }
+    case Kind.Emit:
+      writeEmit(w, item);
+      break;
+    case Kind.HardTranspose:
+      writeHardTranspose(w, item);
+      break;
+    case Kind.SoftTranspose:
+      writeSoftTranspose(w, item);
       break;
     case Kind.Tempo:
       writeTempo(w, item);
@@ -596,22 +667,29 @@ export function parseScore(source: string): Score {
   return {
     sounds,
     emit(sounds: ReadonlyMap<string, number>): Uint8Array {
-      const output = new DataWriter();
+      const data = new DataWriter();
+      const commands = new DataWriter();
       const w: ScoreWriter = {
         sounds,
-        output,
+        data,
+        commands,
         trackName: null,
         trackNames: [],
-        patterns: new Map<string, Pattern | EmittedPattern>(),
-        nextPatternIndex: 0,
-        globalTranspose: 0,
-        trackTranspose: 0,
+        emittedChunks: [],
+        namedChunks: new Map<string, DataChunk>(),
+        transposeGlobal: 0,
+        transposeLocal: 0,
         hasTempo: false,
       };
       for (const item of items) {
         writeItem(w, item);
       }
-      return output.getData();
+      const b1 = data.getData();
+      const b2 = commands.getData();
+      const result = new Uint8Array(b1.length + b2.length + 1);
+      result.set(b1);
+      result.set(b2, b1.length + 1);
+      return result;
     },
   };
 }

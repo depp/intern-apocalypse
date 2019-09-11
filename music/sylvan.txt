@@ -1,24 +1,31 @@
 tempo 150
 
+transpose hard +3
+
 # ==============================================================================
 
 track bass bass
 
-pattern pat1 e1 e1 e3 e1 e2 e1 e3 e2
+pattern P1 e1 e1 e3 e1 e2 e1 e3 e2
+values A e2 d3 e3
+values B d2 c3 d3
+values C f#2 e3 f#3
+values D b2 d#3 f#3
 
-notes pat1 e2 d3 e3
-notes pat1 d2 c3 d3
-notes pat1 f#2 e3 f#3
-notes pat1 b2 d#3 f#3
+emit P1 A B C D A B C D
 
 # ==============================================================================
 
 track harp harp
 
-transpose -12
+transpose hard -12
 
-pattern pat1 q1 q2 q3 q4
-notes pat1 e4 g4 b4 e5
-notes pat1 d4 f#4 a4 d5
-notes pat1 f#4 a#4 c#5 f#5
-notes pat1 f#4 b4 d#5 f#5
+pattern P1 q1 q2 q3 q4
+pattern P2 q4 q3 q2 q1
+values A e4 g4 b4 e5
+values B d4 f#4 a4 d5
+values C f#4 a#4 c#5 f#5
+values D f#4 b4 d#5 f#5
+
+emit P1 A B C D
+emit P2 A B C D
