@@ -13,6 +13,7 @@ export function renderScore(
   const patterns: Uint8Array[] = [];
   let pos = 0;
   let time: number | undefined;
+  let resultLength = 0;
   // Duration of 1/6th of a sixteenth note, in seconds.
   let baseDuration = 0;
   // Duration of the score, in samples.
@@ -79,6 +80,7 @@ export function renderScore(
             }
             const noteAudio = runProgram(synthProgram, value, duration);
             const end = start + noteAudio.length;
+            resultLength = Math.max(resultLength, end);
             scoreDuration = Math.max(scoreDuration, end);
             if (end > result.length) {
               const oldbuf = result;
@@ -94,8 +96,5 @@ export function renderScore(
         break;
     }
   }
-  if (time == null) {
-    throw new AssertionError('empty score');
-  }
-  return result.subarray(0, (time * sampleRate) | 0);
+  return result.subarray(0, resultLength);
 }
