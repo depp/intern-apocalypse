@@ -3,7 +3,7 @@
  */
 
 import { AssertionError } from '../debug/debug';
-import { operators } from './engine';
+import { runProgram } from './engine';
 
 /** Definition of an opcode. */
 export interface Opcode<N> {
@@ -25,8 +25,9 @@ function checkName(name: string): void {
 /** Map from opcode name to opcodes, only used for defining opcodes. */
 const nameToValue: ReadonlyMap<string, number> = (() => {
   const r = new Map<string, number>();
-  for (let i = 0; i < operators.length; i++) {
-    const name = operators[i].name;
+  const names = runProgram();
+  for (let i = 0; i < names.length; i++) {
+    const name = names[i];
     checkName(name);
     if (r.has(name)) {
       throw new Error(`duplicate operator name ${JSON.stringify(name)}`);
