@@ -21,11 +21,14 @@ track harp harp
 transpose hard -12
 
 pattern P1 q1 q2 q3 q4
-pattern P2 q4 q3 q2 q1
 values A e4 g4 b4 e5
 values B d4 f#4 a4 d5
 values C f#4 a#4 c#5 f#5
 values D f#4 b4 d#5 f#5
 
 emit P1 A B C D
-emit P2 A B C D
+reverse
+inversion 1
+emit P1 A B
+inversion 0
+emit P1 C D

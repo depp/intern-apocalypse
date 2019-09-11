@@ -1,4 +1,4 @@
-import { Opcode } from './opcode';
+import { Opcode, SignedOffset } from './opcode';
 import { AssertionError } from '../debug/debug';
 import { sampleRate, runProgram } from '../synth/engine';
 import { roundUpPow2 } from '../lib/util';
@@ -30,6 +30,12 @@ export function renderScore(
   let baseDuration = 0;
   // Duration of the score, in samples.
   let scoreDuration = 0;
+  // Current transposition value offset.
+  let transposition = 0;
+  // Current inversion.
+  let inversion = 0;
+  // Whether to reverse the values.
+  let reverse = false;
   while (pos < program.length) {
     const opcode = program[pos++];
     switch (opcode) {
@@ -44,11 +50,32 @@ export function renderScore(
         }
         synthProgram = sounds[soundIndex];
         time = 0;
+        transposition = 0;
+        inversion = 0;
+        reverse = false;
         break;
 
       case Opcode.Tempo:
         const tempo = 50 + 2 * program[pos++];
         baseDuration = 60 / (6 * 4) / tempo;
+        break;
+
+      case Opcode.Transpose:
+        if (pos >= program.length) {
+          throw new AssertionError('end of program');
+        }
+        transposition = program[pos++] - SignedOffset;
+        break;
+
+      case Opcode.Inversion:
+        if (pos >= program.length) {
+          throw new AssertionError('end of program');
+        }
+        inversion = program[pos++];
+        break;
+
+      case Opcode.Reverse:
+        reverse = !reverse;
         break;
 
       default:
@@ -69,7 +96,22 @@ export function renderScore(
         if (valueIndex >= dataChunks.length) {
           throw new AssertionError('invalid values');
         }
-        const values = dataChunks[valueIndex];
+        const values = new Uint8Array(dataChunks[valueIndex]);
+        const chromaticity = values.map(x => x % 12);
+        for (let i = 0; i < inversion; i++) {
+          let newValue = values[values.length - 1];
+          for (let j = 1; j < 13; j++) {
+            if (chromaticity.includes((newValue + j) % 12)) {
+              newValue += j;
+              break;
+            }
+          }
+          values.copyWithin(0, 1);
+          values[values.length - 1] = newValue;
+        }
+        if (reverse) {
+          values.reverse();
+        }
         for (const note of notes) {
           let index = note % 6;
           const modifier = (note / 6) % 3 | 0;
@@ -86,7 +128,11 @@ export function renderScore(
           if (!value) {
             continue;
           }
-          const noteAudio = runProgram(synthProgram, value, duration);
+          const noteAudio = runProgram(
+            synthProgram,
+            value + transposition,
+            duration,
+          );
           const end = start + noteAudio.length;
           resultLength = Math.max(resultLength, end);
           scoreDuration = Math.max(scoreDuration, end);

@@ -8,8 +8,7 @@ import {
 } from '../lib/textdata';
 import { SourceError, SourceSpan, HasSourceLoc } from '../lib/sourcepos';
 import { DataWriter } from '../lib/data.writer';
-import { Opcode } from './opcode';
-import { dataMax } from '../lib/data.encode';
+import { Opcode, SignedOffset } from './opcode';
 
 // =============================================================================
 // Base data types
@@ -171,6 +170,8 @@ enum Kind {
   HardTranspose,
   SoftTranspose,
   Tempo,
+  Inversion,
+  Reverse,
 }
 
 /** Base type for items in a parsed score. */
@@ -218,8 +219,28 @@ interface Tempo extends ItemBase {
   tempo: number;
 }
 
+/** Note value inversion setting. */
+interface Inversion extends ItemBase {
+  kind: Kind.Inversion;
+  amount: number;
+}
+
+/** Note value time reversal setting. */
+interface Reverse extends ItemBase {
+  kind: Kind.Reverse;
+  enabled: boolean;
+}
+
 /** An item in a parsed score. */
-type Item = Track | Pattern | Values | Emit | Transpose | Tempo;
+type Item =
+  | Track
+  | Pattern
+  | Values
+  | Emit
+  | Transpose
+  | Tempo
+  | Inversion
+  | Reverse;
 
 // =============================================================================
 // Score parsing
@@ -324,6 +345,29 @@ deftype('tempo', function parseTempo(loc, fields): Tempo {
   return { kind: Kind.Tempo, loc, tempo };
 });
 
+deftype('inversion', function parseInversion(loc, fields): Inversion {
+  if (fields.length != 1) {
+    throw new SourceError(
+      loc,
+      `inversion requires 1 field, got ${fields.length}`,
+    );
+  }
+  const amount = parseIntExact(fields[0]);
+  return { kind: Kind.Inversion, loc, amount };
+});
+
+for (const direction of ['forward', 'reverse']) {
+  deftype(direction, function parseInversion(loc, fields): Reverse {
+    if (fields.length != 0) {
+      throw new SourceError(
+        loc,
+        `${direction} requires 0 fields, got ${fields.length}`,
+      );
+    }
+    return { kind: Kind.Reverse, loc, enabled: direction == 'reverse' };
+  });
+}
+
 function parseScoreItems(source: string): Item[] {
   const items: Item[] = [];
   for (const line of splitLines(source)) {
@@ -387,6 +431,9 @@ interface ScoreWriter {
   transposeGlobal: number;
   transposeLocal: number;
   hasTempo: boolean;
+  softTranspose: number;
+  inversion: number;
+  reverse: boolean;
 }
 
 function setChunk(w: ScoreWriter, name: Chunk, value: DataChunk): void {
@@ -459,6 +506,9 @@ function writeTrack(w: ScoreWriter, item: Track): void {
   w.commands.write(Opcode.Track, index, soundIndex);
   w.trackName = name.text;
   w.transposeLocal = w.transposeGlobal;
+  w.softTranspose = 0;
+  w.inversion = 0;
+  w.reverse = false;
 }
 
 function writeNoteRhythm(dw: DataWriter, note: NoteRhythm): void {
@@ -514,13 +564,17 @@ function writeValues(w: ScoreWriter, item: Values): void {
   setChunk(w, name, { kind, data: dw.getData(), size: values.length });
 }
 
+function requireTrack(w: ScoreWriter, item: ItemBase): void {
+  if (w.trackName == null) {
+    throw new SourceError(item.loc, 'track required');
+  }
+}
+
 function writeEmit(w: ScoreWriter, item: Emit): void {
   if (!w.hasTempo) {
     throw new SourceError(item.loc, 'tempo directive required');
   }
-  if (w.trackName == null) {
-    throw new SourceError(item.loc, 'notes must appear inside track');
-  }
+  requireTrack(w, item);
   const { items } = item;
   const enum State {
     None,
@@ -576,16 +630,36 @@ function writeHardTranspose(w: ScoreWriter, item: Transpose): void {
 }
 
 function writeSoftTranspose(w: ScoreWriter, item: Transpose): void {
-  if (w.trackName == null) {
-    throw new SourceError(item.loc, 'soft transpose requires track');
+  requireTrack(w, item);
+  const { amount } = item;
+  if (w.softTranspose != amount) {
+    w.softTranspose = amount;
+    w.commands.write(Opcode.Transpose, amount + SignedOffset);
   }
-  throw new Error('unimplemented');
 }
 
 function writeTempo(w: ScoreWriter, item: Tempo): void {
   const value = Math.round((item.tempo - 50) / 2);
   w.commands.write(Opcode.Tempo, value);
   w.hasTempo = true;
+}
+
+function writeInversion(w: ScoreWriter, item: Inversion): void {
+  requireTrack(w, item);
+  const { amount } = item;
+  if (w.inversion != amount) {
+    w.inversion = amount;
+    w.commands.write(Opcode.Inversion, amount);
+  }
+}
+
+function writeReverse(w: ScoreWriter, item: Reverse): void {
+  requireTrack(w, item);
+  const { enabled } = item;
+  if (w.reverse != enabled) {
+    w.reverse = enabled;
+    w.commands.write(Opcode.Reverse);
+  }
 }
 
 function writeItem(w: ScoreWriter, item: Item): void {
@@ -610,6 +684,12 @@ function writeItem(w: ScoreWriter, item: Item): void {
       break;
     case Kind.Tempo:
       writeTempo(w, item);
+      break;
+    case Kind.Inversion:
+      writeInversion(w, item);
+      break;
+    case Kind.Reverse:
+      writeReverse(w, item);
       break;
     default:
       const dummy: never = item;
@@ -680,6 +760,9 @@ export function parseScore(source: string): Score {
         transposeGlobal: 0,
         transposeLocal: 0,
         hasTempo: false,
+        softTranspose: 0,
+        inversion: 0,
+        reverse: false,
       };
       for (const item of items) {
         writeItem(w, item);
