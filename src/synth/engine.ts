@@ -92,7 +92,7 @@ export function runProgram(
   }
 
   // ===========================================================================
-  // Operator definitions
+  // Envelope generator state
   // ===========================================================================
 
   /**
@@ -184,9 +184,50 @@ export function runProgram(
     };
   }
 
-  /**
-   * Array of main operators.
-   */
+  // ===========================================================================
+  // Filter definition
+  // ===========================================================================
+
+  const enum FilterMode {
+    LowPass,
+    HighPass,
+    BandPass,
+  }
+
+  /** Apply a state-variable filter. */
+  function filter(
+    data: Float32Array,
+    frequency: Float32Array,
+    mode: FilterMode,
+    invq: number,
+  ): void {
+    let a = 0;
+    let b = 0;
+    let c;
+    const lp = new Float32Array(bufferSize);
+    const hp = new Float32Array(bufferSize);
+    const bp = new Float32Array(bufferSize);
+    for (let i = 0; i < bufferSize; i++) {
+      // We oversample the filter, running it twice with a corner frequency
+      // scaled by 1/2. Without oversampling, the filter stops working well at
+      // high frequencies.
+      let f = Math.sin(
+        ((2 * Math.PI) / sampleRate) * Math.min(frequency[i] / 2, 2e4),
+      );
+      b += f * a;
+      c = data[i] - b - invq * a;
+      a += f * c;
+      lp[i] = b += f * a;
+      hp[i] = c = data[i] - b - invq * a;
+      bp[i] = a += f * c;
+    }
+    data.set([lp, hp, bp][mode]);
+  }
+
+  // ===========================================================================
+  // Operator definitions
+  // ===========================================================================
+
   const operators: (() => void)[] = [
     // =========================================================================
     // Oscillators and generators
@@ -235,42 +276,21 @@ export function runProgram(
     /** Simple constant two-pole high-pass filter with fixed Q. */
     function highPass(): void {
       const out = topBuffer();
-      let a = 0;
-      let b = 0;
-      // We calculate the coefficient in the compiler.
-      const f = decodeFrequency(readParam()) / sampleRate;
-      for (let i = 0; i < bufferSize; i++) {
-        b += f * a;
-        a += f * (out[i] -= b + 1.4 * a);
-      }
+      const frequency = new Float32Array(bufferSize);
+      frequency.fill(decodeFrequency(readParam()));
+      filter(out, frequency, FilterMode.HighPass, 1.4);
     },
 
-    /** Apply a state-variable filter filter. */
+    /** Apply a state-variable filter. */
     function stateVariableFilter(): void {
-      const [input, frequency] = getArgs(2);
-      let a = 0;
-      let b = 0;
-      let c;
+      const [audio, frequency] = getArgs(2);
       const mode = readParam();
       const invq = decodeExponential(readParam());
-      const lp = new Float32Array(bufferSize);
-      const hp = new Float32Array(bufferSize);
-      const bp = new Float32Array(bufferSize);
-      for (let i = 0; i < bufferSize; i++) {
-        // We oversample the filter, running it twice with a corner frequency
-        // scaled by 1/2. Without oversampling, the filter stops working well at
-        // high frequencies.
-        let f = Math.sin(
-          ((2 * Math.PI) / sampleRate) * Math.min(frequency[i] / 2, 2e4),
-        );
-        b += f * a;
-        c = input[i] - b - invq * a;
-        a += f * c;
-        lp[i] = b += f * a;
-        hp[i] = c = input[i] - b - invq * a;
-        bp[i] = a += f * c;
+      if (mode > 3) {
+        throw new AssertionError('invalid mode');
       }
-      stack.push([lp, hp, bp][mode]);
+      filter(audio, frequency, mode, invq);
+      stack.push(audio);
     },
 
     // =========================================================================

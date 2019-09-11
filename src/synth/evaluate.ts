@@ -16,7 +16,6 @@ import { SourceError, SourceSpan, noSourceLocation } from '../lib/sourcepos';
 import { Operator, Node, Program, createNode, createVariableRef } from './node';
 import * as node from './node';
 import { Units, UnitError, multiplyUnits } from './units';
-import { sampleRate } from './engine';
 
 // =============================================================================
 // Types
@@ -547,13 +546,11 @@ defun('noise', (expr, args) => {
 defun('highPass', (expr, args) => {
   const [frequency, input] = getExactArgs(expr, args, 2);
   const fval = getConstant('frequency', frequency, Units.Hertz);
-  // We calculate the coefficient here, not in the engine.
-  const coeff = Math.sin((2 * Math.PI * fval) / sampleRate);
   return nodeValue(
     createNode(
       expr,
       node.highPass,
-      [toDataClamp(data.encodeFrequency(coeff * sampleRate))],
+      [toDataClamp(data.encodeFrequency(fval))],
       [getBuffer('input', input, Units.Volt)],
     ),
     Units.Volt,
