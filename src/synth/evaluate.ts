@@ -467,16 +467,8 @@ function getAnyBuffer(name: string, value: Value): Node {
 
 /** Accept a buffer or scalar with the given units. */
 function castToBuffer(name: string, value: Value, units: Units): Node {
-  if (value.kind == ValueKind.Node && value.units == units) {
-    switch (value.type) {
-      case Type.Scalar:
-        return wrapNode(value.node, node.constant);
-      case Type.Buffer:
-        return value.node;
-    }
-  }
-  const ustr = Units[units];
-  throw badArgType(name, value, `Scalar(${ustr}) or Buffer(${ustr})`);
+  // Removed.
+  return getExact(name, value, units, Type.Buffer);
 }
 
 /**
@@ -486,14 +478,13 @@ function castToBuffer(name: string, value: Value, units: Units): Node {
 function castToPhase(name: string, value: Value): Node {
   switch (value.kind) {
     case ValueKind.Constant:
-      const vnode = createNode(
+      const fnode = createNode(
         value,
-        node.num_freq,
+        node.constant,
         [toDataClamp(data.encodeFrequency(value.value))],
         [],
       );
-      const frequency = wrapNode(vnode, node.constant);
-      return wrapNode(frequency, node.oscillator);
+      return wrapNode(fnode, node.oscillator);
     case ValueKind.Node:
       switch (value.units) {
         case Units.Phase:
@@ -503,9 +494,6 @@ function castToPhase(name: string, value: Value): Node {
           break;
         case Units.Hertz:
           switch (value.type) {
-            case Type.Scalar:
-              const frequency = wrapNode(value.node, node.constant);
-              return wrapNode(frequency, node.oscillator);
             case Type.Buffer:
               return wrapNode(value.node, node.oscillator);
           }
@@ -516,7 +504,7 @@ function castToPhase(name: string, value: Value): Node {
   throw badArgType(
     name,
     value,
-    'Buffer(Volt), Constant(Hertz), Scalar(Hertz), or Buffer(Hertz)',
+    'Buffer(Phase), Constant(Hertz), or Buffer(Hertz)',
   );
 }
 
@@ -746,15 +734,6 @@ defun('*', (expr, args) => {
     result = createNode(expr, node.multiply, [], [result, buffers[i]]);
   }
   return nodeValue(result, units, Type.Buffer);
-});
-
-defun('constant', (expr, args) => {
-  const [value] = getExactArgs(expr, args, 1);
-  return nodeValue(
-    createNode(expr, node.constant, [], [getAnyScalar('value', value)]),
-    value.units,
-    Type.Buffer,
-  );
 });
 
 defun('frequency', (expr, args) => {

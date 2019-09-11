@@ -118,12 +118,6 @@ export function disassembleProgram(code: Uint8Array): string[] {
 
 // Those correspond directly to functions in synth.ts.
 
-// Numeric values
-export const num_lin = opcode('num_lin', 1);
-export const num_expo = opcode('num_expo', 1);
-export const num_note = opcode('num_note', 1);
-export const num_freq = opcode('num_freq', 1);
-
 // Oscillators and generators
 export const oscillator = opcode('oscillator', 0);
 export const sawtooth = opcode('sawtooth', 0);
@@ -149,7 +143,7 @@ export const env_gate = opcode('env_gate', 0);
 
 // Utilities
 export const multiply = opcode('multiply', 0);
-export const constant = opcode('constant', 0);
+export const constant = opcode('constant', 1);
 export const frequency = opcode('frequency', 0);
 export const mix = opcode('mix', 1);
 export const zero = opcode('zero', 0);

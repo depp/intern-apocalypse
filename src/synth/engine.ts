@@ -167,30 +167,6 @@ function envExponential(
  */
 export const operators: (() => void)[] = [
   // ===========================================================================
-  // Numeric values
-  // ===========================================================================
-
-  /** Numeric literal, linear encoding. */
-  function num_lin(): void {
-    stack.push(decodeLinear(readParam()));
-  },
-
-  /** Numeric literal, exponential encoding. */
-  function num_expo(): void {
-    stack.push(decodeExponential(readParam()));
-  },
-
-  /** Numeric literal, musical note frequency encoding. */
-  function num_note(): void {
-    stack.push(decodeNote(readParam()));
-  },
-
-  /** Numeric literal, general frequency encoding. */
-  function num_freq(): void {
-    stack.push(decodeFrequency(readParam()));
-  },
-
-  // ===========================================================================
   // Oscillators and generators
   // ===========================================================================
 
@@ -392,13 +368,9 @@ export const operators: (() => void)[] = [
     stack.push(out);
   },
 
-  /** Create a constant envelope from a value. */
+  /** Create a constant frequency envelope from a value. */
   function constant(): void {
-    const [value] = getArgs(1);
-    if (typeof value != 'number') {
-      throw new AssertionError('type error');
-    }
-    pushBuffer().fill(value);
+    pushBuffer().fill(decodeFrequency(readParam()));
   },
 
   /** Convert envelope to frequency data. */

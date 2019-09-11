@@ -326,12 +326,6 @@ function opConstant(op: Opcode<1>): Operator {
 // Operator definitions
 // =============================================================================
 
-// Numeric values
-export const num_lin = opConstant(opcode.num_lin);
-export const num_expo = opConstant(opcode.num_expo);
-export const num_note = opConstant(opcode.num_note);
-export const num_freq = opConstant(opcode.num_freq);
-
 // Oscillators and generators
 export const oscillator = opSimple(
   opcode.oscillator,
@@ -369,7 +363,7 @@ export const multiply = opSimple(
   [Type.Buffer, Type.Buffer],
   [Type.Buffer],
 );
-export const constant = opSimple(opcode.constant, [Type.Scalar], [Type.Buffer]);
+export const constant = opSimple(opcode.constant, [], [Type.Buffer]);
 export const frequency = opSimple(
   opcode.frequency,
   [Type.Buffer],
