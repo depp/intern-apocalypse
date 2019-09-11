@@ -143,6 +143,7 @@ export const env_start = opcode('env_start', 0);
 export const env_end = opcode('env_end', 0);
 export const env_set = opcode('env_set', 1);
 export const env_lin = opcode('env_lin', 2);
+export const env_exp = opcode('env_exp', 2);
 export const env_delay = opcode('env_delay', 1);
 export const env_gate = opcode('env_gate', 0);
 

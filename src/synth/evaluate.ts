@@ -919,6 +919,17 @@ defenv('lin', (expr, args) => {
   return createNode(expr, node.env_lin, [timeParam, valueParam], []);
 });
 
+defenv('exp', (expr, args) => {
+  let [timeValue, valueValue] = getExactArgs(expr, args, 2);
+  const timeParam = toDataClamp(
+    data.encodeExponential(getConstant('time', timeValue, Units.Second)),
+  );
+  const valueParam = toDataClamp(
+    data.encodeLinear(getConstant('value', valueValue, Units.None)),
+  );
+  return createNode(expr, node.env_exp, [timeParam, valueParam], []);
+});
+
 defenv('delay', (expr, args) => {
   let [timeValue] = getExactArgs(expr, args, 1);
   const timeParam = toDataClamp(

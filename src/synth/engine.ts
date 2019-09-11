@@ -135,6 +135,33 @@ function envLinear(endPos: number, endValue: number): EnvelopeSegment {
   };
 }
 
+/** Create an exponetntial envelope segment. */
+function envExponential(
+  timeConstant: number,
+  endValue: number,
+): EnvelopeSegment {
+  if (envBuf == null || envPos == null || envTime == null) {
+    throw new AssertionError('null env');
+  }
+  const endTolerance = 0.05;
+  const startPos = envPos;
+  const startValue = envBuf[envPos];
+  const delta = Math.abs(startValue - endValue);
+  const envLength =
+    delta > endTolerance ? timeConstant * Math.log(delta / endTolerance) : 0;
+  envTime += envLength;
+  return pos => {
+    if (envBuf == null || envPos == null) {
+      throw new AssertionError('null env');
+    }
+    for (let i = envPos; i < pos; i++) {
+      envBuf[i] =
+        endValue +
+        (startValue - endValue) * Math.exp((startPos - i) / timeConstant);
+    }
+  };
+}
+
 /**
  * Array of main operators.
  */
@@ -316,6 +343,18 @@ export const operators: (() => void)[] = [
     envSeek(envTime);
     envSegment = envLinear(
       envTime + ((decodeExponential(readParam()) * sampleRate) | 0),
+      decodeLinear(readParam()),
+    );
+  },
+
+  /** Envelope: exponential segment. */
+  function env_exp(): void {
+    if (!envBuf || envTime == null) {
+      throw new AssertionError('null env');
+    }
+    envSeek(envTime);
+    envSegment = envExponential(
+      decodeExponential(readParam()) * sampleRate,
       decodeLinear(readParam()),
     );
   },
