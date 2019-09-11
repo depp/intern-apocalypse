@@ -164,6 +164,7 @@ export function parseRhythm(chunk: Chunk): NoteRhythm {
 
 /** Kinds of items in the score. */
 enum Kind {
+  Track,
   Pattern,
   EmittedPattern,
   Notes,
@@ -175,6 +176,13 @@ enum Kind {
 interface ItemBase {
   kind: Kind;
   loc: SourceSpan;
+}
+
+/** Start of track in score. */
+interface Track extends ItemBase {
+  kind: Kind.Track;
+  name: Chunk;
+  instrument: Chunk;
 }
 
 /** Rhythmic pattern for notes. */
@@ -212,7 +220,7 @@ interface Tempo extends ItemBase {
 }
 
 /** An item in a parsed score. */
-type Item = Pattern | Notes | Transpose | Tempo;
+type Item = Track | Pattern | Notes | Transpose | Tempo;
 
 // =============================================================================
 // Score parsing
@@ -229,6 +237,20 @@ function deftype(name: string, parser: ItemParser): void {
   }
   itemTypes.set(name, parser);
 }
+
+/** Parse an new track directive. */
+deftype('track', function parseTrack(loc, fields): Track {
+  if (fields.length != 2) {
+    throw new SourceError(loc, `track requires 2 fields, got ${fields.length}`);
+  }
+  const [name, instrument] = fields;
+  return {
+    kind: Kind.Track,
+    loc,
+    name,
+    instrument,
+  };
+});
 
 /** Parse a note pattern. */
 deftype('pattern', function parsePattern(loc, fields): Pattern {
@@ -327,21 +349,54 @@ function parseScoreItems(source: string): Item[] {
 
 /** The state of a score being written. */
 interface ScoreWriter {
+  sounds: ReadonlyMap<string, number>;
   output: DataWriter;
+  trackName: string | null;
+  trackNames: string[];
   patterns: Map<string, Pattern | EmittedPattern>;
   nextPatternIndex: number;
-  transpose: number;
+  trackTranspose: number;
+  globalTranspose: number;
   hasTempo: boolean;
 }
 
-function addPattern(w: ScoreWriter, item: Pattern): void {
-  if (w.patterns.has(item.name.text)) {
-    throw new SourceError(
-      item.name,
-      `duplicate pattern name ${JSON.stringify(item.name.text)}`,
-    );
+function writeTrack(w: ScoreWriter, item: Track): void {
+  const { name, instrument } = item;
+  let index = w.trackNames.indexOf(name.text);
+  if (index == -1) {
+    index = w.trackNames.length;
+    w.trackNames.push(name.text);
   }
-  w.patterns.set(item.name.text, item);
+  const soundIndex = w.sounds.get(instrument.text);
+  if (soundIndex == null) {
+    // Caller forgot to supply this instrument.
+    throw new AssertionError(`undefined instrument`, { name: instrument.text });
+  }
+  w.output.write(Opcode.Track, index, soundIndex);
+  w.trackName = name.text;
+  w.trackTranspose = w.globalTranspose;
+}
+
+function duplicatePattern(name: Chunk): SourceError {
+  return new SourceError(
+    name,
+    `duplicate pattern name: ${JSON.stringify(name.text)}`,
+  );
+}
+
+function addPattern(w: ScoreWriter, item: Pattern): void {
+  const { name } = item;
+  let key = '.' + name.text;
+  if (w.trackName) {
+    if (w.patterns.has(key)) {
+      throw duplicatePattern(name);
+    }
+    key = w.trackName + key;
+  }
+  if (w.patterns.has(key)) {
+    throw duplicatePattern(name);
+  }
+  w.patterns.set(key, item);
 }
 
 function writeNoteRhythm(w: ScoreWriter, note: NoteRhythm): void {
@@ -374,7 +429,11 @@ function writeNoteRhythm(w: ScoreWriter, note: NoteRhythm): void {
   w.output.write(value);
 }
 
-function writePattern(w: ScoreWriter, item: Pattern): EmittedPattern {
+function writePattern(
+  w: ScoreWriter,
+  item: Pattern,
+  key: string,
+): EmittedPattern {
   const { name, notes } = item;
   const index = w.nextPatternIndex++;
   w.output.write(Opcode.Pattern, notes.length);
@@ -390,12 +449,24 @@ function writePattern(w: ScoreWriter, item: Pattern): EmittedPattern {
     index,
     size,
   };
-  w.patterns.set(name.text, value);
+  w.patterns.set(key, value);
   return value;
 }
 
 function getPattern(w: ScoreWriter, name: Chunk): EmittedPattern {
-  let value = w.patterns.get(name.text);
+  if (w.trackName == null) {
+    throw new AssertionError('trackName == null');
+  }
+  let key;
+  let value: Pattern | EmittedPattern | null | undefined;
+  for (const prefix of [w.trackName, '']) {
+    const candidate = prefix + '.' + name.text;
+    value = w.patterns.get(candidate);
+    if (value != null) {
+      key = candidate;
+      break;
+    }
+  }
   if (value == null) {
     throw new SourceError(
       name,
@@ -404,7 +475,10 @@ function getPattern(w: ScoreWriter, name: Chunk): EmittedPattern {
   }
   switch (value.kind) {
     case Kind.Pattern:
-      return writePattern(w, value);
+      if (key == null) {
+        throw new AssertionError('key == null');
+      }
+      return writePattern(w, value, key);
     case Kind.EmittedPattern:
       return value;
     default:
@@ -417,6 +491,9 @@ function writeNotes(w: ScoreWriter, item: Notes): void {
   if (!w.hasTempo) {
     throw new SourceError(item.loc, 'tempo directive required');
   }
+  if (w.trackName == null) {
+    throw new SourceError(item.loc, 'notes must appear inside track');
+  }
   const { patternName, notes } = item;
   const pattern = getPattern(w, patternName);
   if (pattern.size != notes.length) {
@@ -428,7 +505,7 @@ function writeNotes(w: ScoreWriter, item: Notes): void {
   }
   w.output.write(Opcode.Notes + pattern.index);
   for (const note of notes) {
-    const value = note.value + w.transpose;
+    const value = note.value + w.trackTranspose;
     if (value < 0 || dataMax < value) {
       throw new SourceError(note, `note value out of range: ${value}`);
     }
@@ -444,6 +521,9 @@ function writeTempo(w: ScoreWriter, item: Tempo): void {
 
 function writeItem(w: ScoreWriter, item: Item): void {
   switch (item.kind) {
+    case Kind.Track:
+      writeTrack(w, item);
+      break;
     case Kind.Pattern:
       addPattern(w, item);
       break;
@@ -451,7 +531,11 @@ function writeItem(w: ScoreWriter, item: Item): void {
       writeNotes(w, item);
       break;
     case Kind.Transpose:
-      w.transpose = item.amount;
+      if (w.trackName == null) {
+        w.globalTranspose = item.amount;
+      } else {
+        w.trackTranspose = w.globalTranspose + item.amount;
+      }
       break;
     case Kind.Tempo:
       writeTempo(w, item);
@@ -491,16 +575,37 @@ interface Score {
 /** Parse a musical score. */
 export function parseScore(source: string): Score {
   const items = parseScoreItems(source);
-  const sounds: SoundReference[] = [{ name: 'bass', locs: [] }];
+  const sounds: SoundReference[] = [];
+  for (const item of items) {
+    if (item.kind == Kind.Track) {
+      const { instrument } = item;
+      let ref: SoundReference | undefined;
+      for (const sound of sounds) {
+        if (sound.name == instrument.text) {
+          ref = sound;
+          break;
+        }
+      }
+      if (!ref) {
+        ref = { name: instrument.text, locs: [] };
+        sounds.push(ref);
+      }
+      ref.locs.push(instrument);
+    }
+  }
   return {
     sounds,
     emit(sounds: ReadonlyMap<string, number>): Uint8Array {
       const output = new DataWriter();
       const w: ScoreWriter = {
+        sounds,
         output,
+        trackName: null,
+        trackNames: [],
         patterns: new Map<string, Pattern | EmittedPattern>(),
         nextPatternIndex: 0,
-        transpose: 0,
+        globalTranspose: 0,
+        trackTranspose: 0,
         hasTempo: false,
       };
       for (const item of items) {

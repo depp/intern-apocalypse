@@ -9,10 +9,10 @@ export function renderScore(
   sounds: Uint8Array[],
 ): Float32Array {
   let result = new Float32Array();
-  const synthProgram = sounds[0];
+  let synthProgram: Uint8Array | null | undefined;
   const patterns: Uint8Array[] = [];
   let pos = 0;
-  let time = 0;
+  let time: number | undefined;
   // Duration of 1/6th of a sixteenth note, in seconds.
   let baseDuration = 0;
   // Duration of the score, in samples.
@@ -20,6 +20,19 @@ export function renderScore(
   while (pos < program.length) {
     const opcode = program[pos++];
     switch (opcode) {
+      case Opcode.Track:
+        if (pos + 2 > program.length) {
+          throw new AssertionError('end of program');
+        }
+        pos++; // Track index.
+        const soundIndex = program[pos++];
+        if (soundIndex >= sounds.length) {
+          throw new AssertionError('sound index out of range');
+        }
+        synthProgram = sounds[soundIndex];
+        time = 0;
+        break;
+
       case Opcode.Pattern:
         if (pos >= program.length) {
           throw new AssertionError('end of program');
@@ -38,6 +51,9 @@ export function renderScore(
         break;
 
       default:
+        if (time == null) {
+          throw new AssertionError('time == null');
+        }
         const patternIndex = opcode - Opcode.Notes;
         if (patternIndex >= patterns.length) {
           throw new AssertionError('invalid pattern');
@@ -58,6 +74,9 @@ export function renderScore(
               throw new AssertionError('end of program', { index });
             }
             const value = program[pos + index - 1];
+            if (!synthProgram) {
+              continue;
+            }
             const noteAudio = runProgram(synthProgram, value, duration);
             const end = start + noteAudio.length;
             scoreDuration = Math.max(scoreDuration, end);
@@ -74,6 +93,9 @@ export function renderScore(
         pos += patternSize;
         break;
     }
+  }
+  if (time == null) {
+    throw new AssertionError('empty score');
   }
   return result.subarray(0, (time * sampleRate) | 0);
 }
