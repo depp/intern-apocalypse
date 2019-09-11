@@ -1,8 +1,15 @@
 import { AssertionError } from '../debug/debug';
-import { Chunk, splitLines, splitFields, chunkEnd } from '../lib/textdata';
+import {
+  Chunk,
+  splitLines,
+  splitFields,
+  chunkEnd,
+  parseIntExact,
+} from '../lib/textdata';
 import { SourceError, SourceSpan, HasSourceLoc } from '../lib/sourcepos';
 import { DataWriter } from '../lib/data.writer';
 import { Opcode } from './opcode';
+import { dataMax } from '../lib/data.encode';
 
 // =============================================================================
 // Base data types
@@ -160,6 +167,7 @@ enum Kind {
   Pattern,
   EmittedPattern,
   Notes,
+  Transpose,
 }
 
 /** Base type for items in a parsed score. */
@@ -168,12 +176,14 @@ interface ItemBase {
   loc: SourceSpan;
 }
 
+/** Rhythmic pattern for notes. */
 interface Pattern extends ItemBase {
   kind: Kind.Pattern;
   name: Chunk;
   notes: NoteRhythm[];
 }
 
+/** Reference to a rythmic patter which has been written out. */
 interface EmittedPattern {
   kind: Kind.EmittedPattern;
   index: number;
@@ -181,13 +191,21 @@ interface EmittedPattern {
   size: number;
 }
 
+/** Sequence of notes. */
 interface Notes extends ItemBase {
   kind: Kind.Notes;
   patternName: Chunk;
   notes: NoteValue[];
 }
 
-type Item = Pattern | Notes;
+/** Transposition command. */
+interface Transpose extends ItemBase {
+  kind: Kind.Transpose;
+  amount: number;
+}
+
+/** An item in a parsed score. */
+type Item = Pattern | Notes | Transpose;
 
 // =============================================================================
 // Score parsing
@@ -245,6 +263,21 @@ deftype('notes', function parseNotes(loc, fields): Notes {
   };
 });
 
+deftype('transpose', function parseTranspose(loc, fields): Transpose {
+  if (fields.length != 1) {
+    throw new SourceError(
+      loc,
+      `transpose requires 1 field, got ${fields.length}`,
+    );
+  }
+  const amount = parseIntExact(fields[0]);
+  return {
+    kind: Kind.Transpose,
+    loc,
+    amount,
+  };
+});
+
 function parseScoreItems(source: string): Item[] {
   const items: Item[] = [];
   for (const line of splitLines(source)) {
@@ -278,6 +311,7 @@ interface ScoreWriter {
   output: DataWriter;
   patterns: Map<string, Pattern | EmittedPattern>;
   nextPatternIndex: number;
+  transpose: number;
 }
 
 function addPattern(w: ScoreWriter, item: Pattern): void {
@@ -371,7 +405,11 @@ function writeNotes(w: ScoreWriter, item: Notes): void {
   }
   w.output.write(Opcode.Notes + pattern.index);
   for (const note of notes) {
-    w.output.write(note.value);
+    const value = note.value + w.transpose;
+    if (value < 0 || dataMax < value) {
+      throw new SourceError(note, `note value out of range: ${value}`);
+    }
+    w.output.write(value);
   }
 }
 
@@ -382,6 +420,9 @@ function writeItem(w: ScoreWriter, item: Item): void {
       break;
     case Kind.Notes:
       writeNotes(w, item);
+      break;
+    case Kind.Transpose:
+      w.transpose = item.amount;
       break;
     default:
       const dummy: never = item;
@@ -427,6 +468,7 @@ export function parseScore(source: string): Score {
         output,
         patterns: new Map<string, Pattern | EmittedPattern>(),
         nextPatternIndex: 0,
+        transpose: 0,
       };
       for (const item of items) {
         writeItem(w, item);
