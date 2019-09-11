@@ -2,7 +2,7 @@
  * Audio synthesizer execution engine.
  */
 
-import { AssertionError } from '../debug/debug';
+import { AssertionError, isDebug } from '../debug/debug';
 import {
   decodeLinear,
   decodeExponential,
@@ -43,7 +43,10 @@ export function runProgram(
   // ===========================================================================
 
   /** The number of samples in each buffer. */
-  let bufferSize = sampleRate * 2;
+  const bufferSize =
+    !isDebug || code
+      ? ((gateTime + decodeExponential(code![0])) * sampleRate) | 0
+      : 0;
 
   /** Random number generator for audio. */
   let random = new Random(9);
@@ -69,7 +72,7 @@ export function runProgram(
   }
 
   /** Current position in the instruction array. */
-  let instructionPos = 0;
+  let instructionPos = 1;
 
   /** Read an operator parameter from the instruction stream. */
   function readParam(): number {

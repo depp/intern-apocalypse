@@ -108,6 +108,8 @@ class EvaluationError extends SourceError {}
 interface Environment {
   /** Map from variables to their values. */
   variables: Map<string, Value>;
+  /** Length of the audio tail, in seconds. */
+  tailLength: number | null;
 }
 
 // =============================================================================
@@ -270,6 +272,7 @@ export function evaluateProgram(
   // Define initial environment.
   const env: Environment = {
     variables: new Map<string, Value>(),
+    tailLength: null,
   };
   for (let i = 0; i < params.length; i++) {
     const { name, units } = params[i];
@@ -318,6 +321,7 @@ export function evaluateProgram(
     parameterCount: params.length,
     variables,
     result: value.node,
+    tailLength: env.tailLength || 0,
   };
 }
 
@@ -719,7 +723,18 @@ defun('overtone', (expr, args) => {
 // Envelope
 // =============================================================================
 
-type EnvelopeSegment = (expr: ListExpr, args: Value[]) => Node;
+/** Environment for evaluating envelope segments. */
+interface EnvelopeEnvironment {
+  currentTime: number;
+  endTime: number;
+  env: Environment;
+}
+
+type EnvelopeSegment = (
+  env: EnvelopeEnvironment,
+  expr: ListExpr,
+  args: Value[],
+) => Node | null;
 
 const envelopeOperators = new Map<string, EnvelopeSegment>();
 
@@ -727,7 +742,7 @@ function defenv(name: string, evaluateFunction: EnvelopeSegment): void {
   envelopeOperators.set(name, evaluateFunction);
 }
 
-function evaluateEnv(env: Environment, expr: SExpr): Node {
+function evaluateEnv(env: EnvelopeEnvironment, expr: SExpr): Node | null {
   if (expr.type != 'list') {
     throw new EvaluationError(expr, 'envelope segment must be a list');
   }
@@ -757,14 +772,14 @@ function evaluateEnv(env: Environment, expr: SExpr): Node {
   }
   const args: Value[] = [];
   for (let i = 1; i < expr.items.length; i++) {
-    const value = evaluate(env, expr.items[i]);
+    const value = evaluate(env.env, expr.items[i]);
     if (value.kind == ValueKind.Void) {
       throw expectNonVoid(value);
     }
     args.push(value);
   }
   try {
-    return evaluateFunction(expr, args);
+    return evaluateFunction(env, expr, args);
   } catch (e) {
     if (e instanceof EvaluationError) {
       e.message = `in call to function ${JSON.stringify(opname)}: ${e.message}`;
@@ -774,14 +789,22 @@ function evaluateEnv(env: Environment, expr: SExpr): Node {
 }
 
 define('envelope', (env, expr) => {
+  const eenv: EnvelopeEnvironment = {
+    currentTime: 0,
+    endTime: 0,
+    env,
+  };
   const nodes: Node[] = [createNode(expr, node.env_start, [], [])];
   for (let i = 1; i < expr.items.length; i++) {
-    nodes.push(evaluateEnv(env, expr.items[i]));
+    const result = evaluateEnv(eenv, expr.items[i]);
+    if (result != null) {
+      nodes.push(result);
+    }
   }
   return nodeValue(createNode(expr, node.env_end, [], nodes), Units.None);
 });
 
-defenv('set', (expr, args) => {
+defenv('set', (env, expr, args) => {
   let [valueValue] = getExactArgs(expr, args, 1);
   const valueParam = toDataClamp(
     data.encodeLinear(getConstant('value', valueValue, Units.None)),
@@ -789,7 +812,7 @@ defenv('set', (expr, args) => {
   return createNode(expr, node.env_set, [valueParam], []);
 });
 
-defenv('lin', (expr, args) => {
+defenv('lin', (env, expr, args) => {
   let [timeValue, valueValue] = getExactArgs(expr, args, 2);
   const timeParam = toDataClamp(
     data.encodeExponential(getConstant('time', timeValue, Units.Second)),
@@ -797,10 +820,13 @@ defenv('lin', (expr, args) => {
   const valueParam = toDataClamp(
     data.encodeLinear(getConstant('value', valueValue, Units.None)),
   );
+  const decoded = data.decodeExponential(timeParam);
+  const { currentTime } = env;
+  env.endTime = env.currentTime = currentTime + decoded;
   return createNode(expr, node.env_lin, [timeParam, valueParam], []);
 });
 
-defenv('exp', (expr, args) => {
+defenv('exp', (env, expr, args) => {
   let [timeValue, valueValue] = getExactArgs(expr, args, 2);
   const timeParam = toDataClamp(
     data.encodeExponential(getConstant('time', timeValue, Units.Second)),
@@ -808,20 +834,40 @@ defenv('exp', (expr, args) => {
   const valueParam = toDataClamp(
     data.encodeLinear(getConstant('value', valueValue, Units.None)),
   );
+  const decoded = data.decodeExponential(timeParam);
+  const { currentTime } = env;
+  env.currentTime = currentTime + decoded * 3; // 24 dB
+  env.endTime = currentTime + decoded * 7; // 60 dB
   return createNode(expr, node.env_exp, [timeParam, valueParam], []);
 });
 
-defenv('delay', (expr, args) => {
+defenv('delay', (env, expr, args) => {
   let [timeValue] = getExactArgs(expr, args, 1);
   const timeParam = toDataClamp(
     data.encodeExponential(getConstant('time', timeValue, Units.Second)),
   );
+  const decoded = data.decodeExponential(timeParam);
+  const { currentTime } = env;
+  env.currentTime = currentTime + decoded;
+  env.endTime = Math.max(currentTime + decoded, env.endTime);
   return createNode(expr, node.env_delay, [timeParam], []);
 });
 
-defenv('gate', (expr, args) => {
+defenv('gate', (env, expr, args) => {
+  env.currentTime = 0;
+  env.endTime = 0;
   getExactArgs(expr, args, 0);
   return createNode(expr, node.env_gate, [], []);
+});
+
+defenv('stop', (env, expr, args) => {
+  getExactArgs(expr, args, 0);
+  const { endTime, env: outer } = env;
+  if (outer.tailLength != null) {
+    throw new SourceError(expr, 'multiple definitions of tail length');
+  }
+  outer.tailLength = endTime;
+  return null;
 });
 
 // =============================================================================

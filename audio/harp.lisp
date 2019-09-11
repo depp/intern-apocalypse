@@ -4,7 +4,7 @@
 (define osc3 (overtone 3 osc))
 
 (define env1 (envelope (exp 0.5ms 1) (exp 400ms 0)))
-(define env2 (envelope (exp 20ms 1) (exp 800ms 0)))
+(define env2 (envelope (exp 20ms 1) (exp 800ms 0) (stop)))
 
 ;; Modulators.
 (define mod1 (* (sine osc3)

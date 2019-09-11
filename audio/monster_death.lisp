@@ -8,4 +8,4 @@
          (noise)
          (frequency (envelope (set -0.5) (lin 400ms -0.2)))
          1.9)))
- (envelope (lin 10ms 1) (delay 300ms) (lin 1000ms 0))))
+ (envelope (lin 10ms 1) (delay 300ms) (lin 1000ms 0) (stop))))

@@ -4,6 +4,8 @@
 
 import { AssertionError } from '../debug/debug';
 import { runProgram } from './engine';
+import { DataWriter } from '../lib/data.writer';
+import { decodeExponential } from '../lib/data.encode';
 
 /** Definition of an opcode. */
 export interface Opcode<N> {
@@ -58,14 +60,14 @@ function opcode<N extends number>(name: string, paramCount: N): Opcode<N> {
  * Bytecode emitter.
  */
 export class CodeEmitter {
-  private readonly code: number[] = [];
+  readonly writer: DataWriter = new DataWriter();
 
   /** Emit an instruction and its operands. */
   emit(opcode: Opcode<0>): void;
   emit(opcode: Opcode<1>, param1: number): void;
   emit(opcode: Opcode<number>, ...params: number[]): void;
   emit(opcode: Opcode<number>, ...params: number[]): void {
-    this.code.push(opcode.value);
+    this.writer.write(opcode.value);
     for (const param of params) {
       if (param != (param | 0) || param < 0 || 255 < param) {
         throw new AssertionError(`code value out of range`, {
@@ -73,13 +75,13 @@ export class CodeEmitter {
           param,
         });
       }
-      this.code.push(param);
+      this.writer.write(param);
     }
   }
 
   /** Get the emitted code. */
   getCode(): Uint8Array {
-    return new Uint8Array(this.code);
+    return new Uint8Array(this.writer.getData());
   }
 }
 
@@ -91,7 +93,8 @@ export class CodeEmitter {
 export function disassembleProgram(code: Uint8Array): string[] {
   const fields: string[] = [];
   const result: string[] = [];
-  let pos = 0;
+  result.push(`.tailLength ${decodeExponential(code[0])}s`);
+  let pos = 1;
   while (pos < code.length) {
     const opvalue = code[pos];
     const opcode = byValue.get(opvalue);

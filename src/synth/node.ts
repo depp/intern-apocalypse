@@ -6,7 +6,7 @@ import { CodeEmitter, Opcode } from './opcode';
 import * as opcode from './opcode';
 import { SourceSpan } from '../lib/sourcepos';
 import { AssertionError } from '../debug/debug';
-import { dataMax } from '../lib/data.encode';
+import { dataMax, toDataClamp, encodeExponential } from '../lib/data.encode';
 
 /** Kinds of nodes. */
 export enum Kind {
@@ -49,7 +49,10 @@ export type Node = ValueNode | VariableNode;
 export interface Program {
   parameterCount: number;
   variables: Map<string, Node>;
+  /** Output node. */
   result: Node;
+  /** Audio tail length, in seconds. */
+  tailLength: number;
 }
 
 /** Emit the code to evaluate a processing graph. */
@@ -116,6 +119,7 @@ export function emitCode(program: Program): Uint8Array {
 
   // Emit the code.
   const ctx = new CodeEmitter();
+  ctx.writer.write(toDataClamp(encodeExponential(program.tailLength)));
   function emitNode(node: Node): void {
     switch (node.kind) {
       case Kind.Value:

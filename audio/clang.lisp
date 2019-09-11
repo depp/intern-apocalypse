@@ -13,4 +13,4 @@
     (phase-mod
      1200Hz
      0dB mod1))
-   (envelope (set 1.0) (lin 600ms 0.0)))
+   (envelope (set 1.0) (lin 600ms 0.0) (stop)))
