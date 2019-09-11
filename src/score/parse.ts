@@ -168,6 +168,7 @@ enum Kind {
   EmittedPattern,
   Notes,
   Transpose,
+  Tempo,
 }
 
 /** Base type for items in a parsed score. */
@@ -204,8 +205,14 @@ interface Transpose extends ItemBase {
   amount: number;
 }
 
+/** Tempo command. */
+interface Tempo extends ItemBase {
+  kind: Kind.Tempo;
+  tempo: number;
+}
+
 /** An item in a parsed score. */
-type Item = Pattern | Notes | Transpose;
+type Item = Pattern | Notes | Transpose | Tempo;
 
 // =============================================================================
 // Score parsing
@@ -278,6 +285,18 @@ deftype('transpose', function parseTranspose(loc, fields): Transpose {
   };
 });
 
+deftype('tempo', function parseTempo(loc, fields): Tempo {
+  if (fields.length != 1) {
+    throw new SourceError(loc, `tempo requires 1 field, got ${fields.length}`);
+  }
+  const tempo = parseIntExact(fields[0]);
+  return {
+    kind: Kind.Tempo,
+    loc,
+    tempo,
+  };
+});
+
 function parseScoreItems(source: string): Item[] {
   const items: Item[] = [];
   for (const line of splitLines(source)) {
@@ -312,6 +331,7 @@ interface ScoreWriter {
   patterns: Map<string, Pattern | EmittedPattern>;
   nextPatternIndex: number;
   transpose: number;
+  hasTempo: boolean;
 }
 
 function addPattern(w: ScoreWriter, item: Pattern): void {
@@ -394,6 +414,9 @@ function getPattern(w: ScoreWriter, name: Chunk): EmittedPattern {
 }
 
 function writeNotes(w: ScoreWriter, item: Notes): void {
+  if (!w.hasTempo) {
+    throw new SourceError(item.loc, 'tempo directive required');
+  }
   const { patternName, notes } = item;
   const pattern = getPattern(w, patternName);
   if (pattern.size != notes.length) {
@@ -413,6 +436,12 @@ function writeNotes(w: ScoreWriter, item: Notes): void {
   }
 }
 
+function writeTempo(w: ScoreWriter, item: Tempo): void {
+  const value = Math.round((item.tempo - 50) / 2);
+  w.output.write(Opcode.Tempo, value);
+  w.hasTempo = true;
+}
+
 function writeItem(w: ScoreWriter, item: Item): void {
   switch (item.kind) {
     case Kind.Pattern:
@@ -423,6 +452,9 @@ function writeItem(w: ScoreWriter, item: Item): void {
       break;
     case Kind.Transpose:
       w.transpose = item.amount;
+      break;
+    case Kind.Tempo:
+      writeTempo(w, item);
       break;
     default:
       const dummy: never = item;
@@ -469,6 +501,7 @@ export function parseScore(source: string): Score {
         patterns: new Map<string, Pattern | EmittedPattern>(),
         nextPatternIndex: 0,
         transpose: 0,
+        hasTempo: false,
       };
       for (const item of items) {
         writeItem(w, item);

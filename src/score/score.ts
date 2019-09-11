@@ -12,10 +12,9 @@ export function renderScore(
   const synthProgram = sounds[0];
   const patterns: Uint8Array[] = [];
   let pos = 0;
-  const tempo = 120;
   let time = 0;
   // Duration of 1/6th of a sixteenth note, in seconds.
-  let baseDuration = 60 / (6 * 4) / tempo;
+  let baseDuration = 0;
   // Duration of the score, in samples.
   let scoreDuration = 0;
   while (pos < program.length) {
@@ -31,6 +30,11 @@ export function renderScore(
         }
         patterns.push(program.slice(pos, pos + patternLength));
         pos += patternLength;
+        break;
+
+      case Opcode.Tempo:
+        const tempo = 50 + 2 * program[pos++];
+        baseDuration = 60 / (6 * 4) / tempo;
         break;
 
       default:
