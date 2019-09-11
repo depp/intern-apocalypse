@@ -710,7 +710,7 @@ interface SoundReference {
 }
 
 /** A parsed musical score. */
-interface Score {
+export interface Score {
   /**
    * List of sounds used by this score.
    */

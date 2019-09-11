@@ -23,3 +23,13 @@ export function getSoundNames(): string[] {
     'audio/swoosh.lisp',
   ];
 }
+
+/** Music track asset identifiers. */
+export const enum MusicTracks {
+  Sylvan,
+}
+
+/** Get list of music score filenames, in order. */
+export function getMusicNames(): string[] {
+  return ['music/sylvan.txt'];
+}

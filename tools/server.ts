@@ -191,6 +191,9 @@ async function sendDataFiles(ws: WebSocket, watcher: Watcher): Promise<void> {
     await watcher.subscribe('audio', ['suffix', 'lisp'], files =>
       onChange('audio', files),
     ),
+    await watcher.subscribe('music', ['suffix', 'txt'], files =>
+      onChange('music', files),
+    ),
   ];
   ws.on('close', () => {
     closing = true;

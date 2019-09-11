@@ -7,27 +7,41 @@ import { AssertionError } from '../debug/debug';
 import { bundledData } from '../lib/global';
 import { soundOffset } from '../lib/loader';
 import { decode } from '../lib/data.encode';
-
-export let sounds: (Uint8Array | null)[] = [];
-const buffers: AudioBuffer[] = [];
+import { Sounds, MusicTracks } from './sounds';
+import { renderScore } from '../score/score';
 
 let audioCtx: AudioContext | undefined | false;
 
+/** The sound effect file data. */
+export let sounds: (Uint8Array | null)[] = [];
+/** Rendered sound effects. */
+export const soundBuffers: AudioBuffer[] = [];
+
+/** The music track file data. */
+export let music: (Uint8Array | null)[] = [];
+/** Rendered music tracks. */
+export const musicBuffers: AudioBuffer[] = [];
+
 /** Get the buffer containing the given sound. */
-function getSoundBuffer(index: number): AudioBuffer | null {
+function getBuffer(
+  assetCode: (Uint8Array | null)[],
+  assetBuffer: AudioBuffer[],
+  index: number,
+  render: (code: Uint8Array) => Float32Array,
+): AudioBuffer | null {
   if (!audioCtx) {
     throw new AssertionError('audioCtx == null');
   }
-  let buffer = buffers[index];
+  let buffer = assetBuffer[index];
   if (!buffer) {
-    const code = sounds[index];
+    const code = assetCode[index];
     if (!code) {
       return null;
     }
-    const audio = runProgram(code);
+    const audio = render(code);
     buffer = audioCtx.createBuffer(1, audio.length, sampleRate);
     buffer.getChannelData(0).set(audio);
-    buffers[index] = buffer;
+    assetBuffer[index] = buffer;
   }
   return buffer;
 }
@@ -44,11 +58,26 @@ function playBuffer(buffer: AudioBuffer): void {
 }
 
 /** Play the sound with the given index. */
-export function playSound(index: number): void {
+export function playSound(index: Sounds): void {
   if (!audioCtx) {
     return;
   }
-  const buffer = getSoundBuffer(index);
+  const buffer = getBuffer(sounds, soundBuffers, index, runProgram);
+  if (!buffer) {
+    return;
+  }
+  playBuffer(buffer);
+}
+
+/** Play the music track with the given index. */
+export function playMusic(index: MusicTracks): void {
+  debugger;
+  if (!audioCtx) {
+    return;
+  }
+  const buffer = getBuffer(music, musicBuffers, index, code =>
+    renderScore(code, sounds),
+  );
   if (!buffer) {
     return;
   }
@@ -78,4 +107,5 @@ export function startAudio(): void {
 /** Load the sound data files. */
 export function loadSounds(): void {
   sounds = bundledData[soundOffset].split(' ').map(decode);
+  music = bundledData[soundOffset + 1].split(' ').map(decode);
 }

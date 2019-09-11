@@ -294,6 +294,9 @@ export class Builder {
     await watcher.subscribe('audio', ['suffix', 'lisp'], files =>
       this.didChange('audio', files),
     );
+    await watcher.subscribe('music', ['suffix', 'txt'], files =>
+      this.didChange('music', files),
+    );
     setTimeout(() => this.watchLoop(), 100);
   }
 

@@ -38,8 +38,10 @@ function emitActions(ctx: BuildContext) {
     inputs: modelSources,
   });
   const audioSources = ctx.listFilesWithExtensions('audio', ['.lisp']);
+  const musicSources = ctx.listFilesWithExtensions('music', ['.txt']);
   packAudio(ctx, {
-    inputs: audioSources,
+    sounds: audioSources,
+    music: musicSources,
   });
   if (ctx.config.config != Config.Debug) {
     createLoader(ctx, {});

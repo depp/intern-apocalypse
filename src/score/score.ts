@@ -6,7 +6,7 @@ import { roundUpPow2 } from '../lib/util';
 /** Render a musical score to an audio buffer. */
 export function renderScore(
   program: Uint8Array,
-  sounds: Uint8Array[],
+  sounds: (Uint8Array | null)[],
 ): Float32Array {
   const dataChunks: Uint8Array[] = [];
   let pos = 0;
