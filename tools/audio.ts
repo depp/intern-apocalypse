@@ -3,25 +3,31 @@
  */
 
 import * as fs from 'fs';
+import * as path from 'path';
 import * as child_process from 'child_process';
 
 import * as yargs from 'yargs';
 import { file, setGracefulCleanup } from 'tmp-promise';
 
 import * as cli from './cli';
+import { UsageError } from './cli';
 import { evaluateProgram, soundParameters } from '../src/synth/evaluate';
 import { disassembleProgram } from '../src/synth/opcode';
 import { sampleRate, runProgram } from '../src/synth/engine';
 import { encode } from '../src/lib/data.encode';
-import { SourceError, SourceText } from '../src/lib/sourcepos';
+import {
+  SourceError,
+  SourceText,
+  noSourceLocation,
+} from '../src/lib/sourcepos';
 import { waveData, floatTo16 } from './audio.wave';
 import { printError } from './source';
 import { parseSExpr } from '../src/lib/sexpr';
 import { emitCode } from '../src/synth/node';
 import { AssertionError } from '../src/debug/debug';
-import { pathWithExt } from './util';
-import { middleC, parseNote } from '../src/score/note';
-import { UsageError } from './cli';
+import { pathWithExt, projectRoot } from './util';
+import { middleC, parseNoteValue, parseScore } from '../src/score/parse';
+import { renderScore } from '../src/score/score';
 
 setGracefulCleanup();
 
@@ -35,6 +41,7 @@ interface Note {
 }
 
 interface AudioArgs {
+  score: boolean;
   write: boolean;
   input: string[];
   play: boolean;
@@ -48,6 +55,11 @@ interface AudioArgs {
 function parseArgs(): AudioArgs {
   const argv = yargs
     .options({
+      score: {
+        type: 'boolean',
+        default: false,
+        desc: 'Play musical score',
+      },
       write: {
         alias: 'w',
         type: 'boolean',
@@ -115,9 +127,14 @@ function parseArgs(): AudioArgs {
     const offsetIncrement = (sampleRate * noteLength) | 0;
     for (const text of argv.notes.split(',')) {
       if (text != '') {
-        const value = parseNote(text);
-        if (!value) {
-          throw new UsageError(`invalid note: ${JSON.stringify(text)}`);
+        let value: number;
+        try {
+          value = parseNoteValue({ text, sourcePos: -1 }).value;
+        } catch (e) {
+          if (e instanceof SourceError) {
+            throw new UsageError(`invalid note: ${JSON.stringify(text)}`);
+          }
+          throw e;
         }
         notes.push({ value, offset, gateTime });
         offset += offsetIncrement;
@@ -128,6 +145,7 @@ function parseArgs(): AudioArgs {
     }
   }
   const args: AudioArgs = {
+    score: argv.score,
     write: argv.write,
     input: argv._,
     play: argv.play,
@@ -145,10 +163,55 @@ function parseArgs(): AudioArgs {
       throw new UsageError('cannot use multiple files with --loop');
     }
   }
+  if (args.score) {
+    for (const input of args.input) {
+      if (!input.endsWith('.txt')) {
+        throw new UsageError(
+          `unknown extension for score: ${JSON.stringify(input)}`,
+        );
+      }
+    }
+  } else {
+    for (const input of args.input) {
+      if (!input.endsWith('.lisp')) {
+        throw new UsageError(
+          `unknown extension for audio: ${JSON.stringify(input)}`,
+        );
+      }
+    }
+  }
   return args;
 }
 
 let verbose!: (msg: string) => void;
+
+/** Show the raw data for a compiled program. */
+function showCode(code: Uint8Array): void {
+  let out = '';
+
+  out += '  Code:\n';
+  const step = 16;
+  for (let i = 0; i < code.length; i += step) {
+    const row = code.subarray(i, Math.min(i + step, code.length));
+    out += '   ';
+    for (const x of row) {
+      out += ' ';
+      out += x.toString().padStart(2, ' ');
+    }
+    out += '\n';
+  }
+
+  out += '  Encoded:\n';
+  out += '    ';
+  out += encode(code);
+  out += '\n';
+
+  out += '  Size: ';
+  out += code.length;
+  out += '\n';
+
+  process.stdout.write(out);
+}
 
 /** Compile an audio file. */
 function compile(
@@ -182,22 +245,6 @@ function compile(
     }
   }
 
-  process.stdout.write('\n');
-  process.stdout.write('  Code:\n');
-  for (let i = 0; i < code.length; i += 16) {
-    process.stdout.write(
-      '    ' +
-        Array.from(code.slice(i, i + 16))
-          .map(x => x.toString().padStart(2, ' '))
-          .join(' ') +
-        '\n',
-    );
-  }
-
-  process.stdout.write('\n');
-  process.stdout.write('  Encoded:\n');
-  process.stdout.write('    ' + encode(code) + '\n');
-
   return code;
 }
 
@@ -216,7 +263,7 @@ function autoGain(data: Float32Array): void {
 }
 
 /** Generate WAVE file data from audio program. */
-function makeWave(code: Uint8Array, notes: readonly Note[]): Buffer {
+function renderSound(code: Uint8Array, notes: readonly Note[]): Buffer {
   const buffers: Float32Array[] = [];
   let outLen = 0;
   for (const note of notes) {
@@ -243,20 +290,6 @@ function makeWave(code: Uint8Array, notes: readonly Note[]): Buffer {
     channelCount: 1,
     audio: floatTo16(audio),
   });
-}
-
-interface Reader {
-  path: string;
-  read(): Promise<string>;
-}
-
-function fileReader(input: string): Reader {
-  return {
-    path: input,
-    read() {
-      return fs.promises.readFile(input, 'utf8');
-    },
-  };
 }
 
 interface Writer {
@@ -328,21 +361,105 @@ function playAudio(path: string): Promise<void> {
   });
 }
 
+function exists(filename: string): Promise<boolean> {
+  return fs.promises.stat(filename).then(
+    (stats: fs.Stats) => stats.isFile(),
+    (err: any) => {
+      if (err.code == 'ENOENT') {
+        return false;
+      }
+      throw err;
+    },
+  );
+}
+
+async function loadSound(
+  args: AudioArgs,
+  input: string,
+): Promise<Uint8Array | null> {
+  const source = await fs.promises.readFile(input, 'utf8');
+  return compile(args, input, source);
+}
+
 async function runMain(
   args: AudioArgs,
-  reader: Reader,
+  input: string,
   writer: Writer | null,
 ): Promise<boolean> {
-  const source = await reader.read();
-  const code = compile(args, reader.path, source);
-  if (code == null) {
-    return false;
-  }
-  if (writer != null) {
-    const data = makeWave(code, args.notes);
-    await writer.write(data);
-    if (args.play) {
-      await playAudio(writer.path);
+  const source = await fs.promises.readFile(input, 'utf8');
+  if (!args.score) {
+    const code = compile(args, input, source);
+    if (code == null) {
+      return false;
+    }
+    showCode(code);
+    if (writer != null) {
+      const data = renderSound(code, args.notes);
+      await writer.write(data);
+      if (args.play) {
+        await playAudio(writer.path);
+      }
+    }
+  } else {
+    const soundPaths: string[] = [];
+    let code: Uint8Array;
+    try {
+      const score = parseScore(source);
+      const { sounds } = score;
+      const soundMap = new Map<string, number>();
+      for (let i = 0; i < sounds.length; i++) {
+        const { name, locs } = sounds[i];
+        const loc = locs[0] || noSourceLocation;
+        if (!/^[a-zA-Z0-9][-_.a-zA-Z0-9]*$/.test(name)) {
+          throw new SourceError(
+            loc,
+            `invalid sound name: ${JSON.stringify(name)}`,
+          );
+        }
+        const filename = path.join(projectRoot, 'audio', name + '.lisp');
+        if (!(await exists(filename))) {
+          throw new SourceError(
+            loc,
+            `sound does not exist: ${JSON.stringify(name)}`,
+          );
+        }
+        soundMap.set(name, i);
+        soundPaths.push(filename);
+      }
+      code = score.emit(soundMap);
+    } catch (e) {
+      if (e instanceof SourceError) {
+        const text = new SourceText(input, source);
+        printError(text, e);
+        return false;
+      }
+      throw e;
+    }
+    showCode(code);
+    if (writer != null) {
+      const maybeSounds = await Promise.all(
+        soundPaths.map(input => loadSound(args, input)),
+      );
+      const sounds: Uint8Array[] = [];
+      // This code is longer than .some(x => x != null) but doesn't have casts.
+      for (let i = 0; i < maybeSounds.length; i++) {
+        const sound = maybeSounds[i];
+        if (sound == null) {
+          return false;
+        }
+        sounds.push(sound);
+      }
+      const audio = renderScore(code, sounds);
+      autoGain(audio);
+      const data = waveData({
+        sampleRate,
+        channelCount: 1,
+        audio: floatTo16(audio),
+      });
+      await writer.write(data);
+      if (args.play) {
+        await playAudio(writer.path);
+      }
     }
   }
   return true;
@@ -354,7 +471,7 @@ function delay(timeMS: number): Promise<void> {
 
 async function loopMain(
   args: AudioArgs,
-  reader: Reader,
+  input: string,
   writer: Writer | null,
 ): Promise<void> {
   let lastMtime = 0;
@@ -362,7 +479,7 @@ async function loopMain(
   while (true) {
     let st: fs.Stats;
     try {
-      st = await fs.promises.stat(reader.path);
+      st = await fs.promises.stat(input);
     } catch (e) {
       if (e.code == 'ENOENT') {
         await delay(500);
@@ -375,7 +492,7 @@ async function loopMain(
       continue;
     }
     lastMtime = st.mtimeMs;
-    lastSuccess = await runMain(args, reader, writer);
+    lastSuccess = await runMain(args, input, writer);
   }
 }
 
@@ -407,24 +524,22 @@ async function main(): Promise<void> {
         throw new AssertionError('bad args: input.length != 1');
       }
       const [input] = args.input;
-      const reader = fileReader(input);
       let writer: Writer;
       if (args.write) {
         writer = makeFileWriter(outputName(input));
       } else {
         writer = await makeTempWriter();
       }
-      await loopMain(args, reader, writer);
+      await loopMain(args, input, writer);
     } else {
       let writer: Writer | null = null;
       if (args.play && !args.write) {
         writer = await makeTempWriter();
       }
       for (const input of args.input) {
-        const reader = fileReader(input);
         let iwriter = args.write ? makeFileWriter(outputName(input)) : writer;
         process.stdout.write(`\nSound: ${input}\n`);
-        const success = await runMain(args, reader, iwriter);
+        const success = await runMain(args, input, iwriter);
         if (!success) {
           status = 1;
         }

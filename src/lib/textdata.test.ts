@@ -43,3 +43,11 @@ test('fields', () => {
     { text: 'e', sourcePos: 1011 },
   ]);
 });
+
+test('fierdshash', () => {
+  const output = splitFields({ text: ' a#b bc#', sourcePos: 1000 });
+  checkOutput(output, [
+    { text: 'a#b', sourcePos: 1001 },
+    { text: 'bc#', sourcePos: 1005 },
+  ]);
+});

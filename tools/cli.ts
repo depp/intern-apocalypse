@@ -36,15 +36,17 @@ export function exception(e: any): void {
   error(e.message);
   if (e instanceof AssertionError) {
     const obj = e.object;
-    let out = '';
-    for (const key in Object.keys(obj)) {
-      out += '  ';
-      out += key;
-      out += ': ';
-      out += JSON.stringify(obj[key]);
-      out += '\n';
+    if (typeof obj == 'object' && obj != null) {
+      let out = '';
+      for (const key in Object.keys(obj)) {
+        out += '  ';
+        out += key;
+        out += ': ';
+        out += JSON.stringify(obj[key]);
+        out += '\n';
+      }
+      process.stderr.write(out);
     }
-    process.stderr.write(out);
   }
   if ('stack' in e) {
     console.log(e.stack);

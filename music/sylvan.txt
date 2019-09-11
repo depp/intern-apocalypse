@@ -1,0 +1,5 @@
+pattern pat1 e1 e1 e3 e1 e2 e1 e3 e2
+notes pat1 e2 d3 e3
+notes pat1 d2 c3 d3
+notes pat1 f#2 e3 f#3
+notes pat1 b2 d#3 f#3
