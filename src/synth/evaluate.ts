@@ -838,7 +838,7 @@ defenv('exp', (env, expr, args) => {
   const decoded = data.decodeExponential(timeParam);
   const { currentTime } = env;
   env.currentTime = currentTime + decoded * 3; // 24 dB
-  env.endTime = currentTime + decoded * 7; // 60 dB
+  env.endTime = currentTime + decoded * 4; // 32 dB
   return createNode(expr, node.env_exp, [timeParam, valueParam], []);
 });
 
