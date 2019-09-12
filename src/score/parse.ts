@@ -303,7 +303,7 @@ deftype('track', function parseTrack(loc, fields): Track {
     loc,
     name,
     instrument,
-    level: 20 * 10 ** parseFloatExact(level),
+    level: 10 ** (parseFloatExact(level) / 20),
   };
 });
 
