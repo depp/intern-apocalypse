@@ -48,6 +48,7 @@ interface AudioArgs {
   play: boolean;
   notes: Note[];
   disassemble: boolean;
+  showTracks: boolean;
   verbose: boolean;
   loop: boolean;
 }
@@ -92,6 +93,11 @@ function parseArgs(): AudioArgs {
         type: 'boolean',
         default: false,
         desc: 'Show program disassembly',
+      },
+      'show-tracks': {
+        type: 'boolean',
+        default: false,
+        desc: 'Show info for all tracks in the score',
       },
       loop: {
         alias: 'l',
@@ -152,6 +158,7 @@ function parseArgs(): AudioArgs {
     play: argv.play,
     notes,
     disassemble: argv.disassemble,
+    showTracks: argv['show-tracks'],
     verbose: argv.verbose,
     loop: argv.loop,
   };
@@ -249,23 +256,37 @@ function compile(
   return code;
 }
 
-/** Reduce the gain so a buffer doesn't clip. */
-function autoGain(data: Float32Array): void {
-  let maxValue = 0;
+interface Levels {
+  peak: number;
+  rms: number;
+}
+
+function getLevels(data: Float32Array): Levels {
+  let peak = 0;
   let sumSquare = 0;
   for (let i = 0; i < data.length; i++) {
-    maxValue = Math.max(maxValue, Math.abs(data[i]));
+    peak = Math.max(peak, Math.abs(data[i]));
     sumSquare += data[i] ** 2;
   }
-  const rmsLevel = Math.sqrt(sumSquare / data.length);
+  const rms = Math.sqrt(sumSquare / data.length);
+  return { peak, rms };
+}
+
+function showLevels(levels: Levels, prefix: string): void {
   function showLevel(name: string, level: number): void {
-    cli.log(`${name}: ${(20 * Math.log10(level)).toFixed(1)} dB`);
+    cli.log(`${prefix}${name}: ${(20 * Math.log10(level)).toFixed(1)} dB`);
   }
-  showLevel('Peak level', maxValue);
-  showLevel('RMS level', rmsLevel);
-  cli.log('Max l');
-  if (maxValue > 1) {
-    const gain = 1 / maxValue;
+  showLevel('Peak level', levels.peak);
+  showLevel('RMS level', levels.rms);
+}
+
+/** Reduce the gain so a buffer doesn't clip. */
+function autoGain(data: Float32Array): void {
+  const levels = getLevels(data);
+  showLevels(levels, '  ');
+  const { peak } = levels;
+  if (peak > 1) {
+    const gain = 1 / peak;
     for (let i = 0; i < data.length; i++) {
       data[i] *= gain;
     }
@@ -413,6 +434,11 @@ async function runMain(
   } else {
     const soundPaths: string[] = [];
     let code: Uint8Array;
+    interface Track {
+      name: string;
+      code: Uint8Array;
+    }
+    let tracks: Track[] = [];
     try {
       const score = parseScore(source);
       const { sounds } = score;
@@ -437,6 +463,14 @@ async function runMain(
         soundPaths.push(filename);
       }
       code = score.emit(soundMap);
+      if (args.showTracks) {
+        cli.log('Track Sizes:');
+        for (const name of score.tracks) {
+          const code = score.emit(soundMap, [name]);
+          tracks.push({ name, code });
+          cli.log(`  ${JSON.stringify(name)}: ${code.length} bytes`);
+        }
+      }
     } catch (e) {
       if (e instanceof SourceError) {
         const text = new SourceText(input, source);
@@ -446,7 +480,7 @@ async function runMain(
       throw e;
     }
     showCode(code);
-    if (writer != null) {
+    if (writer != null || args.showTracks) {
       const maybeSounds = await Promise.all(
         soundPaths.map(input => loadSound(args, input)),
       );
@@ -459,16 +493,27 @@ async function runMain(
         }
         sounds.push(sound);
       }
-      const audio = renderScore(code, sounds);
-      autoGain(audio);
-      const data = waveData({
-        sampleRate,
-        channelCount: 1,
-        audio: floatTo16(audio),
-      });
-      await writer.write(data);
-      if (args.play) {
-        await playAudio(writer.path);
+      if (args.showTracks) {
+        for (const { name, code } of tracks) {
+          cli.log('Track Audio:');
+          cli.log(`  ${JSON.stringify(name)}:`);
+          const audio = renderScore(code, sounds);
+          const levels = getLevels(audio);
+          showLevels(levels, '    ');
+        }
+      }
+      if (writer != null) {
+        const audio = renderScore(code, sounds);
+        autoGain(audio);
+        const data = waveData({
+          sampleRate,
+          channelCount: 1,
+          audio: floatTo16(audio),
+        });
+        await writer.write(data);
+        if (args.play) {
+          await playAudio(writer.path);
+        }
       }
     }
   }

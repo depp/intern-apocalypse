@@ -800,20 +800,28 @@ export interface Score {
    */
   sounds: readonly SoundReference[];
 
+  /** List of track names. */
+  tracks: readonly string[];
+
   /**
    * Emit the score as program code.
    * @param sounds Map from sound names to sound asset indexes.
+   * @param tracks If specified, only render these tracks.
    */
-  emit(sounds: ReadonlyMap<string, number>): Uint8Array;
+  emit(
+    sounds: ReadonlyMap<string, number>,
+    tracks?: readonly string[] | null,
+  ): Uint8Array;
 }
 
 /** Parse a musical score. */
 export function parseScore(source: string): Score {
   const items = parseScoreItems(source);
   const sounds: SoundReference[] = [];
+  const tracks: string[] = [];
   for (const item of items) {
     if (item.kind == Kind.Track) {
-      const { instrument } = item;
+      const { name, instrument } = item;
       let ref: SoundReference | undefined;
       for (const sound of sounds) {
         if (sound.name == instrument.text) {
@@ -826,12 +834,19 @@ export function parseScore(source: string): Score {
         sounds.push(ref);
       }
       ref.locs.push(instrument);
+      if (!tracks.includes(name.text)) {
+        tracks.push(name.text);
+      }
     }
   }
   const zeroChunk = new Uint8Array();
   return {
     sounds,
-    emit(sounds: ReadonlyMap<string, number>): Uint8Array {
+    tracks,
+    emit(
+      sounds: ReadonlyMap<string, number>,
+      tracks: string[] | null = null,
+    ): Uint8Array {
       const data = new DataWriter();
       const commands = new DataWriter();
       const w: ScoreWriter = {
@@ -852,6 +867,14 @@ export function parseScore(source: string): Score {
         reverse: false,
       };
       for (const item of items) {
+        if (
+          item.kind != Kind.Track &&
+          tracks != null &&
+          w.trackName != null &&
+          !tracks.includes(w.trackName)
+        ) {
+          continue;
+        }
         writeItem(w, item);
       }
       const b1 = data.getData();
