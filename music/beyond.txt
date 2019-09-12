@@ -1,0 +1,24 @@
+tempo 132
+
+values A c2 c3 e3 g3
+values B e2 b2 e3 g#3
+values C f2 c3 f3 ab3
+values D d2 d3 f#3 a3
+values E b2 d#3 f#3 b3
+values F g2 d3 g3 b3
+values G eb2 eb3 g3 bb3
+values H a2 e3 a3 c4
+
+# ==============================================================================
+
+track bass bass -9
+
+pattern P1 et1 qtr et1 et1 et1 et1 qtr et1 qtr
+emit P1 A B C D E F G H
+
+# ==============================================================================
+
+track synth synth -18
+
+pattern P1 w2 / w3 / w4
+emit P1 A B C D E F G H
