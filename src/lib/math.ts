@@ -1,3 +1,5 @@
+import { isDebug } from '../debug/debug';
+
 /**
  * Math types and functions.
  */
@@ -26,6 +28,9 @@ export interface Vector {
 
 /** Create a vector. */
 export function vector(x: number, y: number): Vector {
+  if (isDebug && (isNaN(x) || isNaN(y))) {
+    debugger;
+  }
   return { x, y } as Vector;
 }
 
