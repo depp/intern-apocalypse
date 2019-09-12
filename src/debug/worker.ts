@@ -16,7 +16,7 @@ function handleMessage(evt: MessageEvent): void {
   const msg = evt.data as WorkerResponse;
   switch (msg.kind) {
     case 'audio-result':
-      setAudioDebug(msg.index, msg.data);
+      setAudioDebug(msg.index, msg.data, msg.length);
       break;
     default:
       console.error('unknown message kind', msg);

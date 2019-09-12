@@ -4,7 +4,7 @@
 
 import { sampleRate } from '../lib/audio';
 import { AssertionError, isDebug } from '../debug/debug';
-import { Sounds, MusicTracks } from './sounds';
+import { Sounds, MusicTracks, firstMusicTrack } from './sounds';
 import { canvas } from '../lib/global';
 
 let audioCtx: AudioContext | undefined | false;
@@ -13,11 +13,17 @@ let audioCtx: AudioContext | undefined | false;
 let audioData: (Float32Array | null)[] | undefined;
 /** The audio buffer objects. */
 let audioBuffers: (AudioBuffer | null)[] | undefined;
+/** Length of each music track, in seconds, not counting tail. */
+let musicLengths: number[] | undefined;
 
 /**
  * Load an audio buffer into the given slot.
  */
-export function setAudioDebug(index: number, data: Float32Array | null): void {
+export function setAudioDebug(
+  index: number,
+  data: Float32Array | null,
+  length: number,
+): void {
   if (!audioData) {
     audioData = [];
   }
@@ -26,19 +32,29 @@ export function setAudioDebug(index: number, data: Float32Array | null): void {
     audioBuffers = [];
   }
   audioBuffers[index] = null;
+  if (index >= firstMusicTrack) {
+    if (!musicLengths) {
+      musicLengths = [];
+    }
+    musicLengths[index - firstMusicTrack] = length;
+  }
   if (index == musicTrack) {
     if (musicNode) {
       musicNode.stop();
     }
-    musicNode = playSound(index);
+    startMusic(index);
   }
 }
 
 /**
  * Load audio buffers into all slots.
  */
-export function setAudioRelease(data: (Float32Array | null)[]): void {
+export function setAudioRelease([data, lengths]: [
+  (Float32Array | null)[],
+  number[],
+]): void {
   audioData = data;
+  musicLengths = lengths;
 }
 
 /** Play a sound with the given buffer. */
@@ -80,13 +96,38 @@ export function playSound(
   return playBuffer(buffer);
 }
 
-let musicTrack: MusicTracks;
+let musicTrack: MusicTracks | undefined;
 let musicNode: AudioBufferSourceNode | undefined;
+let loopTimeout: number | undefined;
 
+function loopMusic(): void {
+  if (musicTrack == null) {
+    throw new AssertionError('musicTrack == null');
+  }
+  if (!musicNode) {
+    throw new AssertionError('!musicNode');
+  }
+  startMusic(musicTrack);
+}
+
+function startMusic(index: MusicTracks): void {
+  musicTrack = index;
+  musicNode = playSound(index);
+  if (!musicNode) {
+    return;
+  }
+  clearTimeout(loopTimeout);
+  if (!musicLengths) {
+    throw new AssertionError('!musicLengths');
+  }
+  const length = musicLengths[index - firstMusicTrack];
+  loopTimeout = setTimeout(loopMusic, 1000 * length);
+}
+
+/** Play a music track, on repeat. */
 export function playMusic(index: MusicTracks): void {
   if (musicTrack != index) {
-    musicTrack = index;
-    musicNode = playSound(index);
+    startMusic(index);
   }
 }
 

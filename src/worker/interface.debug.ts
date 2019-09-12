@@ -23,6 +23,8 @@ export interface AudioResultMessage {
   kind: 'audio-result';
   index: number;
   data: Float32Array | null;
+  /* If music - track length, in seconds, not counting audio tail. */
+  length: number;
 }
 
 /** A response from the worker. */

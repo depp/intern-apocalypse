@@ -1,15 +1,18 @@
 import { Opcode, signedOffset } from './opcode';
-import { AssertionError, isDebug } from '../debug/debug';
+import { AssertionError } from '../debug/debug';
 import { runProgram } from '../synth/engine';
 import { roundUpPow2 } from '../lib/util';
 import { sampleRate } from '../lib/audio';
 import { decodeExponential } from '../synth/data';
 
-/** Render a musical score to an audio buffer. */
+/**
+ * Render a musical score to an audio buffer.
+ * @returns The audio data, and the length of the music track without the tail.
+ */
 export function renderScore(
   program: Uint8Array,
   sounds: (Uint8Array | null)[],
-): Float32Array {
+): [Float32Array, number] {
   const dataChunks: Uint8Array[] = [new Uint8Array()];
   let pos = 0;
   let size: number;
@@ -144,6 +147,7 @@ export function renderScore(
           const duration = baseDuration * ([6, 9, 4][modifier] << base);
           const start = (time * sampleRate) | 0;
           time += duration;
+          scoreDuration = Math.max(scoreDuration, time);
           if (!synthProgram || !index) {
             continue;
           }
@@ -158,7 +162,6 @@ export function renderScore(
           );
           const end = start + noteAudio.length;
           resultLength = Math.max(resultLength, end);
-          scoreDuration = Math.max(scoreDuration, end);
           if (end > result.length) {
             const oldbuf = result;
             result = new Float32Array(roundUpPow2(end));
@@ -171,5 +174,5 @@ export function renderScore(
         break;
     }
   }
-  return result.subarray(0, resultLength);
+  return [result.subarray(0, resultLength), scoreDuration];
 }

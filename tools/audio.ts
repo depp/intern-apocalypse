@@ -497,13 +497,15 @@ async function runMain(
         for (const { name, code } of tracks) {
           cli.log('Track Audio:');
           cli.log(`  ${JSON.stringify(name)}:`);
-          const audio = renderScore(code, sounds);
+          const [audio, length] = renderScore(code, sounds);
+          cli.log(`    Length: ${length.toFixed(1)}s`);
           const levels = getLevels(audio);
           showLevels(levels, '    ');
         }
       }
       if (writer != null) {
-        const audio = renderScore(code, sounds);
+        const [audio, length] = renderScore(code, sounds);
+        cli.log(`  Length: ${length.toFixed(1)}s`);
         autoGain(audio);
         const data = waveData({
           sampleRate,

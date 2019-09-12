@@ -31,18 +31,19 @@ function renderChangedAudio(): void {
     soundsChanged.delete(index);
     const code = audio[index];
     let data: Float32Array | null = null;
+    let length = 0;
     if (code) {
       try {
         if (index < firstMusicTrack) {
           data = runProgram(code);
         } else {
-          data = renderScore(code, audio);
+          [data, length] = renderScore(code, audio);
         }
       } catch (e) {
         console.error(`Could not render audio asset ${index}:`, e);
       }
     }
-    sendResponse({ kind: 'audio-result', index, data });
+    sendResponse({ kind: 'audio-result', index, data, length });
     if (code && soundsChanged.size != 0) {
       setTimeout(renderChangedAudio);
     }
