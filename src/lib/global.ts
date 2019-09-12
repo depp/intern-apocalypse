@@ -39,6 +39,8 @@ export const enum State {
   Loading,
   MainMenu,
   Game,
+  Dead,
+  DeadMenu,
 }
 
 /** The current game state. */

@@ -23,6 +23,7 @@ import { vector } from './lib/math';
 import { resetGame, updateGame } from './game/game';
 import { updateTime } from './game/time';
 import { MusicTracks } from './audio/sounds';
+import { setGameTimeout } from './game/entity';
 
 /**
  * Initialize game.
@@ -74,6 +75,16 @@ function pushNewGameMenu(): void {
   );
 }
 
+function pushDeadMenu(): void {
+  pushMenu(
+    {},
+    { flexspace: 1 },
+    { text: 'You Have Died.', size: 2 },
+    { text: 'This will be reflected on your performance review.' },
+    { flexspace: 1 },
+  );
+}
+
 /** Start a new game. */
 export function newGame(difficulty: Difficulty): void {
   setState(State.Game);
@@ -108,10 +119,17 @@ export function main(curTimeMS: DOMHighResTimeStamp): void {
         endMenu();
         startHUD();
         break;
+      case State.Dead:
+        setGameTimeout(3, () => setState(State.DeadMenu));
+        break;
+      case State.DeadMenu:
+        startMenu();
+        pushDeadMenu();
+        break;
     }
     lastState = currentState;
   }
-  if (currentState == State.Game) {
+  if (currentState == State.Game || currentState == State.Dead) {
     updateGame();
   }
   updateCamera();

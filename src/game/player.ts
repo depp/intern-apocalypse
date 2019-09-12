@@ -35,6 +35,7 @@ import { createWalker, Walker } from './walker';
 import { isDebug, DebugColor } from '../debug/debug';
 import { debugMarks } from '../debug/mark';
 import { spawnSlash, spawnDeath } from './particles';
+import { setState, State } from '../lib/global';
 
 export let playerHealth = 10;
 export let playerHealthMax = 10;
@@ -140,8 +141,12 @@ export function spawnPlayer(): void {
       rotateMatrixFromDirection(swordTransform, Axis.Z, 1, 1 - blend);
     },
     damage() {
+      if (this.isDead) {
+        return;
+      }
       playerHealth--;
       if (playerHealth < 0) {
+        setState(State.Dead);
         playerHealth = 0;
         this.isDead = model.isDead = sword.isDead = true;
         spawnDeath(model.transform, model.model);

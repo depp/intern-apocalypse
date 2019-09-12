@@ -1,5 +1,6 @@
 import { ModelAsset } from '../model/models';
 import { Matrix } from '../lib/matrix';
+import { frameDT } from './time';
 
 /** Entity teams. */
 export const enum Team {
@@ -71,4 +72,17 @@ export function resetEntities(): void {
   entities = [];
   modelInstances = [];
   particlesInstances = [];
+}
+
+/** Call a function after an in-game delay. */
+export function setGameTimeout(delay: number, callback: () => void): void {
+  entities.push({
+    update() {
+      delay -= frameDT;
+      if (delay < 0) {
+        this.isDead = true;
+        callback();
+      }
+    },
+  });
 }
