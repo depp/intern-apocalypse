@@ -48,6 +48,8 @@ export interface Cell {
   readonly centroid: Vector;
   /** The height of the cell. */
   height: number;
+  /** The color assigned to the cell. */
+  color: number;
   /** Iterate over all cell edges, exactly once each. */
   edges(): IterableIterator<Edge>;
 }

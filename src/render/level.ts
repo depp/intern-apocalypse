@@ -29,7 +29,7 @@ function createGeometry(): void {
   genmodel.start3D();
   const wallHeight = 0.7;
   for (const cell of level.cells) {
-    genmodel.setColor(cellColor(cell.walkable));
+    genmodel.setColor(cell.color || cellColor(cell.walkable));
     const z = ((!cell.walkable as unknown) as number) * wallHeight;
     const edges: Readonly<Edge>[] = Array.from(cell.edges());
     const n = edges.length;
