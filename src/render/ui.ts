@@ -273,7 +273,6 @@ function updateHUD(): void {
     genmodel.addQuad(0 + d, 64, 450 + d, 0, 300 - d, 32);
   }
   genmodel.upload(gmodel);
-  console.log(gmodel);
 }
 
 /**

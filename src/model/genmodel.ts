@@ -1,6 +1,13 @@
 import { quad, packColor } from '../render/util';
 import { AssertionError, isDebug } from '../debug/debug';
 import { gl } from '../lib/global';
+import {
+  newVector3,
+  subVector3,
+  crossVector3,
+  Vector3,
+  getTriangle,
+} from './util';
 
 /** Maximum number of vertexes. */
 const maxVertexCount = 2048;
@@ -79,19 +86,20 @@ export function start3D(): void {
 export function upload(m: GenModel, usage: number = 0): void {
   usage = usage || gl.STATIC_DRAW;
   gl.bindBuffer(gl.ARRAY_BUFFER, m.pos || (m.pos = gl.createBuffer()));
-  gl.bufferData(gl.ARRAY_BUFFER, posData /* .subarray(vertex * mode)*/, usage);
+  gl.bufferData(gl.ARRAY_BUFFER, posData.subarray(0, vertex * mode), usage);
   gl.bindBuffer(gl.ARRAY_BUFFER, m.color || (m.color = gl.createBuffer()));
-  gl.bufferData(gl.ARRAY_BUFFER, colorData /*.subarray(vertex)*/, usage);
+  gl.bufferData(gl.ARRAY_BUFFER, colorData.subarray(0, vertex), usage);
   gl.bindBuffer(gl.ARRAY_BUFFER, m.tex || (m.tex = gl.createBuffer()));
-  gl.bufferData(gl.ARRAY_BUFFER, texData /*.subarray(vertex * 2)*/, usage);
+  gl.bufferData(gl.ARRAY_BUFFER, texData.subarray(0, vertex * 2), usage);
   if (mode == Mode.Mode3D) {
+    createNormals();
     gl.bindBuffer(gl.ARRAY_BUFFER, m.normal || (m.normal = gl.createBuffer()));
-    gl.bufferData(gl.ARRAY_BUFFER, normalData.subarray(vertex * 3), usage);
+    gl.bufferData(gl.ARRAY_BUFFER, normalData.subarray(0, vertex * 3), usage);
     gl.bindBuffer(
       gl.ELEMENT_ARRAY_BUFFER,
       m.index || (m.index = gl.createBuffer()),
     );
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexData.subarray(index), usage);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexData.subarray(0, index), usage);
   }
   m.vcount = vertex;
   m.icount = index;
@@ -99,6 +107,16 @@ export function upload(m: GenModel, usage: number = 0): void {
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
   }
+}
+
+/** Destroy a model and free its buffers. */
+export function destroy(m: GenModel): void {
+  gl.deleteBuffer(m.pos);
+  gl.deleteBuffer(m.color);
+  gl.deleteBuffer(m.tex);
+  gl.deleteBuffer(m.normal);
+  gl.deleteBuffer(m.index);
+  Object.assign(m, newModel());
 }
 
 export function enableAttr(...attr: number[]): void {
@@ -136,6 +154,36 @@ export function bind2D(
 
   gl.bindBuffer(gl.ARRAY_BUFFER, m.tex);
   gl.vertexAttribPointer(texAttr, 2, gl.FLOAT, false, 0, 0);
+}
+
+export function bind3D(
+  m: GenModel,
+  posAttr: number,
+  colorAttr: number,
+  texAttr: number,
+  normalAttr: number,
+): void {
+  if (posAttr >= 0) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.pos);
+    gl.vertexAttribPointer(posAttr, 3, gl.FLOAT, false, 0, 0);
+  }
+
+  if (colorAttr >= 0) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.color);
+    gl.vertexAttribPointer(colorAttr, 4, gl.UNSIGNED_BYTE, true, 0, 0);
+  }
+
+  if (texAttr >= 0) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.tex);
+    gl.vertexAttribPointer(texAttr, 2, gl.FLOAT, false, 0, 0);
+  }
+
+  if (normalAttr >= 0) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.normal);
+    gl.vertexAttribPointer(normalAttr, 3, gl.FLOAT, false, 0, 0);
+  }
+
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, m.index);
 }
 
 /**
@@ -182,4 +230,101 @@ export function addQuad(
 /** Set the current vertex color to a random color. */
 export function setRandomColor(): void {
   color = packColor(Math.random(), Math.random(), Math.random());
+}
+
+/** Set the vertex color for future vertexes. */
+export function setColor(newColor: number) {
+  color = newColor;
+}
+
+let faceVertex!: number;
+
+/** Start a new face with any number of sides. */
+export function startFace(): void {
+  if (mode != Mode.Mode3D) {
+    throw new AssertionError('wrong mode');
+  }
+  faceVertex = vertex;
+}
+
+/** Vertex winding order for faces. */
+export const enum Winding {
+  CCW,
+  CW,
+}
+
+/** End a face, and emit the triangles. */
+export function endFace(winding: Winding): void {
+  if (faceVertex < 0) {
+    throw new AssertionError('no face to end');
+  }
+  const size = vertex - faceVertex;
+  if (size < 3) {
+    throw new AssertionError('degenerate face');
+  }
+  for (let i = 1; i < size - 1; i++) {
+    indexData.set(
+      [
+        faceVertex,
+        faceVertex + i + winding,
+        faceVertex + i + ((!winding as unknown) as number),
+      ],
+      index,
+    );
+    index += 3;
+  }
+  if (isDebug) {
+    faceVertex = -1;
+  }
+}
+
+/** Add a single vertex to the 3D model. */
+export function addVertex(position: ArrayLike<number>): void {
+  posData.set(position, vertex * 3);
+  colorData[vertex] = color;
+  vertex++;
+}
+
+/** Get triangle data from an indexed data array. */
+// export function getTriangle(
+//   out: Vector3[],
+//   offset: number,
+// ): void {
+//   for (let i = 0; i < 3; i++) {
+//     const index = indexData[offset + i];
+//     out[i].set(posData.subarray(index * 3, index * 3 + 3))
+//   }
+// }
+
+/**
+ * Create normals for the model.
+ */
+function createNormals(): void {
+  normalData.fill(0);
+  const vectors = [newVector3(), newVector3(), newVector3()];
+  const [v0, v1, v2] = vectors;
+  for (let offset = 0; offset < index; offset += 3) {
+    getTriangle(vectors, posData, indexData, offset);
+    subVector3(v1, v1, v0);
+    subVector3(v2, v2, v0);
+    crossVector3(v0, v1, v2);
+    for (let j = 0; j < 3; j++) {
+      const i0 = 3 * indexData[offset + j];
+      for (let k = 0; k < 3; k++) {
+        normalData[i0 + k] += v0[k];
+      }
+    }
+  }
+  for (let i = 0; i < vertex; i++) {
+    let m = 0;
+    for (let j = 0; j < 3; j++) {
+      m += normalData[i * 3 + j] ** 2;
+    }
+    if (m > 0) {
+      const a = 1 / Math.sqrt(m);
+      for (let j = 0; j < 3; j++) {
+        normalData[i * 3 + j] *= a;
+      }
+    }
+  }
 }

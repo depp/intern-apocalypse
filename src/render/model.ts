@@ -7,6 +7,7 @@ import { gl } from '../lib/global';
 import { modelInstances } from '../game/entity';
 import { modelShader, ModelAttrib } from './shaders';
 import { models } from '../model/model';
+import * as genmodel from '../model/genmodel';
 
 /**
  * Render all models in the level.
@@ -20,9 +21,7 @@ export function renderModels(): void {
   gl.useProgram(p.program);
 
   // Attributes
-  gl.enableVertexAttribArray(ModelAttrib.Pos);
-  gl.enableVertexAttribArray(ModelAttrib.Color);
-  gl.enableVertexAttribArray(ModelAttrib.Normal);
+  genmodel.enableAttr(ModelAttrib.Pos, ModelAttrib.Color, ModelAttrib.Normal);
 
   // Common uniforms
   gl.uniformMatrix4fv(p.ViewProjection, false, cameraMatrix);
@@ -32,29 +31,24 @@ export function renderModels(): void {
     if (!model) {
       continue;
     }
+    const { mesh } = model;
 
-    // Indexes
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.index);
-
-    // Attributes
-    gl.bindBuffer(gl.ARRAY_BUFFER, model.pos);
-    gl.vertexAttribPointer(ModelAttrib.Pos, 3, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, model.color);
-    gl.vertexAttribPointer(ModelAttrib.Color, 4, gl.UNSIGNED_BYTE, true, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, model.normal);
-    gl.vertexAttribPointer(ModelAttrib.Normal, 3, gl.FLOAT, false, 0, 0);
+    // Indexes and attributes
+    genmodel.bind3D(
+      mesh,
+      ModelAttrib.Pos,
+      ModelAttrib.Color,
+      -1,
+      ModelAttrib.Normal,
+    );
 
     // Uniforms
     gl.uniformMatrix4fv(p.Model, false, instance.transform);
 
     // Draw
-    gl.drawElements(gl.TRIANGLES, model.count, gl.UNSIGNED_SHORT, 0);
+    gl.drawElements(gl.TRIANGLES, mesh.icount, gl.UNSIGNED_SHORT, 0);
   }
 
   // Cleanup
-  gl.disableVertexAttribArray(ModelAttrib.Pos);
-  gl.disableVertexAttribArray(ModelAttrib.Color);
-  gl.disableVertexAttribArray(ModelAttrib.Normal);
+  genmodel.disableAttr(ModelAttrib.Pos, ModelAttrib.Color, ModelAttrib.Normal);
 }

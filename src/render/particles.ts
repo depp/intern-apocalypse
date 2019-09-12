@@ -9,13 +9,12 @@ import { particlesShader, ParticlesAttrib } from './shaders';
 import { models } from '../model/model';
 import { randomVec4 } from './util';
 import { AssertionError } from '../debug/debug';
-import { clamp } from '../lib/util';
-import { lerp1D } from '../lib/math';
+import * as genmodel from '../model/genmodel';
 
 /** Render models that are rendered in point cloud mode. */
 export function renderParticles(): void {
   const p = particlesShader;
-  if (!p.program) {
+  if (!p.program || 1) {
     return;
   }
 
@@ -26,9 +25,11 @@ export function renderParticles(): void {
   gl.useProgram(p.program);
 
   // Attributes
-  gl.enableVertexAttribArray(ParticlesAttrib.Pos);
-  gl.enableVertexAttribArray(ParticlesAttrib.Random);
-  gl.enableVertexAttribArray(ParticlesAttrib.Color);
+  genmodel.enableAttr(
+    ParticlesAttrib.Pos,
+    ParticlesAttrib.Color,
+    ParticlesAttrib.Random,
+  );
 
   gl.bindBuffer(gl.ARRAY_BUFFER, randomVec4);
   gl.vertexAttribPointer(ParticlesAttrib.Random, 4, gl.FLOAT, false, 0, 0);
@@ -42,7 +43,7 @@ export function renderParticles(): void {
       continue;
     }
 
-    const points = model.points;
+    const { particles } = model;
     const param = instance.parameters;
     let count = param.count;
     if (instance.time > param.timeFull) {
@@ -59,17 +60,12 @@ export function renderParticles(): void {
     }
 
     // Attributes
-    gl.bindBuffer(gl.ARRAY_BUFFER, points.pos);
-    gl.vertexAttribPointer(ParticlesAttrib.Pos, 3, gl.FLOAT, false, 0, 0);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, points.color);
-    gl.vertexAttribPointer(
+    genmodel.bind3D(
+      particles,
+      ParticlesAttrib.Pos,
       ParticlesAttrib.Color,
-      4,
-      gl.UNSIGNED_BYTE,
-      true,
-      0,
-      0,
+      -1,
+      -1,
     );
 
     // Uniforms
@@ -86,6 +82,9 @@ export function renderParticles(): void {
   }
 
   // Cleanup
-  gl.disableVertexAttribArray(ParticlesAttrib.Pos);
-  gl.disableVertexAttribArray(ParticlesAttrib.Color);
+  genmodel.disableAttr(
+    ParticlesAttrib.Pos,
+    ParticlesAttrib.Color,
+    ParticlesAttrib.Random,
+  );
 }

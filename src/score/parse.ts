@@ -8,7 +8,7 @@ import {
 } from '../lib/textdata';
 import { SourceError, SourceSpan, HasSourceLoc } from '../lib/sourcepos';
 import { DataWriter } from '../lib/data.writer';
-import { Opcode, SignedOffset } from './opcode';
+import { Opcode, signedOffset, noteRewind } from './opcode';
 
 // =============================================================================
 // Base data types
@@ -80,8 +80,22 @@ export enum DurationModifier {
   Triplet,
 }
 
+/** Types of elements that can appear in a rhythm. */
+export enum RhythmKind {
+  /** Play a note. */
+  Note,
+  /** Rewind to the beginning of the pattern. */
+  Rewind,
+}
+
+export interface RhythmBase extends SourceSpan {
+  kind: RhythmKind;
+}
+
 /** The rhythm part of a note. */
-export interface NoteRhythm extends SourceSpan {
+export interface NoteRhythm extends RhythmBase {
+  kind: RhythmKind.Note;
+
   /**
    * Base value, exponential. 0 = whole note, 1 = half note, 2 = quarter, etc.
    */
@@ -92,6 +106,11 @@ export interface NoteRhythm extends SourceSpan {
 
   /** Note to play, or null for rest. */
   noteIndex: number | null;
+}
+
+/** A rhythm directive which is not a note. */
+export interface RhythmSpecial extends SourceSpan {
+  kind: RhythmKind.Rewind;
 }
 
 const baseDurationNames: readonly string[] = ['w', 'h', 'q', 'e', 's'];
@@ -149,6 +168,7 @@ export function parseRhythm(chunk: Chunk): NoteRhythm {
     }
   }
   return {
+    kind: RhythmKind.Note,
     sourceStart: chunk.sourcePos,
     sourceEnd: chunkEnd(chunk),
     baseDuration,
@@ -187,11 +207,14 @@ interface Track extends ItemBase {
   instrument: Chunk;
 }
 
+/** An item in a rhythm pattern. */
+type RhythmItem = NoteRhythm | RhythmSpecial;
+
 /** Rhythmic pattern for notes. */
 interface Pattern extends ItemBase {
   kind: Kind.Pattern;
   name: Chunk;
-  notes: NoteRhythm[];
+  notes: RhythmItem[];
 }
 
 /** Sequence of notes. */
@@ -280,9 +303,24 @@ deftype('pattern', function parsePattern(loc, fields): Pattern {
       `pattern requires at least 1 field, got ${fields.length}`,
     );
   }
-  const notes: NoteRhythm[] = [];
+  const notes: RhythmItem[] = [];
   for (let i = 1; i < fields.length; i++) {
-    notes.push(parseRhythm(fields[i]));
+    const item = fields[i];
+    let kind: RhythmSpecial['kind'] | null = null;
+    switch (item.text) {
+      case '/':
+        kind = RhythmKind.Rewind;
+        break;
+    }
+    if (kind == null) {
+      notes.push(parseRhythm(item));
+    } else {
+      notes.push({
+        kind,
+        sourceStart: item.sourcePos,
+        sourceEnd: chunkEnd(item),
+      });
+    }
   }
   return {
     kind: Kind.Pattern,
@@ -546,10 +584,20 @@ function writePattern(w: ScoreWriter, item: Pattern): void {
   const { kind, name, notes } = item;
   let size = 0;
   for (const note of notes) {
-    if (note.noteIndex) {
-      size = Math.max(size, note.noteIndex);
+    switch (note.kind) {
+      case RhythmKind.Note:
+        if (note.noteIndex) {
+          size = Math.max(size, note.noteIndex);
+        }
+        writeNoteRhythm(dw, note);
+        break;
+      case RhythmKind.Rewind:
+        dw.write(noteRewind);
+        break;
+      default:
+        const dummy: never = note;
+        throw new AssertionError('unknown rhythm kind');
     }
-    writeNoteRhythm(dw, note);
   }
   setChunk(w, name, { kind, data: dw.getData(), size });
 }
@@ -634,7 +682,7 @@ function writeSoftTranspose(w: ScoreWriter, item: Transpose): void {
   const { amount } = item;
   if (w.softTranspose != amount) {
     w.softTranspose = amount;
-    w.commands.write(Opcode.Transpose, amount + SignedOffset);
+    w.commands.write(Opcode.Transpose, amount + signedOffset);
   }
 }
 

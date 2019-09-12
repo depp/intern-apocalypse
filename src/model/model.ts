@@ -7,60 +7,26 @@ import { gl } from '../lib/global';
 import { AssertionError } from '../debug/debug';
 import { dataMax, decodeExponential, decode } from '../lib/data.encode';
 import { clamp } from '../lib/util';
-import { createNormals } from './normal';
 import { modelOffset } from '../lib/loader';
 import { ModelPoints, makePoints } from './points';
+import { GenModel } from './genmodel';
+import * as genmodel from './genmodel';
+import { newVector3 } from './util';
 
 /** A loaded model. */
 export interface Model {
-  /** Position vertex data. */
-  pos: WebGLBuffer | null;
-  /** Color vertex data. */
-  color: WebGLBuffer | null;
-  /** Vertex normals. */
-  normal: WebGLBuffer | null;
-  /** Index array. */
-  index: WebGLBuffer | null;
-  /** Number of elements in index array. */
-  count: number;
-
-  /** Point data, as an alternative to triangles. */
-  points: ModelPoints;
+  mesh: GenModel;
+  particles: GenModel;
 }
-
-/*
-const debugColors = [
-  0x00000000,
-  0x000000ff,
-  0x0000ff00,
-  0x0000ffff,
-  0x00ff0000,
-  0x00ff00ff,
-  0x00ffff00,
-  0x00ffffff,
-  0x00000000,
-  0x00000066,
-  0x00006600,
-  0x00006666,
-  0x00660000,
-  0x00660066,
-  0x00666600,
-  0x00666666,
-];
-*/
 
 /** Load a model from a binary stream. */
 export function loadModel(data: Uint8Array): Model {
-  const maxSize = 1000;
   let pos = 7 + data[0] * 3;
   const scale = new Float32Array(data.slice(4, 7)).map(decodeExponential);
-  let posData = new Float32Array(maxSize);
-  let colorData = new Uint32Array(maxSize);
-  let indexData = new Uint16Array(maxSize);
+  const vertexPos = newVector3();
   let color = 0;
   let symmetry = 0;
-  let pointIndex = 0;
-  let indexPos = 0;
+  genmodel.start3D();
   while (pos < data.length) {
     switch (data[pos++]) {
       case Opcode.Symmetry:
@@ -72,6 +38,7 @@ export function loadModel(data: Uint8Array): Model {
           color |=
             clamp((data[pos++] * 256) / (dataMax + 1), 0, 255) << (i * 8);
         }
+        genmodel.setColor(color);
         break;
       default:
         let size = data[pos - 1] + (3 - Opcode.Face3);
@@ -86,12 +53,7 @@ export function loadModel(data: Uint8Array): Model {
           }
           pos = savePos;
           let parity = (0b10010110 >> reflection) & 1;
-          for (let i = 0; i < size - 2; i++) {
-            indexData[indexPos++] = pointIndex;
-            indexData[indexPos++] = pointIndex + i + 1 + parity;
-            indexData[indexPos++] =
-              pointIndex + i + 1 + ((!parity as any) as number);
-          }
+          genmodel.startFace();
           for (let vertex = 0; vertex < size; vertex++) {
             let index = data[pos++];
             let flags = 0;
@@ -108,53 +70,29 @@ export function loadModel(data: Uint8Array): Model {
               if ((flags ^ reflection) & (1 << axis)) {
                 value = -value;
               }
-              posData[pointIndex * 3 + axis] = value;
+              vertexPos[axis] = value;
             }
-            // debugColors[pointIndex & 15]
-            colorData[pointIndex++] = color;
+            genmodel.addVertex(vertexPos);
             faceSymmetry &= ~flags;
           }
+          genmodel.endFace(parity);
         }
         break;
     }
   }
-  posData = posData.subarray(0, pointIndex * 3);
-  colorData = colorData.subarray(0, pointIndex);
-  indexData = indexData.subarray(0, indexPos);
-  const normalData = createNormals(posData, indexData);
-  const posBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, posData, gl.STATIC_DRAW);
-  const colorBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, colorData, gl.STATIC_DRAW);
-  const normalBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, normalData, gl.STATIC_DRAW);
-  const indexBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexData, gl.STATIC_DRAW);
+  const mesh = genmodel.newModel();
+  genmodel.upload(mesh);
+  console.log(mesh);
   return {
-    pos: posBuffer,
-    color: colorBuffer,
-    normal: normalBuffer,
-    index: indexBuffer,
-    count: indexPos,
-    points: makePoints(posData, colorData, indexData),
+    mesh,
+    particles: genmodel.newModel(),
   };
 }
 
 /** Unload a loaded model. */
 export function unloadModel(model: Model): void {
-  gl.bindBuffer(gl.ARRAY_BUFFER, null);
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-  gl.deleteBuffer(model.pos);
-  gl.deleteBuffer(model.color);
-  gl.deleteBuffer(model.index);
-  gl.deleteBuffer(model.normal);
-  const { points } = model;
-  gl.deleteBuffer(points.pos);
-  gl.deleteBuffer(points.color);
+  genmodel.destroy(model.mesh);
+  genmodel.destroy(model.particles);
 }
 
 /** Loaded models. */

@@ -1,4 +1,4 @@
-import { Opcode, SignedOffset } from './opcode';
+import { Opcode, signedOffset } from './opcode';
 import { AssertionError } from '../debug/debug';
 import { runProgram } from '../synth/engine';
 import { roundUpPow2 } from '../lib/util';
@@ -65,7 +65,7 @@ export function renderScore(
         if (pos >= program.length) {
           throw new AssertionError('end of program');
         }
-        transposition = program[pos++] - SignedOffset;
+        transposition = program[pos++] - signedOffset;
         break;
 
       case Opcode.Inversion:
@@ -113,7 +113,12 @@ export function renderScore(
         if (reverse) {
           values.reverse();
         }
+        const patternStart = time;
         for (const note of notes) {
+          if (note >= 90) {
+            time = patternStart;
+            continue;
+          }
           let index = note % 6;
           const modifier = (note / 6) % 3 | 0;
           const base = note / 18;

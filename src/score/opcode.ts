@@ -8,4 +8,7 @@ export const enum Opcode {
 }
 
 /** Offset for signed numbers. */
-export const SignedOffset = 48;
+export const signedOffset = 48;
+
+/** Special note: rewind to beginning of pattern. */
+export const noteRewind = 90;
