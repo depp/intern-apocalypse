@@ -47,11 +47,11 @@ export function newModel(): GenModel {
   };
 }
 
-let posData = new Float32Array(maxVertexCount * 3);
-let colorData = new Uint32Array(maxVertexCount);
-let texData = new Float32Array(maxVertexCount * 2);
-let normalData = new Float32Array(maxVertexCount * 3);
-let indexData = new Uint16Array(maxIndexCount);
+const posData = new Float32Array(maxVertexCount * 3);
+const colorData = new Uint32Array(maxVertexCount);
+const texData = new Float32Array(maxVertexCount * 2);
+const normalData = new Float32Array(maxVertexCount * 3);
+const indexData = new Uint16Array(maxIndexCount);
 
 const enum Mode {
   None,
@@ -286,15 +286,12 @@ export function addVertex(position: ArrayLike<number>): void {
 }
 
 /** Get triangle data from an indexed data array. */
-// export function getTriangle(
-//   out: Vector3[],
-//   offset: number,
-// ): void {
-//   for (let i = 0; i < 3; i++) {
-//     const index = indexData[offset + i];
-//     out[i].set(posData.subarray(index * 3, index * 3 + 3))
-//   }
-// }
+export function getTriangle(out: Vector3[], offset: number): void {
+  for (let i = 0; i < 3; i++) {
+    const index = indexData[offset + i];
+    out[i].set(posData.subarray(index * 3, index * 3 + 3));
+  }
+}
 
 /**
  * Create normals for the model.
@@ -304,7 +301,7 @@ function createNormals(): void {
   const vectors = [newVector3(), newVector3(), newVector3()];
   const [v0, v1, v2] = vectors;
   for (let offset = 0; offset < index; offset += 3) {
-    getTriangle(vectors, posData, indexData, offset);
+    getTriangle(vectors, posData);
     subVector3(v1, v1, v0);
     subVector3(v2, v2, v0);
     crossVector3(v0, v1, v2);
