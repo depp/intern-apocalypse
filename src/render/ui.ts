@@ -17,6 +17,8 @@ import {
   playerManaMax,
 } from '../game/player';
 import * as genmodel from '../model/genmodel';
+import { playSound } from '../audio/audio';
+import { Sounds } from '../audio/sounds';
 
 /** Modes that the UI system can run in. */
 const enum UIMode {
@@ -330,6 +332,11 @@ export function renderUI(): void {
   gl.bindTexture(gl.TEXTURE_2D, null);
 }
 
+/** Play the menu click sound. */
+export function playClickSound(): void {
+  playSound(Sounds.Click);
+}
+
 /**
  * Handle a mouse click on the canvas.
  */
@@ -341,6 +348,7 @@ function menuClick(event: MouseEvent) {
   const { y } = getMousePos(event);
   for (const item of currentMenu.items) {
     if (item.click && item.y0 <= y && y < item.y1) {
+      playClickSound();
       item.click();
     }
   }
@@ -379,7 +387,7 @@ export function pushMenu(...menuItems: MenuItem[]): void {
  * Pop the current menu off the top of the stack. Refuses to pop the last menu
  * off the stack, except if we are in GameMenu.
  */
-export function popMenu(): void {
+export function popMenu(doClickSound?: boolean): void {
   if (currentMenu == null) {
     throw new AssertionError('currentMenu == null');
   }
@@ -388,6 +396,11 @@ export function popMenu(): void {
     updateMenu();
   } else if (currentState == State.GameMenu) {
     setState(State.Game);
+  } else {
+    return;
+  }
+  if (doClickSound) {
+    playClickSound();
   }
 }
 

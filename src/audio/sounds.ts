@@ -4,6 +4,7 @@
 export const enum Sounds {
   Bass,
   Clang,
+  Click,
   Harp,
   MonsterDeath,
   MonsterHit,
@@ -17,6 +18,7 @@ export function getSoundNames(): string[] {
   return [
     'audio/bass.lisp',
     'audio/clang.lisp',
+    'audio/click.lisp',
     'audio/harp.lisp',
     'audio/monster_death.lisp',
     'audio/monster_hit.lisp',
@@ -28,7 +30,7 @@ export function getSoundNames(): string[] {
 
 /** Music track asset identifiers. */
 export const enum MusicTracks {
-  Beyond = 8,
+  Beyond = 9,
   Sylvan,
 }
 
@@ -38,4 +40,4 @@ export function getMusicNames(): string[] {
 }
 
 /** Index of first music track. */
-export const firstMusicTrack = 8;
+export const firstMusicTrack = 9;

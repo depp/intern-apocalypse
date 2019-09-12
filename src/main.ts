@@ -15,6 +15,7 @@ import {
   clearUI,
   startHUD,
   MenuItem,
+  playClickSound,
 } from './render/ui';
 import { spawnMonster } from './game/monster';
 import { Difficulty, setDifficulty } from './game/difficulty';
@@ -126,13 +127,15 @@ export function main(curTimeMS: DOMHighResTimeStamp): void {
       case State.MainMenu:
       case State.DeadMenu:
       case State.GameMenu:
-        popMenu();
+        popMenu(true);
         break;
       case State.Game:
         setState(State.GameMenu);
+        playClickSound();
         break;
       case State.Dead:
         setState(State.DeadMenu);
+        playClickSound();
         break;
     }
   }
