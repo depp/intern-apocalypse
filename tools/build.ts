@@ -51,15 +51,33 @@ function emitActions(ctx: BuildContext) {
     outDir: 'build/src',
     inputs: tsSources,
     config: 'src/tsconfig.json',
-    rootNames: ['src/main.debug.ts', 'src/main.release.ts'],
+    rootNames: [
+      'src/main.debug.ts',
+      'src/main.release.ts',
+      'src/worker/worker.debug.ts',
+      'src/worker/worker.release.ts',
+    ],
   });
+  const jsSources = tsSources.map(src => 'build/' + pathWithExt(src, '.js'));
   rollupJS(ctx, {
     output: 'build/game.js',
-    inputs: tsSources.map(src => 'build/' + pathWithExt(src, '.js')),
+    inputs: jsSources,
     name:
       ctx.config.config == Config.Debug ? 'src/main.debug' : 'src/main.release',
     global: 'Game',
     external: [],
+    format: 'esm',
+  });
+  rollupJS(ctx, {
+    output: 'build/worker.js',
+    inputs: jsSources,
+    name:
+      ctx.config.config == Config.Debug
+        ? 'src/worker/worker.debug'
+        : 'src/worker/worker.release',
+    global: 'Worker',
+    external: [],
+    format: 'iife',
   });
   switch (ctx.config.config) {
     case Config.Release:
@@ -74,6 +92,8 @@ function emitActions(ctx: BuildContext) {
           ['index.html', 'build/index.html'],
           ['game.js', 'build/game.js'],
           ['game.js.map', 'build/game.js.map'],
+          ['worker.js', 'build/game.js'],
+          ['worker.js.map', 'build/game.js.map'],
           ['data.json', 'build/data.json'],
           ['style.css', 'html/style.css'],
         ]),
@@ -84,6 +104,7 @@ function emitActions(ctx: BuildContext) {
         output: 'build/index.html',
         template: 'html/competition.html',
         script: 'build/game.js',
+        worker: 'build/worker.js',
         data: dataPath,
         title: projectName,
       });
@@ -126,6 +147,11 @@ function parseArgs(): BuildArgs {
         type: 'boolean',
         default: false,
         desc: 'Beautify code (does not work with source maps)',
+      },
+      'keep-console': {
+        type: 'boolean',
+        default: false,
+        desc: 'Keep console statements in the competition build',
       },
     })
     .command('build', 'Build a packaged zip file')
@@ -170,6 +196,7 @@ function parseArgs(): BuildArgs {
     showBuildTimes: argv['show-build-times'],
     minify: argv.minify,
     beautify: argv.beautify,
+    keepConsole: argv['keep-console'],
   };
 }
 

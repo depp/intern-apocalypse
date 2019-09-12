@@ -23,6 +23,8 @@ export interface EvalHTMLParams {
   readonly template: string;
   /** Path to the script to embed in the HTML. */
   readonly script?: string;
+  /** Path to the worker to embed in the HTML. */
+  readonly worker?: string;
   /** Path to the data to embed in the HTML. */
   readonly data?: string;
   /** Title of the page. */
@@ -78,10 +80,15 @@ class EvalHTML implements BuildAction {
   /** Evaluate the HTML template. */
   async execute(config: BuildArgs): Promise<boolean> {
     const { params } = this;
-    const { script, data } = params;
+    const { script, worker, data } = params;
     const scriptSrc = script
       ? fs.promises
           .readFile(script, 'utf8')
+          .then(x => inlineJavaScript(x.trim()))
+      : null;
+    const workerSrc = worker
+      ? fs.promises
+          .readFile(worker, 'utf8')
           .then(x => inlineJavaScript(x.trim()))
       : null;
     const dataSrc = data
@@ -95,6 +102,7 @@ class EvalHTML implements BuildAction {
     const result = templateFn({
       title: params.title,
       script: await scriptSrc,
+      worker: await workerSrc,
       data: await dataSrc,
     });
     await fs.promises.writeFile(params.output, result, 'utf8');

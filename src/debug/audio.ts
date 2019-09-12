@@ -1,5 +1,4 @@
 import { watchFile } from './files';
-import { sounds, music } from '../audio/audio';
 import { getSoundNames, getMusicNames } from '../audio/sounds';
 import { SourceError, SourceText } from '../lib/sourcepos';
 import { parseSExpr } from '../lib/sexpr';
@@ -9,6 +8,7 @@ import { hashVariables } from './hash';
 import { logSourceError } from './source';
 import { parseScore } from '../score/parse';
 import { AssertionError } from './debug';
+import { sendMessage } from './worker';
 
 interface AssetInfo {
   kind: 'sound' | 'music';
@@ -68,16 +68,18 @@ function updateAsset(info: AssetInfo) {
   switch (kind) {
     case 'sound':
       {
-        const code = loadAudioProgram(filename, source);
-        sounds[index] = code;
+        const data = loadAudioProgram(filename, source);
+        sendMessage({ kind: 'sound-program', index, data });
       }
       break;
     case 'music':
       {
-        const code = loadMusicTrack(filename, source);
-        music[index] = code;
+        const data = loadMusicTrack(filename, source);
+        sendMessage({ kind: 'music-program', index, data });
       }
       break;
+    default:
+      throw new AssertionError('invalid kind', { kind });
   }
 }
 

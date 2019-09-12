@@ -38,6 +38,8 @@ const baseFiles: readonly StaticFile[] = [
   { url: '/style.css', file: 'html/style.css' },
   { url: '/game.js', file: 'build/game.js', sourceMap: 'game.js.map' },
   { url: '/game.js.map', file: 'build/game.js.map' },
+  { url: '/worker.js', file: 'build/worker.js', sourceMap: 'worker.js.map' },
+  { url: '/worker.js.map', file: 'build/worker.js.map' },
   { url: '/data.json', file: 'build/data.json' },
   { url: '/dat.gui.js', file: 'node_modules/dat.gui/build/dat.gui.min.js' },
   { url: '/favicon.ico', file: 'misc/favicon.ico' },

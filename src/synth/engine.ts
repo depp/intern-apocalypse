@@ -10,13 +10,11 @@ import {
   decodeFrequency,
 } from './data';
 import { Random } from '../lib/random';
+import { sampleRate } from '../lib/audio';
 
 // =============================================================================
 // Definitions and auxiliary pure functions
 // =============================================================================
-
-/** Sample rate, in Hz, for the audio system. */
-export const sampleRate = 48000;
 
 /**
  * Get a list of audio opcodes (debug only).

@@ -23,6 +23,7 @@ import { initRenderer } from './render/render';
 import { debugView } from './lib/settings';
 import { startAudio } from './audio/audio';
 import { resetTime } from './game/time';
+import { startWorker } from './debug/worker';
 
 let counter = 0;
 let lastFrameMS = 0;
@@ -69,6 +70,7 @@ function firstEvent(): void {
 }
 
 function start(): void {
+  startWorker();
   resetTime();
   initRenderer();
   watchShaders();

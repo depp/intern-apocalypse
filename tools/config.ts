@@ -47,4 +47,6 @@ export interface BuildArgs {
   minify: boolean;
   /** Run output through Prettier. */
   beautify: boolean;
+  /** Keep console statements. */
+  keepConsole: boolean;
 }

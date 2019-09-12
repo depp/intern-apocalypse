@@ -1,7 +1,8 @@
 import { Opcode, SignedOffset } from './opcode';
 import { AssertionError } from '../debug/debug';
-import { sampleRate, runProgram } from '../synth/engine';
+import { runProgram } from '../synth/engine';
 import { roundUpPow2 } from '../lib/util';
+import { sampleRate } from '../lib/audio';
 
 /** Render a musical score to an audio buffer. */
 export function renderScore(

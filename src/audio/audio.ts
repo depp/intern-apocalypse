@@ -2,45 +2,58 @@
  * Game audio subsystem.
  */
 
-import { runProgram, sampleRate } from '../synth/engine';
-import { AssertionError } from '../debug/debug';
-import { bundledData } from '../lib/global';
+import { sampleRate } from '../lib/audio';
+import { AssertionError, isDebug, isCompetition } from '../debug/debug';
 import { soundOffset } from '../lib/loader';
-import { decode } from '../lib/data.encode';
 import { Sounds, MusicTracks } from './sounds';
-import { renderScore } from '../score/score';
+import { bundledData } from '../lib/global';
+import { decode } from '../lib/data.encode';
 
 let audioCtx: AudioContext | undefined | false;
 
-/** The sound effect file data. */
-export let sounds: (Uint8Array | null)[] = [];
+/** The sound effect data. */
+let sounds: (Float32Array | null)[] = [];
 /** Rendered sound effects. */
-export const soundBuffers: AudioBuffer[] = [];
+const soundBuffers: (AudioBuffer | null)[] = [];
 
-/** The music track file data. */
-export let music: (Uint8Array | null)[] = [];
+/** The music track data. */
+let music: (Float32Array | null)[] = [];
 /** Rendered music tracks. */
-export const musicBuffers: AudioBuffer[] = [];
+const musicBuffers: (AudioBuffer | null)[] = [];
+
+/** Set the sound data. */
+export function setSound(index: number, buffer: Float32Array | null): void {
+  sounds[index] = buffer;
+  if (isDebug) {
+    soundBuffers[index] = null;
+  }
+}
+
+/** Set the sound data. */
+export function setMusic(index: number, buffer: Float32Array | null): void {
+  music[index] = buffer;
+  if (isDebug) {
+    musicBuffers[index] = null;
+  }
+}
 
 /** Get the buffer containing the given sound. */
 function getBuffer(
-  assetCode: (Uint8Array | null)[],
-  assetBuffer: AudioBuffer[],
+  assetData: (Float32Array | null)[],
+  assetBuffer: (AudioBuffer | null)[],
   index: number,
-  render: (code: Uint8Array) => Float32Array,
 ): AudioBuffer | null {
   if (!audioCtx) {
     throw new AssertionError('audioCtx == null');
   }
   let buffer = assetBuffer[index];
   if (!buffer) {
-    const code = assetCode[index];
-    if (!code) {
+    const data = assetData[index];
+    if (!data) {
       return null;
     }
-    const audio = render(code);
-    buffer = audioCtx.createBuffer(1, audio.length, sampleRate);
-    buffer.getChannelData(0).set(audio);
+    buffer = audioCtx.createBuffer(1, data.length, sampleRate);
+    buffer.getChannelData(0).set(data);
     assetBuffer[index] = buffer;
   }
   return buffer;
@@ -62,7 +75,7 @@ export function playSound(index: Sounds): void {
   if (!audioCtx) {
     return;
   }
-  const buffer = getBuffer(sounds, soundBuffers, index, runProgram);
+  const buffer = getBuffer(sounds, soundBuffers, index);
   if (!buffer) {
     return;
   }
@@ -71,13 +84,10 @@ export function playSound(index: Sounds): void {
 
 /** Play the music track with the given index. */
 export function playMusic(index: MusicTracks): void {
-  debugger;
   if (!audioCtx) {
     return;
   }
-  const buffer = getBuffer(music, musicBuffers, index, code =>
-    renderScore(code, sounds),
-  );
+  const buffer = getBuffer(music, musicBuffers, index);
   if (!buffer) {
     return;
   }
@@ -102,10 +112,4 @@ export function startAudio(): void {
   // Play silence. This lets us use the context.
   const buffer = audioCtx.createBuffer(1, 1000, sampleRate);
   playBuffer(buffer);
-}
-
-/** Load the sound data files. */
-export function loadSounds(): void {
-  sounds = bundledData[soundOffset].split(' ').map(decode);
-  music = bundledData[soundOffset + 1].split(' ').map(decode);
 }

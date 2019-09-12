@@ -13,7 +13,8 @@ import * as cli from './cli';
 import { UsageError } from './cli';
 import { evaluateProgram, soundParameters } from '../src/synth/evaluate';
 import { disassembleProgram } from '../src/synth/opcode';
-import { sampleRate, runProgram } from '../src/synth/engine';
+import { runProgram } from '../src/synth/engine';
+import { sampleRate } from '../src/lib/audio';
 import { encode } from '../src/lib/data.encode';
 import {
   SourceError,

@@ -117,7 +117,7 @@ function minifyPlugin(config: BuildArgs): rollup.Plugin {
           // @ts-ignore: missing from @types
           booleans_as_integers: true,
           defaults: true,
-          drop_console: true,
+          drop_console: !config.keepConsole,
           module: true,
           passes: 4,
           pure_getters: true,
@@ -167,11 +167,13 @@ export interface Module {
 /** Parameters for the RollupJS build step. */
 export interface RollupJSParameters extends Module {
   /** A list of all input modules. */
-  inputs: readonly string[];
+  readonly inputs: readonly string[];
   /** The output bundle file. */
   readonly output: string;
   /** A list of external modules this bundle imports. */
   readonly external: readonly Module[];
+  /** The module format. */
+  readonly format: 'esm' | 'iife';
 }
 
 /**
@@ -216,7 +218,7 @@ class RollupJS implements BuildAction {
     }
     const bundle = await rollup.rollup(inputOptions);
     const outputOptions: rollup.OutputOptions = {
-      format: 'module',
+      format: this.params.format,
       name: params.global,
       sourcemap: !config.beautify,
       globals: globals,
