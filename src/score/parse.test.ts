@@ -5,6 +5,7 @@ import {
   NoteRhythm,
   DurationModifier,
   parseRhythm,
+  RhythmKind,
 } from './parse';
 import { SourceError } from '../lib/sourcepos';
 import { Chunk } from '../lib/textdata';
@@ -66,6 +67,7 @@ test('parseNoteRhythm', () => {
     return {
       input: { text, sourcePos: curPos },
       expected: {
+        kind: RhythmKind.Note,
         sourceStart: sourcePos,
         sourceEnd: sourcePos + text.length,
         baseDuration,
