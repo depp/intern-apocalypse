@@ -1,4 +1,11 @@
-import { gl, canvas, getMousePos } from '../lib/global';
+import {
+  gl,
+  canvas,
+  getMousePos,
+  setState,
+  State,
+  currentState,
+} from '../lib/global';
 import { AssertionError, isDebug } from '../debug/debug';
 import { uiShader, UiAttrib } from './shaders';
 import { roundUpPow2 } from '../lib/util';
@@ -11,8 +18,18 @@ import {
 } from '../game/player';
 import * as genmodel from '../model/genmodel';
 
-/** If true, we are drawing the HUD. */
-let hudMode: boolean | undefined;
+/** Modes that the UI system can run in. */
+const enum UIMode {
+  /** Draw nothing. */
+  Clear,
+  /** Draw a menu. */
+  Menu,
+  /** Draw in-game HUD. */
+  HUD,
+}
+
+/** What is currently being drawn in the UI. */
+let uiMode: UIMode | undefined;
 
 export interface MenuItem {
   text?: string;
@@ -242,14 +259,6 @@ function drawStatusBars(): void {
   }
 }
 
-/** Update the in-game UI. */
-export function startHUD(): void {
-  hudMode = true;
-  initContext();
-  drawStatusBars();
-  updateTexture();
-}
-
 /** Update the hud data. */
 function updateHUD(): void {
   genmodel.start2D();
@@ -284,12 +293,11 @@ export function renderUI(): void {
     return;
   }
 
-  if (hudMode) {
-    updateHUD();
-  }
-
-  if (!gmodel.vcount) {
+  if (!uiMode) {
     return;
+  }
+  if (uiMode == UIMode.HUD) {
+    updateHUD();
   }
 
   gl.useProgram(p.program);
@@ -338,8 +346,19 @@ function menuClick(event: MouseEvent) {
   }
 }
 
+/** Start showing the given menu. */
+export function startMenu(...menuItems: MenuItem[]): void {
+  uiMode = UIMode.Menu;
+  currentMenu = null;
+  canvas.addEventListener('click', menuClick);
+  pushMenu(...menuItems);
+}
+
 /** Push a new menu to the top of the stack. */
 export function pushMenu(...menuItems: MenuItem[]): void {
+  if (uiMode != UIMode.Menu) {
+    throw new AssertionError('incorrect mode', { uiMode });
+  }
   currentMenu = {
     items: menuItems.map(item =>
       Object.assign(
@@ -356,24 +375,37 @@ export function pushMenu(...menuItems: MenuItem[]): void {
   updateMenu();
 }
 
-/** Pop the current menu off the top of the stack. */
+/**
+ * Pop the current menu off the top of the stack. Refuses to pop the last menu
+ * off the stack, except if we are in GameMenu.
+ */
 export function popMenu(): void {
   if (currentMenu == null) {
     throw new AssertionError('currentMenu == null');
   }
-  currentMenu = currentMenu.next;
-  updateMenu();
+  if (currentMenu.next) {
+    currentMenu = currentMenu.next;
+    updateMenu();
+  } else if (currentState == State.GameMenu) {
+    setState(State.Game);
+  }
 }
 
-/** Start displaying menus. A menu must be pushed afterwards. */
-export function startMenu(): void {
-  hudMode = false;
-  currentMenu = null;
-  canvas.addEventListener('click', menuClick);
-}
-
-/** Stop displaying any menu. */
-export function endMenu(): void {
-  gmodel.vcount = 0;
+function removeHandlers(): void {
   canvas.removeEventListener('click', menuClick);
+}
+
+/** Stop displaying any menu or HUD. */
+export function clearUI(): void {
+  uiMode = UIMode.Clear;
+  removeHandlers();
+}
+
+/** Start displaying the in-game UI. */
+export function startHUD(): void {
+  uiMode = UIMode.HUD;
+  removeHandlers();
+  initContext();
+  drawStatusBars();
+  updateTexture();
 }

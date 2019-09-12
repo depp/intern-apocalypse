@@ -4,15 +4,15 @@
 
 import { playSound } from './audio/audio';
 import { updateCamera } from './game/camera';
-import { startInput, endFrameInput } from './lib/input';
+import { startInput, endFrameInput, buttonPress, Button } from './lib/input';
 import { spawnPlayer } from './game/player';
 import { render } from './render/render';
 import { State, currentState, setState } from './lib/global';
 import {
   startMenu,
   pushMenu,
-  endMenu,
   popMenu,
+  clearUI,
   startHUD,
   MenuItem,
 } from './render/ui';
@@ -35,8 +35,9 @@ export function initialize(): void {
 /** The game state as of the last frame. */
 let lastState: State | undefined;
 
-function pushFrontMenu(...items: MenuItem[]): void {
-  pushMenu(
+/** Show the loading screen or main menu. */
+function startFrontMenu(...items: MenuItem[]): void {
+  startMenu(
     { space: 32 },
     {
       text: "I Want to Help Fight the Demon Overlord, but I'm Just an Intern!",
@@ -49,13 +50,14 @@ function pushFrontMenu(...items: MenuItem[]): void {
   );
 }
 
-function pushLoadingMenu(): void {
-  pushFrontMenu({ text: 'Loading...' });
+/** Show the loading screen. */
+function startLoadingMenu(): void {
+  startFrontMenu({ text: 'Loading...' });
 }
 
 /** Show the main menu. */
-function pushMainMenu(): void {
-  pushFrontMenu({ text: 'New Game', click: pushNewGameMenu });
+function startMainMenu(): void {
+  startFrontMenu({ text: 'New Game', click: pushNewGameMenu });
 }
 
 /** Show the new game menu. */
@@ -72,10 +74,22 @@ function pushNewGameMenu(): void {
   );
 }
 
-function pushDeadMenu(): void {
-  pushMenu(
+function startGameMenu(): void {
+  startMenu(
+    { text: 'Paused', size: 1.5 },
+    { space: 32 },
+    { text: 'Resume', click: popMenu },
+    { text: 'End Game', click: () => setState(State.MainMenu) },
+  );
+}
+
+function startDeadMenu(): void {
+  startMenu(
     { text: 'You Have Died.', size: 2 },
     { text: 'This will be reflected on your performance review.' },
+    { space: 96 },
+    { text: 'New Game', click: pushNewGameMenu },
+    { text: 'Exit', click: () => setState(State.MainMenu) },
   );
 }
 
@@ -99,26 +113,41 @@ export function newGame(difficulty: Difficulty): void {
  */
 export function main(curTimeMS: DOMHighResTimeStamp): void {
   updateTime(curTimeMS);
+  if (buttonPress[Button.Menu]) {
+    switch (currentState) {
+      case State.MainMenu:
+      case State.DeadMenu:
+      case State.GameMenu:
+        popMenu();
+        break;
+      case State.Game:
+        setState(State.GameMenu);
+        break;
+      case State.Dead:
+        setState(State.DeadMenu);
+        break;
+    }
+  }
   if (currentState != lastState) {
     switch (currentState) {
       case State.Loading:
-        startMenu();
-        pushLoadingMenu();
+        startLoadingMenu();
         break;
       case State.MainMenu:
-        startMenu();
-        pushMainMenu();
+        startMainMenu();
         break;
       case State.Game:
-        endMenu();
         startHUD();
         break;
+      case State.GameMenu:
+        startGameMenu();
+        break;
       case State.Dead:
+        clearUI();
         setGameTimeout(3, () => setState(State.DeadMenu));
         break;
       case State.DeadMenu:
-        startMenu();
-        pushDeadMenu();
+        startDeadMenu();
         break;
     }
     lastState = currentState;

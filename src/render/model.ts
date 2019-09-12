@@ -12,6 +12,17 @@ import * as genmodel from '../model/genmodel';
 import { Matrix, identityMatrix } from '../lib/matrix';
 import { levelModel } from './level';
 
+// prettier-ignore
+const lightColor = new Float32Array([
+  0.1, 0.2, 0.3,
+  1.0, 0.8, 0.6,
+])
+// prettier-ignore
+const lightPos = new Float32Array([
+  0.0, 0.0, 1.0,
+  -0.6, -0.6, 0.6,
+])
+
 /**
  * Render all models in the level.
  */
@@ -45,6 +56,8 @@ export function renderModels(): void {
 
   // Common uniforms
   gl.uniformMatrix4fv(p.ViewProjection, false, cameraMatrix);
+  gl.uniform3fv(p.LightColor, lightColor);
+  gl.uniform3fv(p.LightPos, lightPos);
 
   drawModel(levelModel, identityMatrix);
   for (const instance of modelInstances) {

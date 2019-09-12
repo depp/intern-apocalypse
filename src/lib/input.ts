@@ -17,6 +17,8 @@ export const enum Button {
   Backward = 'b',
   Forward = 'f',
   Action = 'a',
+  Select = 's',
+  Menu = 'm',
 }
 
 /**
@@ -50,6 +52,12 @@ const buttonBindings: Record<string, Button> = {
 
   // Action / attack
   'Space': Button.Action,
+  'ControlLeft': Button.Action,
+  'ControlRight': Button.Action,
+
+  // Menu controls
+  'Enter': Button.Select,
+  'Escape': Button.Menu,
 };
 
 /**
@@ -80,7 +88,7 @@ export const buttonState: ButtonRecord<number> = {} as ButtonRecord<number>;
 
 /** Set all buttons in the record to 0. */
 function zeroButtons(buttons: ButtonRecord<number>): void {
-  for (const c of 'lrbfa') {
+  for (const c of 'lrbfasm') {
     buttons[c as Button] = 0;
   }
 }

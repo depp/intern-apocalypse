@@ -36,9 +36,10 @@ export function startGL(): void {
  * Main game states.
  */
 export const enum State {
-  Loading,
+  Loading = 1,
   MainMenu,
   Game,
+  GameMenu,
   Dead,
   DeadMenu,
 }
