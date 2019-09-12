@@ -9,6 +9,7 @@ export const enum Sounds {
   MonsterHit,
   Sweep,
   Swoosh,
+  Synth,
 }
 
 /** Get list of sound filenames, in order. */
@@ -21,12 +22,13 @@ export function getSoundNames(): string[] {
     'audio/monster_hit.lisp',
     'audio/sweep.lisp',
     'audio/swoosh.lisp',
+    'audio/synth.lisp',
   ];
 }
 
 /** Music track asset identifiers. */
 export const enum MusicTracks {
-  Sylvan = 7,
+  Sylvan = 8,
 }
 
 /** Get list of music score filenames, in order. */
@@ -35,4 +37,4 @@ export function getMusicNames(): string[] {
 }
 
 /** Index of first music track. */
-export const firstMusicTrack = 7;
+export const firstMusicTrack = 8;

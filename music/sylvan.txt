@@ -1,4 +1,4 @@
-tempo 150
+tempo 126
 
 transpose hard +3
 
@@ -12,7 +12,7 @@ values B d2 c3 d3
 values C f#2 e3 f#3
 values D b2 d#3 f#3
 
-emit P1 A B C D A B C D
+emit P1 A B C D A B C D A B C D A B C D A B C D A B C D A B C D
 
 # ==============================================================================
 
@@ -21,14 +21,43 @@ track harp harp
 transpose hard -12
 
 pattern P1 q1 q2 q3 q4
+pattern P2 e1 e3 e2 e4 e3 e2 e3 e4
 values A e4 g4 b4 e5
 values B d4 f#4 a4 d5
 values C f#4 a#4 c#5 f#5
 values D f#4 b4 d#5 f#5
 
+skip 4
 emit P1 A B C D
 reverse
 inversion 1
 emit P1 A B
 inversion 0
 emit P1 C D
+
+skip 4
+forward
+emit P2 A B C D
+reverse
+inversion 1
+emit P2 A B
+inversion 2
+emit P2 C
+inversion 0
+emit P2 D
+
+# ==============================================================================
+
+track synth synth
+
+pattern P1 e1 e2 q3 q1 q2 / qr q4 h5
+values A e2 g2 d3 f#3 e3
+values B d2 a2 d3 g3 a3
+values C f#2 e3 c#3 a#3 b3
+values D b1 f#2 b2 e3 d#3
+
+skip 12
+emit P1 A B C D
+skip 8
+emit P1 A B C D
+
