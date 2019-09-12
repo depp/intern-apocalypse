@@ -145,7 +145,7 @@ export function runProgram(
 
     /** Create a buffer filled with noise. */
     function noise(): Float32Array {
-      return new Float32Array(bufferSize).map(x => random.range(-1, 1));
+      return newBuffer().map(x => random.range(-1, 1));
     },
 
     // =========================================================================
