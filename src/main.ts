@@ -78,10 +78,8 @@ function pushNewGameMenu(): void {
 function pushDeadMenu(): void {
   pushMenu(
     {},
-    { flexspace: 1 },
     { text: 'You Have Died.', size: 2 },
     { text: 'This will be reflected on your performance review.' },
-    { flexspace: 1 },
   );
 }
 

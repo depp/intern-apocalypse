@@ -160,9 +160,14 @@ function updateMenu(): void {
     }
     fixspace += item.space;
   }
-  const flexamt = flexspace && (canvasSize.y - fixspace) / flexspace;
+  let flexamt = canvasSize.y - fixspace;
   let ypos = 0;
   let vpos = 0;
+  if (flexspace) {
+    flexamt /= flexspace;
+  } else {
+    ypos += flexamt / 2;
+  }
   for (const item of items) {
     item.y0 = (ypos | 0) - textureMargin;
     item.v0 = vpos | 0;
