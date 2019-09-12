@@ -2,15 +2,21 @@
 precision lowp float;
 
 varying vec4 Color;
-varying vec3 Normal;
+varying vec3 Position, Normal;
 
-float evaluate_light(vec3 dir) {
-  return max(dot(Normal, dir) / length(dir), 0.0);
-}
+#define NUM_LIGHTS 8
+
+uniform vec3 LightColor[NUM_LIGHTS], LightPos[NUM_LIGHTS];
 
 void main() {
-  vec3 lighting = vec3(0.0);
-  lighting += vec3(0.6, 0.8, 1.0) * evaluate_light(vec3(0.0, 0.0, 1.0));
-  lighting += vec3(0.6, 0.4, 0.2) * evaluate_light(vec3(0.0, 0.0, -1.0));
+  vec3 norm = normalize(Normal);
+  // Light 0 is hard-coded to be ambient light, and we calculate it differently.
+  // Light 1 is hard-coded to be the sun.
+  vec3 lighting = LightColor[0] * (dot(norm, LightPos[0]) + 1.0) +
+                  LightColor[1] * max(dot(norm, LightPos[1]), 0.0);
+  for (int i = 2; i < NUM_LIGHTS; i++) {
+    lighting +=
+        LightColor[i] * max(dot(norm, normalize(LightPos[1] - Position)), 0.0);
+  }
   gl_FragColor = Color * vec4(lighting, 1.0);
 }
