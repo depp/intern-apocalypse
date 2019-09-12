@@ -1,8 +1,9 @@
 import { Opcode, signedOffset } from './opcode';
-import { AssertionError } from '../debug/debug';
+import { AssertionError, isDebug } from '../debug/debug';
 import { runProgram } from '../synth/engine';
 import { roundUpPow2 } from '../lib/util';
 import { sampleRate } from '../lib/audio';
+import { decodeExponential } from '../synth/data';
 
 /** Render a musical score to an audio buffer. */
 export function renderScore(
@@ -37,6 +38,8 @@ export function renderScore(
   let inversion = 0;
   // Whether to reverse the values.
   let reverse = false;
+  // Track level.
+  let level: number | undefined;
   while (pos < program.length) {
     const opcode = program[pos++];
     switch (opcode) {
@@ -44,11 +47,11 @@ export function renderScore(
         if (pos + 2 > program.length) {
           throw new AssertionError('end of program');
         }
-        pos++; // Track index.
         const soundIndex = program[pos++];
         if (soundIndex >= sounds.length) {
           throw new AssertionError('sound index out of range');
         }
+        level = decodeExponential(program[pos++]);
         synthProgram = sounds[soundIndex];
         time = 0;
         transposition = 0;
@@ -93,6 +96,9 @@ export function renderScore(
       default:
         if (time == null) {
           throw new AssertionError('time == null');
+        }
+        if (level == null) {
+          throw new AssertionError('level == null');
         }
         // Get rhythm pattern
         const patternIndex = opcode - Opcode.Notes;
@@ -159,7 +165,7 @@ export function renderScore(
             result.set(oldbuf);
           }
           for (let i = 0; i < noteAudio.length; i++) {
-            result[start + i] += noteAudio[i];
+            result[start + i] += noteAudio[i] * level;
           }
         }
         break;

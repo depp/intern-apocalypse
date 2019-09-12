@@ -5,10 +5,12 @@ import {
   splitFields,
   chunkEnd,
   parseIntExact,
+  parseFloatExact,
 } from '../lib/textdata';
 import { SourceError, SourceSpan, HasSourceLoc } from '../lib/sourcepos';
 import { DataWriter } from '../lib/data.writer';
 import { Opcode, signedOffset, noteRewind } from './opcode';
+import { toDataClamp, encodeExponential } from '../lib/data.encode';
 
 // =============================================================================
 // Base data types
@@ -206,6 +208,7 @@ interface Track extends ItemBase {
   kind: Kind.Track;
   name: Chunk;
   instrument: Chunk;
+  level: number;
 }
 
 /** An item in a rhythm pattern. */
@@ -291,15 +294,16 @@ function deftype(name: string, parser: ItemParser): void {
 
 /** Parse an new track directive. */
 deftype('track', function parseTrack(loc, fields): Track {
-  if (fields.length != 2) {
-    throw new SourceError(loc, `track requires 2 fields, got ${fields.length}`);
+  if (fields.length != 3) {
+    throw new SourceError(loc, `track requires 3 fields, got ${fields.length}`);
   }
-  const [name, instrument] = fields;
+  const [name, instrument, level] = fields;
   return {
     kind: Kind.Track,
     loc,
     name,
     instrument,
+    level: 20 * 10 ** parseFloatExact(level),
   };
 });
 
@@ -550,7 +554,7 @@ function getChunk(w: ScoreWriter, name: Chunk): DataChunkResult {
 }
 
 function writeTrack(w: ScoreWriter, item: Track): void {
-  const { name, instrument } = item;
+  const { name, instrument, level } = item;
   let index = w.trackNames.indexOf(name.text);
   if (index == -1) {
     index = w.trackNames.length;
@@ -561,7 +565,11 @@ function writeTrack(w: ScoreWriter, item: Track): void {
     // Caller forgot to supply this instrument.
     throw new AssertionError(`undefined instrument`, { name: instrument.text });
   }
-  w.commands.write(Opcode.Track, index, soundIndex);
+  w.commands.write(
+    Opcode.Track,
+    soundIndex,
+    toDataClamp(encodeExponential(level)),
+  );
   w.trackName = name.text;
   w.transposeLocal = w.transposeGlobal;
   w.softTranspose = 0;
