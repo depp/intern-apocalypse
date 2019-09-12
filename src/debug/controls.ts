@@ -173,6 +173,7 @@ function startGUI(dat: typeof datTypes): void {
     gui.add(data, 'zNear', 0.1, 5.0);
     gui.add(data, 'zFar', 10.0, 100.0);
     gui.add(data, 'speed', 0, 20);
+    gui.add(data, 'border', 0, 20);
   });
 
   folder('Player', playerSettings, playerDefaults, (gui, data) => {

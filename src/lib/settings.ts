@@ -15,17 +15,19 @@ export const debugView = {
 /** Settings for the camera. */
 export const cameraSettings = {
   /** Camera distance from player, in meters. */
-  distance: 10,
+  distance: 15,
   /** Camera elevation, as a slope. */
   elevation: 1,
   /** Zoom. This is proportional to the lens focal length. */
   zoom: 2,
   /** Near Z clip plane distance. */
-  zNear: 0.1,
+  zNear: 5,
   /** Far Z clip plane distance. */
-  zFar: 20,
+  zFar: 40,
   /** Camera movement speed (filtering). */
   speed: 8,
+  /** Maximum distance from level edge. */
+  border: 13,
 };
 
 /** Settings for the player. */

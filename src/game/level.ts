@@ -145,6 +145,8 @@ export interface Edge {
 
 /** A game level, consisting of cells and the edges that connect them. */
 export interface Level {
+  /** Size is the maximum absolute coordinate value (levels are square). */
+  readonly size: number;
   readonly cells: readonly Cell[];
   readonly edges: readonly Edge[];
 
@@ -449,6 +451,7 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
   }
 
   return {
+    size,
     cells: cells as Cell[],
     edges,
     findCell: findCell as (point: Vector) => Cell,
