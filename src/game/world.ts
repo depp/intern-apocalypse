@@ -7,6 +7,7 @@ import { Vector, vector } from '../lib/math';
 import { Random } from '../lib/random';
 import { newNavigationGraph } from './navigation';
 import { packColor } from '../render/util';
+import { AssertionError } from '../debug/debug';
 
 /** Level data for the current level. */
 export let level: Level;
@@ -89,7 +90,7 @@ export function createForest(): void {
   // Mark cells walkable if they are adjacent to cells from a different zone.
   // While we're doing this, find cells on the border of the map to make into
   // exits.
-  let exitCandidates: Cell[][] = [[], [], [], []];
+  let exits: (Cell | undefined)[] = [];
   level.cells.forEach(cell => {
     const zone = zoneAssignments[cell.index];
     let levelBorder = false;
@@ -105,25 +106,33 @@ export function createForest(): void {
       const { x, y } = cell.centroid;
       let whichBorder: number;
       if (x * x > y * y) {
-        whichBorder = 1 - Math.sign(x);
+        const whichBorder = 1 - Math.sign(x);
+        const other = exits[whichBorder];
+        if (!other || other.centroid.y ** 2 > y * y) {
+          exits[whichBorder] = cell;
+        }
       } else {
-        whichBorder = 2 - Math.sign(y);
+        const whichBorder = 2 - Math.sign(y);
+        const other = exits[whichBorder];
+        if (!other || other.centroid.x ** 2 > x * x) {
+          exits[whichBorder] = cell;
+        }
       }
-      exitCandidates[whichBorder].push(cell);
     }
   });
-  console.log(
-    `Exit candidates: ${exitCandidates.map(x => x.length).join(' ')}'`,
-  );
   const colors = [
     packColor(1, 0, 0),
     packColor(0, 1, 0),
     packColor(1, 0, 1),
     packColor(0, 1, 1),
   ];
-  colors.forEach((color, i) =>
-    exitCandidates[i].forEach(cell => (cell.color = color)),
-  );
+  for (let i = 0; i < 4; i++) {
+    const exit = exits[i];
+    if (!exit) {
+      throw new AssertionError(`no exit generated for direction ${i}`);
+    }
+    exit.color = colors[i];
+  }
 
   // const center = cell.center;
   // const distance = Math.max(Math.abs(center.x), Math.abs(center.y));
