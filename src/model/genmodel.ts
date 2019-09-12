@@ -131,7 +131,6 @@ export function upload(
     }
   }
   m.vcount = vertex - offset;
-  console.log(m.vcount, m.icount);
   if (isDebug) {
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
