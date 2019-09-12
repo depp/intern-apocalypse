@@ -89,7 +89,10 @@ function startAudioContext(): void {
   // Play silence. This lets us use the context.
   const silence = audioCtx.createBuffer(1, 1000, sampleRate);
   playBuffer(silence);
-  if (!isDebug) {
+  if (isDebug) {
+    audioData = audioData || [];
+    audioBuffers = audioBuffers || [];
+  } else {
     if (!audioData) {
       throw new AssertionError('audioData == null');
     }
