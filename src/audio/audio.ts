@@ -26,6 +26,12 @@ export function setAudioDebug(index: number, data: Float32Array | null): void {
     audioBuffers = [];
   }
   audioBuffers[index] = null;
+  if (index == musicTrack) {
+    if (musicNode) {
+      musicNode.stop();
+    }
+    musicNode = playSound(index);
+  }
 }
 
 /**
@@ -36,7 +42,7 @@ export function setAudioRelease(data: (Float32Array | null)[]): void {
 }
 
 /** Play a sound with the given buffer. */
-function playBuffer(buffer: AudioBuffer): void {
+function playBuffer(buffer: AudioBuffer): AudioBufferSourceNode {
   if (!audioCtx) {
     throw new AssertionError('audioCtx == null');
   }
@@ -44,10 +50,13 @@ function playBuffer(buffer: AudioBuffer): void {
   source.buffer = buffer;
   source.connect(audioCtx.destination);
   source.start();
+  return source;
 }
 
 /** Play the sound with the given index. */
-export function playSound(index: Sounds | MusicTracks): void {
+export function playSound(
+  index: Sounds | MusicTracks,
+): AudioBufferSourceNode | undefined {
   if (!audioCtx) {
     return;
   }
@@ -68,7 +77,17 @@ export function playSound(index: Sounds | MusicTracks): void {
     buffer.getChannelData(0).set(data);
     audioBuffers[index] = buffer;
   }
-  playBuffer(buffer);
+  return playBuffer(buffer);
+}
+
+let musicTrack: MusicTracks;
+let musicNode: AudioBufferSourceNode | undefined;
+
+export function playMusic(index: MusicTracks): void {
+  if (musicTrack != index) {
+    musicTrack = index;
+    musicNode = playSound(index);
+  }
 }
 
 /**

@@ -2,7 +2,7 @@
  * Main game loop and initialization.
  */
 
-import { playSound } from './audio/audio';
+import { playSound, playMusic } from './audio/audio';
 import { updateCamera } from './game/camera';
 import { startInput, endFrameInput, buttonPress, Button } from './lib/input';
 import { spawnPlayer } from './game/player';
@@ -112,7 +112,7 @@ export function newGame(difficulty: Difficulty): void {
   spawnMonster(vector(-2, 9));
   spawnMonster(vector(6, -9));
   spawnMonster(vector(2, 0));
-  playSound(MusicTracks.Sylvan);
+  playMusic(MusicTracks.Sylvan);
 }
 
 /**
