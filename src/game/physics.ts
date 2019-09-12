@@ -12,7 +12,6 @@ import {
   distance,
   vector,
   normalizeSubtract,
-  zeroVector,
   maddSubtract,
 } from '../lib/math';
 import { EntityBase, Team } from './entity';
@@ -308,18 +307,9 @@ export function updateColliders(): void {
         const edistance = distance(pos1, pos2);
         const overlap = e1.entity.radius + e2.entity.radius - edistance;
         if (overlap > 0) {
-          e1.cpos2 = maddSubtract(
-            e1.cpos2 || pos1,
-            pos1,
-            pos2,
-            (0.5 * overlap) / edistance,
-          );
-          e2.cpos2 = maddSubtract(
-            e2.cpos2 || pos2,
-            pos2,
-            pos1,
-            (0.5 * overlap) / edistance,
-          );
+          const adjust = normalizeSubtract(pos1, pos2);
+          e1.cpos2 = madd(e1.cpos2 || pos1, adjust, 0.5 * overlap);
+          e2.cpos2 = madd(e2.cpos2 || pos2, adjust, -0.5 * overlap);
         }
       }
     }
