@@ -7,14 +7,14 @@ import { renderLevel, initRenderLevel } from './level';
 import { renderModels } from './model';
 import { renderParticles } from './particles';
 import { renderUI, initRenderUI } from './ui';
-import { initRendererUtil } from './util';
+import { initRandomVec4 } from './random';
 
 /**
  * Initialize the renderer state. Creates the WebGL context.
  */
 export function initRenderer(): void {
   startGL();
-  initRendererUtil();
+  initRandomVec4();
   initRenderLevel();
   initRenderUI();
 }

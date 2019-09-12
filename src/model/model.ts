@@ -3,12 +3,10 @@
  */
 
 import { Opcode } from './defs';
-import { gl } from '../lib/global';
 import { AssertionError } from '../debug/debug';
 import { dataMax, decodeExponential, decode } from '../lib/data.encode';
 import { clamp } from '../lib/util';
 import { modelOffset } from '../lib/loader';
-import { ModelPoints, makePoints } from './points';
 import { GenModel } from './genmodel';
 import * as genmodel from './genmodel';
 import { newVector3 } from './util';
@@ -82,11 +80,9 @@ export function loadModel(data: Uint8Array): Model {
   }
   const mesh = genmodel.newModel();
   genmodel.upload(mesh);
-  console.log(mesh);
-  return {
-    mesh,
-    particles: genmodel.newModel(),
-  };
+  const particles = genmodel.newModel();
+  genmodel.uploadParticles(particles);
+  return { mesh, particles };
 }
 
 /** Unload a loaded model. */

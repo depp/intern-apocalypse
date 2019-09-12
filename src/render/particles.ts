@@ -7,14 +7,14 @@ import { gl } from '../lib/global';
 import { particlesInstances } from '../game/entity';
 import { particlesShader, ParticlesAttrib } from './shaders';
 import { models } from '../model/model';
-import { randomVec4 } from './util';
+import { randomVec4 } from './random';
 import { AssertionError } from '../debug/debug';
 import * as genmodel from '../model/genmodel';
 
 /** Render models that are rendered in point cloud mode. */
 export function renderParticles(): void {
   const p = particlesShader;
-  if (!p.program || 1) {
+  if (!p.program) {
     return;
   }
 

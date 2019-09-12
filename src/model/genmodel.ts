@@ -1,4 +1,4 @@
-import { quad, packColor } from '../render/util';
+import { quad, packColor, pointCount } from '../render/util';
 import { AssertionError, isDebug } from '../debug/debug';
 import { gl } from '../lib/global';
 import {
@@ -7,7 +7,10 @@ import {
   crossVector3,
   Vector3,
   getVector3,
+  lengthVector3,
+  lerpVector3,
 } from './util';
+import { globalRandom } from '../lib/random';
 
 /** Maximum number of vertexes. */
 const maxVertexCount = 2048;
@@ -52,6 +55,7 @@ const colorData = new Uint32Array(maxVertexCount);
 const texData = new Float32Array(maxVertexCount * 2);
 const normalData = new Float32Array(maxVertexCount * 3);
 const indexData = new Uint16Array(maxIndexCount);
+const cumulativeTriangleArea = new Float32Array((maxIndexCount + 1) / 3);
 
 const enum Mode {
   None,
@@ -84,30 +88,60 @@ export function start3D(): void {
 }
 
 /** Upload the model data to WebGL. */
-export function upload(m: GenModel, usage: number = 0): void {
+export function upload(
+  m: GenModel,
+  usage: number = 0,
+  offset: number = 0,
+): void {
   usage = usage || gl.STATIC_DRAW;
   gl.bindBuffer(gl.ARRAY_BUFFER, m.pos || (m.pos = gl.createBuffer()));
-  gl.bufferData(gl.ARRAY_BUFFER, posData.subarray(0, vertex * mode), usage);
+  gl.bufferData(
+    gl.ARRAY_BUFFER,
+    posData.subarray(offset * mode, vertex * mode),
+    usage,
+  );
   gl.bindBuffer(gl.ARRAY_BUFFER, m.color || (m.color = gl.createBuffer()));
-  gl.bufferData(gl.ARRAY_BUFFER, colorData.subarray(0, vertex), usage);
-  gl.bindBuffer(gl.ARRAY_BUFFER, m.tex || (m.tex = gl.createBuffer()));
-  gl.bufferData(gl.ARRAY_BUFFER, texData.subarray(0, vertex * 2), usage);
-  if (mode == Mode.Mode3D) {
+  gl.bufferData(gl.ARRAY_BUFFER, colorData.subarray(offset, vertex), usage);
+  if (mode == Mode.Mode2D) {
+    gl.bindBuffer(gl.ARRAY_BUFFER, m.tex || (m.tex = gl.createBuffer()));
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      texData.subarray(offset * 2, vertex * 2),
+      usage,
+    );
+  } else {
     createNormals();
     gl.bindBuffer(gl.ARRAY_BUFFER, m.normal || (m.normal = gl.createBuffer()));
-    gl.bufferData(gl.ARRAY_BUFFER, normalData.subarray(0, vertex * 3), usage);
-    gl.bindBuffer(
-      gl.ELEMENT_ARRAY_BUFFER,
-      m.index || (m.index = gl.createBuffer()),
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      normalData.subarray(offset * 3, vertex * 3),
+      usage,
     );
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexData.subarray(0, index), usage);
+    if (!offset) {
+      gl.bindBuffer(
+        gl.ELEMENT_ARRAY_BUFFER,
+        m.index || (m.index = gl.createBuffer()),
+      );
+      gl.bufferData(
+        gl.ELEMENT_ARRAY_BUFFER,
+        indexData.subarray(0, index),
+        usage,
+      );
+      m.icount = index;
+    }
   }
-  m.vcount = vertex;
-  m.icount = index;
+  m.vcount = vertex - offset;
   if (isDebug) {
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
   }
+}
+
+/** Upload the particle data to WebGL. */
+export function uploadParticles(m: GenModel): void {
+  const offset = vertex;
+  generatePoints();
+  upload(m, 0, offset);
 }
 
 /** Destroy a model and free its buffers. */
@@ -273,7 +307,6 @@ export function endFace(winding: Winding): void {
       faceVertex + i + ((!winding as unknown) as number),
     ];
     indexData.set(indexes, index);
-    index += 3;
     // Calculate normal and area.
     indexes.forEach((i, j) => getVector3(triangleVertexes[j], posData, i));
     subVector3(v1, v1, v0);
@@ -284,6 +317,11 @@ export function endFace(winding: Winding): void {
         normalData[i * 3 + j] += v0[j];
       }
     });
+    const triangle = index / 3;
+    const area = lengthVector3(v0);
+    cumulativeTriangleArea[triangle + 1] =
+      cumulativeTriangleArea[triangle] + area;
+    index += 3;
   }
   if (isDebug) {
     faceVertex = -1;
@@ -320,5 +358,33 @@ function createNormals(): void {
         normalData[i * 3 + j] *= a;
       }
     }
+  }
+}
+
+/** Generate points from a model. */
+function generatePoints(): void {
+  const triangleCount = index / 3;
+  const totalArea = cumulativeTriangleArea[triangleCount];
+  const [v0, v1, v2] = triangleVertexes;
+  for (let i = 0; i < pointCount; i++) {
+    const pos = globalRandom.range() * totalArea;
+    let triangle = 0;
+    while (
+      triangle < triangleCount &&
+      cumulativeTriangleArea[triangle + 1] < pos
+    ) {
+      triangle++;
+    }
+    const indexes = indexData.subarray(triangle * 3, triangle * 3 + 3);
+    indexes.forEach((idx, j) => {
+      getVector3(triangleVertexes[j], posData, idx);
+    });
+    const u = globalRandom.range();
+    const v = globalRandom.range();
+    lerpVector3(v0, v0, v1, u + v > 1 ? 1 - u : u);
+    lerpVector3(v0, v0, v2, u + v > 1 ? 1 - v : v);
+    posData.set(v0, vertex * 3);
+    colorData[vertex] = colorData[indexes[0]];
+    vertex++;
   }
 }

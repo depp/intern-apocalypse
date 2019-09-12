@@ -1,5 +1,7 @@
 import { clamp } from '../lib/util';
-import { makeRandom } from '../model/random';
+
+/** Number of points generated in particle effects. */
+export const pointCount = 1024;
 
 /* A unit quad as two triangles. Index, XY. */
 export const quad: readonly (readonly number[])[] = [
@@ -26,12 +28,4 @@ export function packColor(
   return (
     floatTo8(r) | (floatTo8(g) << 8) | (floatTo8(b) << 16) | (floatTo8(a) << 24)
   );
-}
-
-/** A WebGL buffer with data from makeRandom. */
-export let randomVec4: WebGLBuffer | null | undefined;
-
-/** Initialize renderer utility library. Requires WebGL context. */
-export function initRendererUtil(): void {
-  randomVec4 = makeRandom();
 }
