@@ -1,16 +1,15 @@
 import { gl, canvas, getMousePos } from '../lib/global';
 import { AssertionError, isDebug } from '../debug/debug';
 import { uiShader, UiAttrib } from './shaders';
-import { quad, packColor } from './util';
 import { roundUpPow2 } from '../lib/util';
 import { Vector, vector } from '../lib/math';
-import { levelTime } from '../game/time';
 import {
   playerHealth,
   playerHealthMax,
   playerMana,
   playerManaMax,
 } from '../game/player';
+import * as genmodel from './genmodel';
 
 /** If true, we are drawing the HUD. */
 let hudMode: boolean | undefined;
@@ -49,17 +48,11 @@ let textureSize!: Vector;
 let ctx!: CanvasRenderingContext2D;
 
 let texture: WebGLTexture | null;
-let posBuffer: WebGLBuffer | null;
-let colorBuffer: WebGLBuffer | null;
-let texBuffer: WebGLBuffer | null;
-let elementCount: number | undefined;
+let gmodel = genmodel.newModel();
 
 /** Initialize the UI renderer. */
 export function initRenderUI(): void {
   texture = gl.createTexture();
-  posBuffer = gl.createBuffer();
-  colorBuffer = gl.createBuffer();
-  texBuffer = gl.createBuffer();
 }
 
 /** Initialize the drawing context. Must be called before drawing operations. */
@@ -75,7 +68,6 @@ function initContext(): void {
   textureSize = vector(roundUpPow2(canvasSize.x), roundUpPow2(canvasSize.y));
   offscreenCanvas.width = textureSize.x;
   offscreenCanvas.height = textureSize.y;
-  // ctx.clearRect(0, 0, textureSize.x, textureSize.y);
 }
 
 function getFont(item: PositionedMenuItem): string {
@@ -115,20 +107,6 @@ function updateTexture(): void {
   );
   gl.generateMipmap(gl.TEXTURE_2D);
   gl.bindTexture(gl.TEXTURE_2D, null);
-}
-
-/** Update the vertex buffer data. */
-function updateBuffers(
-  pos: Float32Array,
-  color: Uint32Array,
-  tex: Float32Array,
-): void {
-  gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, pos, gl.STATIC_DRAW);
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, color, gl.STATIC_DRAW);
-  gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, tex, gl.STATIC_DRAW);
 }
 
 /** Update the menu graphics data. */
@@ -177,11 +155,7 @@ function updateMenu(): void {
     item.v1 = vpos | 0;
   }
 
-  elementCount = itemcount * 6;
-  const pos = new Float32Array(elementCount * 2);
-  const color = new Uint32Array(elementCount);
-  const tex = new Float32Array(elementCount * 2);
-  let off = 0;
+  genmodel.start2D();
 
   for (const item of items) {
     if (!item.lines) {
@@ -198,31 +172,18 @@ function updateMenu(): void {
     ctx.fillStyle = '#000';
     ctx.shadowBlur = 10;
     ctx.shadowColor = '#fff';
-    // ctx.lineWidth = 6;
-    // ctx.lineJoin = 'round';
-    // ctx.strokeText(item.text, 0, 0);
-    // ctx.fillRect(-150, -2, 300, 4);
     for (const line of item.lines) {
       ctx.fillText(line, 0, 0);
       ctx.translate(0, lineHeight);
     }
     ctx.restore();
 
-    for (const [i, x, y] of quad) {
-      pos.set([x * canvasSize.x, y ? item.y1 : item.y0], (off + i) * 2);
-      tex.set([x * canvasSize.x, y ? item.v1 : item.v0], (off + i) * 2);
-    }
-    color.fill(
-      packColor(Math.random(), Math.random(), Math.random()),
-      off,
-      off + 6,
-    );
-
-    off += 6;
+    genmodel.setRandomColor();
+    genmodel.addQuad(0, item.v0, 0, item.y0, canvasSize.x, item.y1 - item.y0);
   }
 
   updateTexture();
-  updateBuffers(pos, color, tex);
+  genmodel.upload(gmodel);
 }
 
 function drawStatusBars(): void {
@@ -289,57 +250,30 @@ export function startHUD(): void {
   updateTexture();
 }
 
-/** Set the buffer to draw the full UI texture. */
-function drawFullTexture() {
-  elementCount = 6;
-  const pos = new Float32Array(elementCount * 2);
-  const color = new Uint32Array(elementCount);
-  const tex = new Float32Array(elementCount * 2);
-
-  for (const [i, x, y] of quad) {
-    pos.set([x * canvasSize.x, y * canvasSize.x], i * 2);
-    tex.set([x * canvasSize.x, y * canvasSize.x], i * 2);
-  }
-  color.fill(-1);
-  updateBuffers(pos, color, tex);
-}
-
 /** Update the hud data. */
 function updateHUD(): void {
-  const maxSize = 4 * 6;
-  const pos = new Float32Array(maxSize * 2);
-  const color = new Uint32Array(maxSize);
-  const tex = new Float32Array(maxSize * 2);
-  let off = 0;
-  function put(
-    u0: number,
-    v0: number,
-    x0: number,
-    y0: number,
-    w: number,
-    h: number,
-  ): void {
-    for (const [i, x, y] of quad) {
-      pos.set([x0 + x * w, y0 + y * h], (off + i) * 2);
-      tex.set([u0 + x * w, v0 + y * h], (off + i) * 2);
-    }
-    off += 6;
-  }
-  color.fill(-1);
+  genmodel.start2D();
   if (playerHealthMax) {
     const health = playerHealth / playerHealthMax;
     const off = playerManaMax ? 0 : 200;
-    put(0, 0, 50 + off, 0, 300, 32);
-    put(0, 32, 50 + off, 0, health < 1 ? 25 + 250 * health : 300, 32);
+    genmodel.addQuad(0, 0, 50 + off, 0, 300, 32);
+    genmodel.addQuad(
+      0,
+      32,
+      50 + off,
+      0,
+      health < 1 ? 25 + 250 * health : 300,
+      32,
+    );
   }
   if (playerManaMax) {
     const mana = playerMana / playerManaMax;
     const d = mana < 1 ? 275 - 250 * mana : 0;
-    put(0, 0, 450, 0, 300, 32);
-    put(0 + d, 64, 450 + d, 0, 300 - d, 32);
+    genmodel.addQuad(0, 0, 450, 0, 300, 32);
+    genmodel.addQuad(0 + d, 64, 450 + d, 0, 300 - d, 32);
   }
-  elementCount = off;
-  updateBuffers(pos, color, tex);
+  genmodel.upload(gmodel);
+  console.log(gmodel);
 }
 
 /**
@@ -355,7 +289,7 @@ export function renderUI(): void {
     updateHUD();
   }
 
-  if (!elementCount) {
+  if (!gmodel.vcount) {
     return;
   }
 
@@ -364,17 +298,8 @@ export function renderUI(): void {
   gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
   // Attributes
-  gl.enableVertexAttribArray(UiAttrib.Pos);
-  gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-  gl.vertexAttribPointer(UiAttrib.Pos, 2, gl.FLOAT, false, 0, 0);
-
-  gl.enableVertexAttribArray(UiAttrib.Color);
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  gl.vertexAttribPointer(UiAttrib.Color, 4, gl.UNSIGNED_BYTE, true, 0, 0);
-
-  gl.enableVertexAttribArray(UiAttrib.TexCoord);
-  gl.bindBuffer(gl.ARRAY_BUFFER, texBuffer);
-  gl.vertexAttribPointer(UiAttrib.TexCoord, 2, gl.FLOAT, false, 0, 0);
+  genmodel.enableAttr(UiAttrib.Pos, UiAttrib.Color, UiAttrib.TexCoord);
+  genmodel.bind2D(gmodel, UiAttrib.Pos, UiAttrib.Color, UiAttrib.TexCoord);
 
   // Textures
   gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -390,13 +315,11 @@ export function renderUI(): void {
   gl.uniform1i(p.Texture, 0);
 
   // Draw
-  gl.drawArrays(gl.TRIANGLES, 0, elementCount);
+  gl.drawArrays(gl.TRIANGLES, 0, gmodel.vcount);
 
   // Cleanup
   gl.disable(gl.BLEND);
-  gl.disableVertexAttribArray(UiAttrib.Pos);
-  gl.disableVertexAttribArray(UiAttrib.Color);
-  gl.disableVertexAttribArray(UiAttrib.TexCoord);
+  genmodel.disableAttr(UiAttrib.Pos, UiAttrib.Color, UiAttrib.TexCoord);
   gl.bindTexture(gl.TEXTURE_2D, null);
 }
 
@@ -452,6 +375,6 @@ export function startMenu(): void {
 
 /** Stop displaying any menu. */
 export function endMenu(): void {
-  elementCount = 0;
+  gmodel.vcount = 0;
   canvas.removeEventListener('click', menuClick);
 }

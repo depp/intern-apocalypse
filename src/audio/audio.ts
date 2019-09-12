@@ -78,6 +78,7 @@ function startAudioContext(): void {
   if (audioCtx != null) {
     return;
   }
+  console.error('here');
   try {
     audioCtx = new ((window as any).AudioContext ||
       (window as any).webkitAudioContext)() as AudioContext;
