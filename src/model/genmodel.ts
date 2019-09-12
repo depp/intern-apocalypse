@@ -6,7 +6,7 @@ import {
   subVector3,
   crossVector3,
   Vector3,
-  getTriangle,
+  getVector3,
 } from './util';
 
 /** Maximum number of vertexes. */
@@ -80,6 +80,7 @@ export function start3D(): void {
   vertex = 0;
   index = 0;
   color = -1;
+  normalData.fill(0);
 }
 
 /** Upload the model data to WebGL. */
@@ -253,6 +254,8 @@ export const enum Winding {
   CW,
 }
 
+const triangleVertexes = [newVector3(), newVector3(), newVector3()];
+
 /** End a face, and emit the triangles. */
 export function endFace(winding: Winding): void {
   if (faceVertex < 0) {
@@ -262,16 +265,25 @@ export function endFace(winding: Winding): void {
   if (size < 3) {
     throw new AssertionError('degenerate face');
   }
+  const [v0, v1, v2] = triangleVertexes;
   for (let i = 1; i < size - 1; i++) {
-    indexData.set(
-      [
-        faceVertex,
-        faceVertex + i + winding,
-        faceVertex + i + ((!winding as unknown) as number),
-      ],
-      index,
-    );
+    const indexes = [
+      faceVertex,
+      faceVertex + i + winding,
+      faceVertex + i + ((!winding as unknown) as number),
+    ];
+    indexData.set(indexes, index);
     index += 3;
+    // Calculate normal and area.
+    indexes.forEach((i, j) => getVector3(triangleVertexes[j], posData, i));
+    subVector3(v1, v1, v0);
+    subVector3(v2, v2, v0);
+    crossVector3(v0, v1, v2);
+    indexes.forEach(i => {
+      for (let j = 0; j < 3; j++) {
+        normalData[i * 3 + j] += v0[j];
+      }
+    });
   }
   if (isDebug) {
     faceVertex = -1;
@@ -297,21 +309,6 @@ export function getTriangle(out: Vector3[], offset: number): void {
  * Create normals for the model.
  */
 function createNormals(): void {
-  normalData.fill(0);
-  const vectors = [newVector3(), newVector3(), newVector3()];
-  const [v0, v1, v2] = vectors;
-  for (let offset = 0; offset < index; offset += 3) {
-    getTriangle(vectors, posData);
-    subVector3(v1, v1, v0);
-    subVector3(v2, v2, v0);
-    crossVector3(v0, v1, v2);
-    for (let j = 0; j < 3; j++) {
-      const i0 = 3 * indexData[offset + j];
-      for (let k = 0; k < 3; k++) {
-        normalData[i0 + k] += v0[k];
-      }
-    }
-  }
   for (let i = 0; i < vertex; i++) {
     let m = 0;
     for (let j = 0; j < 3; j++) {
