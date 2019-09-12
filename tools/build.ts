@@ -143,6 +143,11 @@ function parseArgs(): BuildArgs {
         default: true,
         desc: 'Allow aggressive minification with Terser',
       },
+      'mangle': {
+        type: 'boolean',
+        default: true,
+        desc: 'Allow name mangling with Terser',
+      },
       'beautify': {
         type: 'boolean',
         default: false,
@@ -195,6 +200,7 @@ function parseArgs(): BuildArgs {
     port: (argv.port as number) || 0,
     showBuildTimes: argv['show-build-times'],
     minify: argv.minify,
+    mangle: argv.mangle,
     beautify: argv.beautify,
     keepConsole: argv['keep-console'],
   };

@@ -125,11 +125,13 @@ function minifyPlugin(config: BuildArgs): rollup.Plugin {
           unsafe: true,
           unsafe_arrows: true,
         };
-        options.mangle = {
-          properties: {
-            keep_quoted: true,
-          },
-        };
+        if (config.mangle) {
+          options.mangle = {
+            properties: {
+              keep_quoted: true,
+            },
+          };
+        }
       }
       const { code, map } = terser.minify(input, options);
       if (!code) {

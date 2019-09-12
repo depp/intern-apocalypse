@@ -45,6 +45,8 @@ export interface BuildArgs {
   showBuildTimes: boolean;
   /** Allow aggressive minification with Terser. */
   minify: boolean;
+  /** Allow name mangling during minification. */
+  mangle: boolean;
   /** Run output through Prettier. */
   beautify: boolean;
   /** Keep console statements. */
