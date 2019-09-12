@@ -90,19 +90,29 @@ export function createForest(): void {
   // Mark cells walkable if they are adjacent to cells from a different zone.
   // While we're doing this, find cells on the border of the map to make into
   // exits.
-  let exits: (Cell | undefined)[] = [];
+  const exits: (Cell | undefined)[] = [];
+  // Flags for cells close to the border.
+  const nearBorderCellFlag = new Uint8Array(cellCount);
   level.cells.forEach(cell => {
     const zone = zoneAssignments[cell.index];
-    let levelBorder = false;
+    let onBorder = false;
+    const { x, y } = cell.centroid;
+    let nearBorder = Math.max(Math.abs(x), Math.abs(y)) > size - border;
     cell.walkable = false;
     for (const edge of cell.edges()) {
       if (!edge.back) {
-        levelBorder = true;
+        onBorder = true;
       } else if (zoneAssignments[edge.back.cell.index] != zone) {
         cell.walkable = true;
       }
     }
-    if (levelBorder && cell.walkable) {
+    if (!cell.walkable) {
+      return;
+    }
+    if (nearBorder || onBorder) {
+      nearBorderCellFlag[cell.index] = 1;
+    }
+    if (onBorder) {
       const { x, y } = cell.centroid;
       let whichBorder: number;
       if (x * x > y * y) {
@@ -126,13 +136,33 @@ export function createForest(): void {
     packColor(1, 0, 1),
     packColor(0, 1, 1),
   ];
+  // Fill in all the cells near the border that are not exits.
   for (let i = 0; i < 4; i++) {
+    const fill: Cell[] = [];
     const exit = exits[i];
     if (!exit) {
       throw new AssertionError(`no exit generated for direction ${i}`);
     }
+    fill.push(exit);
     exit.color = colors[i];
+    while (fill.length) {
+      const cell = fill.pop()!;
+      if (nearBorderCellFlag[cell.index]) {
+        cell.color = colors[i];
+        nearBorderCellFlag[cell.index] = 0;
+        for (const edge of cell.edges()) {
+          if (edge.back) {
+            fill.push(edge.back.cell);
+          }
+        }
+      }
+    }
   }
+  nearBorderCellFlag.forEach((flag, index) => {
+    if (flag) {
+      level.cells[index].walkable = false;
+    }
+  });
 
   // const center = cell.center;
   // const distance = Math.max(Math.abs(center.x), Math.abs(center.y));
