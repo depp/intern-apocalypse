@@ -9,116 +9,67 @@ import { Random } from '../lib/random';
 import { clamp } from '../lib/util';
 import { levelShader, LevelAttrib } from './shaders';
 import { Edge } from '../game/level';
-import { concatArrays } from '../lib/array';
+import { GenModel } from '../model/genmodel';
+import * as genmodel from '../model/genmodel';
+import { packColor } from './util';
 
-let indexBuf!: WebGLBuffer | null;
-let posBuf!: WebGLBuffer | null;
-let colorBuf!: WebGLBuffer | null;
-let elementCount: number | undefined;
+const model = genmodel.newModel();
 
 const random = new Random(9876);
 
-function flatColor(n: number, walkable: boolean): Uint8Array {
-  const array = new Uint8Array(n * 4);
+function cellColor(walkable: boolean): number {
   const luminance =
     random.range(0.2, 0.4) + ((walkable as unknown) as number) * 0.6;
-  const val = clamp((luminance * 256) | 0, 0, 255);
-  for (let i = 0; i < n; i++) {
-    array.set([val, val, val, 255], i * 4);
-  }
-  return array;
+  return packColor(luminance, luminance, luminance);
 }
 
 /**
  * Create the level geometry.
  */
 function createGeometry(): void {
-  const cellIndexList: Uint16Array[] = [];
-  const cellPosList: Float32Array[] = [];
-  const cellColorList: Uint8Array[] = [];
-  let index = 0;
+  genmodel.start3D();
   const wallHeight = 0.7;
   for (const cell of level.cells) {
+    genmodel.setColor(cellColor(cell.walkable));
     const z = ((!cell.walkable as unknown) as number) * wallHeight;
     const edges: Readonly<Edge>[] = Array.from(cell.edges());
     const n = edges.length;
-    const cellIndex = new Uint16Array((n - 2) * 3);
-    const cellPos = new Float32Array(n * 3);
-    for (let i = 0; i < n - 2; i++) {
-      cellIndex[i * 3] = index + 0;
-      cellIndex[i * 3 + 1] = index + i + 1;
-      cellIndex[i * 3 + 2] = index + i + 2;
-    }
-    index += n;
+    genmodel.startFace();
     for (let i = 0; i < n; i++) {
-      const { x, y } = edges[i].vertex0;
-      cellPos[i * 3] = x;
-      cellPos[i * 3 + 1] = y;
-      cellPos[i * 3 + 2] = z;
+      const v = edges[i].vertex0;
+      genmodel.addVertex([v.x, v.y, z]);
     }
-    cellIndexList.push(cellIndex);
-    cellPosList.push(cellPos);
-    cellColorList.push(flatColor(n, cell.walkable));
+    genmodel.endFace();
     if (!cell.walkable) {
       for (const edge of edges) {
         const { back } = edge;
         if (back && back.cell!.walkable) {
           const { vertex0, vertex1 } = edge;
-          cellIndexList.push(
-            new Uint16Array([
-              index + 0,
-              index + 1,
-              index + 2,
-              index + 2,
-              index + 1,
-              index + 3,
-            ]),
-          );
-          index += 4;
-          cellPosList.push(
-            new Float32Array([
-              vertex0.x,
-              vertex0.y,
-              0,
-              vertex1.x,
-              vertex1.y,
-              0,
-              vertex0.x,
-              vertex0.y,
-              wallHeight,
-              vertex1.x,
-              vertex1.y,
-              wallHeight,
-            ]),
-          );
-          cellColorList.push(flatColor(4, cell.walkable));
+          genmodel.startFace();
+          genmodel.addVertex([
+            vertex0.x,
+            vertex0.y,
+            0,
+            vertex1.x,
+            vertex1.y,
+            0,
+            vertex1.x,
+            vertex1.y,
+            z,
+            vertex0.x,
+            vertex0.y,
+            z,
+          ]);
+          genmodel.endFace();
         }
       }
     }
   }
-  const indexData = concatArrays(Uint16Array, cellIndexList);
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuf);
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexData, gl.STATIC_DRAW);
-  gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-  gl.bufferData(
-    gl.ARRAY_BUFFER,
-    concatArrays(Float32Array, cellPosList),
-    gl.STATIC_DRAW,
-  );
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuf);
-  gl.bufferData(
-    gl.ARRAY_BUFFER,
-    concatArrays(Uint8Array, cellColorList),
-    gl.STATIC_DRAW,
-  );
-  elementCount = indexData.length;
+  genmodel.upload(model);
 }
 
 /** Initialize the level renderer. */
 export function initRenderLevel(): void {
-  indexBuf = gl.createBuffer();
-  posBuf = gl.createBuffer();
-  colorBuf = gl.createBuffer();
   createGeometry();
 }
 
@@ -127,22 +78,15 @@ export function initRenderLevel(): void {
  */
 export function renderLevel(): void {
   const p = levelShader;
-  if (!p.program || !elementCount) {
+  if (!p.program || !model.icount) {
     return;
   }
 
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuf);
-  gl.bindBuffer(gl.ARRAY_BUFFER, posBuf);
-  gl.vertexAttribPointer(LevelAttrib.Pos, 3, gl.FLOAT, false, 0, 0);
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuf);
-  gl.vertexAttribPointer(LevelAttrib.Color, 4, gl.UNSIGNED_BYTE, true, 0, 0);
-
   gl.useProgram(p.program);
-  gl.enableVertexAttribArray(LevelAttrib.Pos);
-  gl.enableVertexAttribArray(LevelAttrib.Color);
-  gl.uniformMatrix4fv(p.ModelViewProjection, false, cameraMatrix);
-  gl.drawElements(gl.TRIANGLES, elementCount, gl.UNSIGNED_SHORT, 0);
 
-  gl.disableVertexAttribArray(LevelAttrib.Pos);
-  gl.disableVertexAttribArray(LevelAttrib.Color);
+  genmodel.enableAttr(LevelAttrib.Pos, LevelAttrib.Color);
+  genmodel.bind3D(model, LevelAttrib.Pos, LevelAttrib.Color, -1, -1);
+  gl.uniformMatrix4fv(p.ModelViewProjection, false, cameraMatrix);
+  gl.drawElements(gl.TRIANGLES, model.icount, gl.UNSIGNED_SHORT, 0);
+  genmodel.disableAttr(LevelAttrib.Pos, LevelAttrib.Color);
 }

@@ -291,7 +291,7 @@ export const enum Winding {
 const triangleVertexes = [newVector3(), newVector3(), newVector3()];
 
 /** End a face, and emit the triangles. */
-export function endFace(winding: Winding): void {
+export function endFace(winding: Winding = Winding.CCW): void {
   if (faceVertex < 0) {
     throw new AssertionError('no face to end');
   }
@@ -330,9 +330,13 @@ export function endFace(winding: Winding): void {
 
 /** Add a single vertex to the 3D model. */
 export function addVertex(position: ArrayLike<number>): void {
+  const count = position.length / 3;
+  if ((count | 0) != count) {
+    throw new AssertionError('invalid vertex data length', { count });
+  }
   posData.set(position, vertex * 3);
-  colorData[vertex] = color;
-  vertex++;
+  colorData.fill(color, vertex, vertex + count);
+  vertex += count;
 }
 
 /** Get triangle data from an indexed data array. */
