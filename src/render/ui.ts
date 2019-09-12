@@ -15,10 +15,6 @@ import {
 /** If true, we are drawing the HUD. */
 let hudMode: boolean | undefined;
 
-export interface Menu {
-  click?(): void;
-}
-
 export interface MenuItem {
   text?: string;
   size?: number;
@@ -28,9 +24,9 @@ export interface MenuItem {
 }
 
 /** A menu which has been positioned and rendered. */
-interface PositionedMenu extends Menu {
+interface Menu {
   items: PositionedMenuItem[];
-  next: PositionedMenu | undefined | null;
+  next: Menu | undefined | null;
 }
 
 /** A menu item which has been positioned. */
@@ -45,7 +41,7 @@ interface PositionedMenuItem extends MenuItem {
   v1: number;
 }
 
-let currentMenu: PositionedMenu | undefined | null;
+let currentMenu: Menu | undefined | null;
 
 let offscreenCanvas!: HTMLCanvasElement;
 let canvasSize!: Vector;
@@ -412,9 +408,6 @@ function menuClick(event: MouseEvent) {
   if (currentMenu == null) {
     throw new AssertionError('no menu');
   }
-  if (currentMenu.click) {
-    currentMenu.click();
-  }
   const { y } = getMousePos(event);
   for (const item of currentMenu.items) {
     if (item.click && item.y0 <= y && y < item.y1) {
@@ -424,27 +417,24 @@ function menuClick(event: MouseEvent) {
 }
 
 /** Push a new menu to the top of the stack. */
-export function pushMenu(menu: Menu, ...menuItems: MenuItem[]): void {
-  currentMenu = Object.assign(
-    {
-      items: menuItems.map(item =>
-        Object.assign(
-          {
-            size: 1,
-            flexspace: 0,
-            space: 0,
-            y0: 0,
-            y1: 0,
-            v0: 0,
-            v1: 0,
-          },
-          item,
-        ),
+export function pushMenu(...menuItems: MenuItem[]): void {
+  currentMenu = {
+    items: menuItems.map(item =>
+      Object.assign(
+        {
+          size: 1,
+          flexspace: 0,
+          space: 0,
+          y0: 0,
+          y1: 0,
+          v0: 0,
+          v1: 0,
+        },
+        item,
       ),
-      next: currentMenu,
-    },
-    menu,
-  );
+    ),
+    next: currentMenu,
+  };
   updateMenu();
 }
 

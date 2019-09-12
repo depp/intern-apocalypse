@@ -15,7 +15,6 @@ import {
   popMenu,
   startHUD,
   MenuItem,
-  Menu,
 } from './render/ui';
 import { spawnMonster } from './game/monster';
 import { Difficulty, setDifficulty } from './game/difficulty';
@@ -36,9 +35,8 @@ export function initialize(): void {
 /** The game state as of the last frame. */
 let lastState: State | undefined;
 
-function pushFrontMenu(menu: Menu, ...items: MenuItem[]): void {
+function pushFrontMenu(...items: MenuItem[]): void {
   pushMenu(
-    menu,
     { space: 32 },
     {
       text: "I Want to Help Fight the Demon Overlord, but I'm Just an Intern!",
@@ -52,18 +50,17 @@ function pushFrontMenu(menu: Menu, ...items: MenuItem[]): void {
 }
 
 function pushLoadingMenu(): void {
-  pushFrontMenu({}, { text: 'Loading...' });
+  pushFrontMenu({ text: 'Loading...' });
 }
 
 /** Show the main menu. */
 function pushMainMenu(): void {
-  pushFrontMenu({}, { text: 'New Game', click: pushNewGameMenu });
+  pushFrontMenu({ text: 'New Game', click: pushNewGameMenu });
 }
 
 /** Show the new game menu. */
 function pushNewGameMenu(): void {
   pushMenu(
-    {},
     { flexspace: 1 },
     { text: 'Select Difficulty', size: 1.5 },
     { space: 32 },
@@ -77,7 +74,6 @@ function pushNewGameMenu(): void {
 
 function pushDeadMenu(): void {
   pushMenu(
-    {},
     { text: 'You Have Died.', size: 2 },
     { text: 'This will be reflected on your performance review.' },
   );
