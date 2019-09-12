@@ -4,14 +4,14 @@
 
 /** The contents of an audio program. */
 export interface AudioProgramMessage {
-  kind: 'sound-program' | 'music-program';
+  kind: 'audio-program';
   index: number;
   data: Uint8Array | null;
 }
 
-/** A request to render music data. */
+/** Set the current music track. */
 export interface RenderMusicMessage {
-  kind: 'render-music';
+  kind: 'set-music';
   index: number;
 }
 
@@ -20,7 +20,7 @@ export type WorkerRequest = AudioProgramMessage | RenderMusicMessage;
 
 /** The result of evaluating audio data. */
 export interface AudioResultMessage {
-  kind: 'sound-result' | 'music-result';
+  kind: 'audio-result';
   index: number;
   data: Float32Array | null;
 }

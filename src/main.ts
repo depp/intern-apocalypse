@@ -2,13 +2,21 @@
  * Main game loop and initialization.
  */
 
-import { startAudio, playMusic } from './audio/audio';
+import { playSound } from './audio/audio';
 import { updateCamera } from './game/camera';
 import { startInput, endFrameInput } from './lib/input';
 import { spawnPlayer } from './game/player';
 import { render } from './render/render';
 import { State, currentState, setState } from './lib/global';
-import { startMenu, pushMenu, endMenu, popMenu, startHUD } from './render/ui';
+import {
+  startMenu,
+  pushMenu,
+  endMenu,
+  popMenu,
+  startHUD,
+  MenuItem,
+  Menu,
+} from './render/ui';
 import { spawnMonster } from './game/monster';
 import { Difficulty, setDifficulty } from './game/difficulty';
 import { vector } from './lib/math';
@@ -27,24 +35,28 @@ export function initialize(): void {
 /** The game state as of the last frame. */
 let lastState: State | undefined;
 
-/** Show the main menu. */
-function pushMainMenu(): void {
+function pushFrontMenu(menu: Menu, ...items: MenuItem[]): void {
   pushMenu(
-    {
-      click() {
-        startAudio();
-      },
-    },
+    menu,
     { space: 32 },
     {
       text: "I Want to Help Fight the Demon Overlord, but I'm Just an Intern!",
       size: 1.8,
     },
     { flexspace: 1 },
-    { text: 'New Game', click: pushNewGameMenu },
+    ...items,
     { flexspace: 1 },
     { text: 'Made for JS13K 2019 by @DietrichEpp', size: 0.5 },
   );
+}
+
+function pushLoadingMenu(): void {
+  pushFrontMenu({}, { text: 'Loading...' });
+}
+
+/** Show the main menu. */
+function pushMainMenu(): void {
+  pushFrontMenu({}, { text: 'New Game', click: pushNewGameMenu });
 }
 
 /** Show the new game menu. */
@@ -72,7 +84,7 @@ export function newGame(difficulty: Difficulty): void {
   spawnMonster(vector(-2, 9));
   spawnMonster(vector(6, -9));
   spawnMonster(vector(2, 0));
-  playMusic(MusicTracks.Sylvan);
+  playSound(MusicTracks.Sylvan);
 }
 
 /**
@@ -84,6 +96,10 @@ export function main(curTimeMS: DOMHighResTimeStamp): void {
   updateTime(curTimeMS);
   if (currentState != lastState) {
     switch (currentState) {
+      case State.Loading:
+        startMenu();
+        pushLoadingMenu();
+        break;
       case State.MainMenu:
         startMenu();
         pushMainMenu();

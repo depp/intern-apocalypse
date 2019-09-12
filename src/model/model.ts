@@ -3,7 +3,7 @@
  */
 
 import { Opcode } from './defs';
-import { gl, bundledData } from '../lib/global';
+import { gl } from '../lib/global';
 import { AssertionError } from '../debug/debug';
 import { dataMax, decodeExponential, decode } from '../lib/data.encode';
 import { clamp } from '../lib/util';
@@ -161,6 +161,6 @@ export function unloadModel(model: Model): void {
 export let models: (Model | null)[] = [];
 
 /** Load all models embedded in the release build. */
-export function loadModels(): void {
-  models = bundledData[modelOffset].split(' ').map(x => loadModel(decode(x)));
+export function loadModels(data: readonly string[]): void {
+  models = data[modelOffset].split(' ').map(x => loadModel(decode(x)));
 }

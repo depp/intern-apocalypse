@@ -1,5 +1,5 @@
 import { watchFile } from './files';
-import { getSoundNames, getMusicNames } from '../audio/sounds';
+import { getSoundNames, getMusicNames, firstMusicTrack } from '../audio/sounds';
 import { SourceError, SourceText } from '../lib/sourcepos';
 import { parseSExpr } from '../lib/sexpr';
 import { evaluateProgram, soundParameters } from '../synth/evaluate';
@@ -11,7 +11,6 @@ import { AssertionError } from './debug';
 import { sendMessage } from './worker';
 
 interface AssetInfo {
-  kind: 'sound' | 'music';
   index: number;
   filename: string;
   isDirty: boolean;
@@ -58,38 +57,24 @@ function updateAsset(info: AssetInfo) {
     return;
   }
   info.isDirty = false;
-  const { kind, index, filename, source } = info;
+  const { index, filename, source } = info;
   if (!source) {
     return;
   }
   if (hashVariables.logAssets) {
     console.log(`Loading ${info.filename}`);
   }
-  switch (kind) {
-    case 'sound':
-      {
-        const data = loadAudioProgram(filename, source);
-        sendMessage({ kind: 'sound-program', index, data });
-      }
-      break;
-    case 'music':
-      {
-        const data = loadMusicTrack(filename, source);
-        sendMessage({ kind: 'music-program', index, data });
-      }
-      break;
-    default:
-      throw new AssertionError('invalid kind', { kind });
+  let data: Uint8Array | null;
+  if (index < firstMusicTrack) {
+    data = loadAudioProgram(filename, source);
+  } else {
+    data = loadMusicTrack(filename, source);
   }
+  sendMessage({ kind: 'audio-program', index, data });
 }
 
-function watchAsset(
-  kind: 'sound' | 'music',
-  index: number,
-  filename: string,
-): void {
+function watchAsset(index: number, filename: string): void {
   const info: AssetInfo = {
-    kind,
     index,
     filename,
     isDirty: false,
@@ -110,7 +95,7 @@ export function watchSounds(): void {
   const soundNames = getSoundNames();
   for (let index = 0; index < soundNames.length; index++) {
     const filename = soundNames[index];
-    watchAsset('sound', index, soundNames[index]);
+    watchAsset(index, soundNames[index]);
     const match = /^audio\/(.*?)\./.exec(filename);
     if (!match) {
       throw new AssertionError('bad name', { filename });
@@ -119,6 +104,6 @@ export function watchSounds(): void {
   }
   const musicNames = getMusicNames();
   for (let index = 0; index < musicNames.length; index++) {
-    watchAsset('music', index, musicNames[index]);
+    watchAsset(index + firstMusicTrack, musicNames[index]);
   }
 }

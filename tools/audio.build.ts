@@ -68,6 +68,7 @@ function generateDefs(sounds: SoundInfo[], music: SoundInfo[]): string {
   out += generatedHeader;
   interface Data {
     items: SoundInfo[];
+    startValue: number;
     doc1: string;
     name1: string;
     doc2: string;
@@ -76,6 +77,7 @@ function generateDefs(sounds: SoundInfo[], music: SoundInfo[]): string {
   const data: Data[] = [
     {
       items: sounds,
+      startValue: 0,
       doc1: 'Sound asset identifiers.',
       name1: 'Sounds',
       doc2: 'Get list of sound filenames, in order.',
@@ -83,18 +85,27 @@ function generateDefs(sounds: SoundInfo[], music: SoundInfo[]): string {
     },
     {
       items: music,
+      startValue: sounds.length,
       doc1: 'Music track asset identifiers.',
       name1: 'MusicTracks',
       doc2: 'Get list of music score filenames, in order.',
       name2: 'getMusicNames',
     },
   ];
-  for (const { items, doc1, name1, doc2, name2 } of data) {
+  for (const { items, startValue, doc1, name1, doc2, name2 } of data) {
+    let value = startValue;
     out += '\n';
     out += `/** ${doc1} */\n`;
     out += `export const enum ${name1} {\n`;
     for (const { name } of items) {
-      out += `  ${name},\n`;
+      out += '  ';
+      out += name;
+      if (value) {
+        out += ' = ';
+        out += value;
+        value = 0;
+      }
+      out += ',\n';
     }
     out += '}\n';
 
@@ -104,6 +115,11 @@ function generateDefs(sounds: SoundInfo[], music: SoundInfo[]): string {
     out += `  return ${JSON.stringify(items.map(m => m.filename))};\n`;
     out += '}\n';
   }
+  out += '\n';
+  out += '/** Index of first music track. */\n';
+  out += 'export const firstMusicTrack = ';
+  out += sounds.length;
+  out += ';\n';
   return out;
 }
 
@@ -127,14 +143,16 @@ async function processSound(filename: string): Promise<string | null> {
 }
 
 /** Process all sounds, returning the encoded sound data. */
-async function generateSoundData(sounds: SoundInfo[]): Promise<string | null> {
+async function generateSoundData(
+  sounds: SoundInfo[],
+): Promise<string[] | null> {
   const data = await Promise.all(
     sounds.map(({ filename }) => processSound(filename)),
   );
   if (data.some(x => x == null)) {
     return null;
   }
-  return data.join(' ');
+  return data as string[];
 }
 
 /** Process a score, returning the data as a string if successful. */
@@ -170,7 +188,7 @@ async function processScore(
 async function generateMusicData(
   music: SoundInfo[],
   sounds: SoundInfo[],
-): Promise<string | null> {
+): Promise<string[] | null> {
   const nameMap = new Map<string, number>();
   for (let index = 0; index < sounds.length; index++) {
     const { name } = sounds[index];
@@ -182,7 +200,7 @@ async function generateMusicData(
   if (data.some(x => x == null)) {
     return null;
   }
-  return data.join(' ');
+  return data as string[];
 }
 
 /** Generate the audio definitions file. */
@@ -199,12 +217,9 @@ async function generateSources(
         generateSoundData(sounds),
         generateMusicData(music, sounds),
       ]);
-      if (texts.some(x => x == null)) {
-        return false;
-      }
       await fs.promises.writeFile(
         soundsDataPath,
-        JSON.stringify(texts),
+        JSON.stringify([texts.flat().join(' ')]),
         'utf8',
       );
       return true;

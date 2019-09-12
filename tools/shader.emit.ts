@@ -44,7 +44,6 @@ export function emitDefinitions(
   } else {
     out += "import { compileShader } from './shader';\n";
   }
-  out += "import { bundledData } from '../lib/global';\n";
   out += "import { shaderOffset } from '../lib/loader';\n";
 
   if (mode == 'source') {
@@ -102,9 +101,9 @@ export function emitDefinitions(
   out += '\n';
   out += '/** Load all the shaders. */\n';
   if (mode == 'source') {
-    out += 'export function loadShaders(): void {\n';
+    out += 'export function loadShaders(data: readonly string[]): void {\n';
   } else {
-    out += 'export function loadShaders() {\n';
+    out += 'export function loadShaders(data) {\n';
   }
   for (const program of programs) {
     const vertex = shaderPrograms.shaders.get(program.vertex);
@@ -117,8 +116,8 @@ export function emitDefinitions(
       `${name}Shader`,
       encodeStrings(program.uniforms),
       encodeStrings(program.attributes.map(x => (x != null ? x.glName : null))),
-      `bundledData[shaderOffset + ${vertex.index}]`,
-      `bundledData[shaderOffset + ${fragment.index}]`,
+      `data[shaderOffset + ${vertex.index}]`,
+      `data[shaderOffset + ${fragment.index}]`,
     ];
     if (mode == 'source') {
       args.push(JSON.stringify(name));

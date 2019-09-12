@@ -3,60 +3,36 @@
  */
 
 import { sampleRate } from '../lib/audio';
-import { AssertionError, isDebug, isCompetition } from '../debug/debug';
-import { soundOffset } from '../lib/loader';
+import { AssertionError, isDebug } from '../debug/debug';
 import { Sounds, MusicTracks } from './sounds';
-import { bundledData } from '../lib/global';
-import { decode } from '../lib/data.encode';
+import { canvas } from '../lib/global';
 
 let audioCtx: AudioContext | undefined | false;
 
-/** The sound effect data. */
-let sounds: (Float32Array | null)[] = [];
-/** Rendered sound effects. */
-const soundBuffers: (AudioBuffer | null)[] = [];
+/** The audio data. Loaded by setAudioDebug and setAudioRelease. */
+let audioData: (Float32Array | null)[] | undefined;
+/** The audio buffer objects. */
+let audioBuffers: (AudioBuffer | null)[] | undefined;
 
-/** The music track data. */
-let music: (Float32Array | null)[] = [];
-/** Rendered music tracks. */
-const musicBuffers: (AudioBuffer | null)[] = [];
-
-/** Set the sound data. */
-export function setSound(index: number, buffer: Float32Array | null): void {
-  sounds[index] = buffer;
-  if (isDebug) {
-    soundBuffers[index] = null;
+/**
+ * Load an audio buffer into the given slot.
+ */
+export function setAudioDebug(index: number, data: Float32Array | null): void {
+  if (!audioData) {
+    audioData = [];
   }
+  audioData[index] = data;
+  if (!audioBuffers) {
+    audioBuffers = [];
+  }
+  audioBuffers[index] = null;
 }
 
-/** Set the sound data. */
-export function setMusic(index: number, buffer: Float32Array | null): void {
-  music[index] = buffer;
-  if (isDebug) {
-    musicBuffers[index] = null;
-  }
-}
-
-/** Get the buffer containing the given sound. */
-function getBuffer(
-  assetData: (Float32Array | null)[],
-  assetBuffer: (AudioBuffer | null)[],
-  index: number,
-): AudioBuffer | null {
-  if (!audioCtx) {
-    throw new AssertionError('audioCtx == null');
-  }
-  let buffer = assetBuffer[index];
-  if (!buffer) {
-    const data = assetData[index];
-    if (!data) {
-      return null;
-    }
-    buffer = audioCtx.createBuffer(1, data.length, sampleRate);
-    buffer.getChannelData(0).set(data);
-    assetBuffer[index] = buffer;
-  }
-  return buffer;
+/**
+ * Load audio buffers into all slots.
+ */
+export function setAudioRelease(data: (Float32Array | null)[]): void {
+  audioData = data;
 }
 
 /** Play a sound with the given buffer. */
@@ -71,25 +47,26 @@ function playBuffer(buffer: AudioBuffer): void {
 }
 
 /** Play the sound with the given index. */
-export function playSound(index: Sounds): void {
+export function playSound(index: Sounds | MusicTracks): void {
   if (!audioCtx) {
     return;
   }
-  const buffer = getBuffer(sounds, soundBuffers, index);
-  if (!buffer) {
-    return;
+  if (!audioBuffers) {
+    throw new AssertionError('audioBuffers == null');
   }
-  playBuffer(buffer);
-}
-
-/** Play the music track with the given index. */
-export function playMusic(index: MusicTracks): void {
-  if (!audioCtx) {
-    return;
-  }
-  const buffer = getBuffer(music, musicBuffers, index);
+  let buffer = audioBuffers[index];
   if (!buffer) {
-    return;
+    if (!isDebug || !audioData) {
+      return;
+    }
+    // For debug builds, we create buffers on demand, because they can change.
+    const data = audioData[index];
+    if (!data) {
+      return;
+    }
+    buffer = audioCtx.createBuffer(1, data.length, sampleRate);
+    buffer.getChannelData(0).set(data);
+    audioBuffers[index] = buffer;
   }
   playBuffer(buffer);
 }
@@ -97,7 +74,7 @@ export function playMusic(index: MusicTracks): void {
 /**
  * Start the audio subsystem.
  */
-export function startAudio(): void {
+function startAudioContext(): void {
   if (audioCtx != null) {
     return;
   }
@@ -110,6 +87,29 @@ export function startAudio(): void {
     return;
   }
   // Play silence. This lets us use the context.
-  const buffer = audioCtx.createBuffer(1, 1000, sampleRate);
-  playBuffer(buffer);
+  const silence = audioCtx.createBuffer(1, 1000, sampleRate);
+  playBuffer(silence);
+  if (!isDebug) {
+    if (!audioData) {
+      throw new AssertionError('audioData == null');
+    }
+    audioBuffers = [];
+    for (const data of audioData) {
+      if (data) {
+        const buffer = audioCtx.createBuffer(1, data.length, sampleRate);
+        buffer.getChannelData(0).set(data);
+        audioBuffers.push(buffer);
+      } else {
+        audioBuffers.push(null);
+      }
+    }
+  }
+}
+
+/**
+ * Mark the audio system as ready to run.
+ */
+export function readyAudio() {
+  window.addEventListener('click', startAudioContext, { once: true });
+  window.addEventListener('keydown', startAudioContext, { once: true });
 }

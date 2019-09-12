@@ -21,9 +21,10 @@ import { watchSounds } from './debug/audio';
 import { runModelView } from './debug/modelview';
 import { initRenderer } from './render/render';
 import { debugView } from './lib/settings';
-import { startAudio } from './audio/audio';
+import { readyAudio } from './audio/audio';
 import { resetTime } from './game/time';
 import { startWorker } from './debug/worker';
+import { setState, State } from './lib/global';
 
 let counter = 0;
 let lastFrameMS = 0;
@@ -64,11 +65,6 @@ function mainDebug(curTimeMS: DOMHighResTimeStamp): void {
   }
 }
 
-/** Handle a window event, to start the sound system. */
-function firstEvent(): void {
-  startAudio();
-}
-
 function start(): void {
   startWorker();
   resetTime();
@@ -81,12 +77,12 @@ function start(): void {
     runModelView(hashVariables.model);
     return;
   }
+  setState(State.MainMenu);
   initialize();
   if (hashVariables.game) {
     newGame(hashVariables.difficulty);
   }
-  window.addEventListener('click', firstEvent, { once: true, passive: true });
-  window.addEventListener('keydown', firstEvent, { once: true, passive: true });
+  readyAudio();
   requestAnimationFrame(mainDebug);
 }
 

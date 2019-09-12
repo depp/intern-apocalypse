@@ -3,33 +3,7 @@
  * @module src/global
  */
 
-import { isDebug, isCompetition } from '../debug/debug';
 import { Vector, vector } from './math';
-
-/** All data bundled with the release builds of the game. */
-export let bundledData!: string[];
-
-/** Load the game data. */
-export async function loadBundledData(): Promise<void> {
-  if (isCompetition) {
-    // For the competition build, we embed the data in a script tag.
-    bundledData = JSON.parse(
-      (document.getElementById('d') as HTMLScriptElement).text,
-    );
-    return;
-  }
-  if (isDebug) {
-    // For debug builds, we load data over the web socket.
-    return;
-  }
-  // For release builds, the data is bundled as a separate JSON file.
-  const response = await fetch(new Request('data.json'));
-  const data = await response.json();
-  if (!Array.isArray(data) || data.some(x => typeof x != 'string')) {
-    throw new Error('unexpected data');
-  }
-  bundledData = data;
-}
 
 /** Game canvas element. */
 export const canvas = document.getElementById('g') as HTMLCanvasElement;
@@ -62,12 +36,13 @@ export function startGL(): void {
  * Main game states.
  */
 export const enum State {
+  Loading,
   MainMenu,
   Game,
 }
 
 /** The current game state. */
-export let currentState: State = State.MainMenu;
+export let currentState: State = State.Loading;
 
 /**
  * Set the current game state. Takes effect on the next frame, the actual

@@ -26,10 +26,13 @@ export function getSoundNames(): string[] {
 
 /** Music track asset identifiers. */
 export const enum MusicTracks {
-  Sylvan,
+  Sylvan = 7,
 }
 
 /** Get list of music score filenames, in order. */
 export function getMusicNames(): string[] {
   return ['music/sylvan.txt'];
 }
+
+/** Index of first music track. */
+export const firstMusicTrack = 7;

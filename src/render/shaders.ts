@@ -1,6 +1,5 @@
 /* This code is automatically generated. */
 import { compileShader, ShaderProgram, ShaderSpec } from './shader';
-import { bundledData } from '../lib/global';
 import { shaderOffset } from '../lib/loader';
 
 export interface UiProgram extends ShaderProgram {
@@ -99,29 +98,29 @@ export function getShaderSpecs(): ShaderSpec[] {
 }
 
 /** Load all the shaders. */
-export function loadShaders(): void {
+export function loadShaders(data: readonly string[]): void {
   compileShader(
     uiShader,
     ['Scale', 'Texture'],
     ['aPos', 'aColor', 'aTexCoord'],
-    bundledData[shaderOffset + 7],
-    bundledData[shaderOffset + 6],
+    data[shaderOffset + 7],
+    data[shaderOffset + 6],
     'ui',
   );
   compileShader(
     levelShader,
     ['ModelViewProjection'],
     ['aPos', 'aColor'],
-    bundledData[shaderOffset + 1],
-    bundledData[shaderOffset + 0],
+    data[shaderOffset + 1],
+    data[shaderOffset + 0],
     'level',
   );
   compileShader(
     modelShader,
     ['Model', 'ViewProjection'],
     ['aPos', 'aColor', '', 'aNormal'],
-    bundledData[shaderOffset + 3],
-    bundledData[shaderOffset + 2],
+    data[shaderOffset + 3],
+    data[shaderOffset + 2],
     'model',
   );
   compileShader(
@@ -137,8 +136,8 @@ export function loadShaders(): void {
       'ViewProjection',
     ],
     ['aPos', 'aRandom', 'aColor'],
-    bundledData[shaderOffset + 5],
-    bundledData[shaderOffset + 4],
+    data[shaderOffset + 5],
+    data[shaderOffset + 4],
     'particles',
   );
 }

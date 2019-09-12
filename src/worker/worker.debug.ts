@@ -1,16 +1,17 @@
 import { WorkerRequest, WorkerResponse } from './interface.debug';
 import { AssertionError } from '../debug/debug';
 import { runProgram } from '../synth/engine';
+import { firstMusicTrack } from '../audio/sounds';
+import { renderScore } from '../score/score';
 
 const audio: (Uint8Array | null)[] = [];
-const music: (Uint8Array | null)[] = [];
 
 function sendResponse(msg: WorkerResponse): void {
   // @ts-ignore
   postMessage(msg);
 }
 
-function renderSound(index: number): Float32Array | null {
+function renderAudio(index: number): Float32Array | null {
   try {
     const code = audio[index];
     if (!code) {
@@ -25,33 +26,40 @@ function renderSound(index: number): Float32Array | null {
 
 const soundsChanged = new Set<number>();
 
-function renderSounds(): void {
-  const changed = Array.from(soundsChanged);
-  soundsChanged.clear();
-  for (const index of changed) {
-    const data = renderSound(index);
-    sendResponse({
-      kind: 'sound-result',
-      index,
-      data,
-    });
+function renderChangedAudio(): void {
+  for (const index of soundsChanged) {
+    soundsChanged.delete(index);
+    const code = audio[index];
+    let data: Float32Array | null = null;
+    if (code) {
+      try {
+        if (index < firstMusicTrack) {
+          data = runProgram(code);
+        } else {
+          data = renderScore(code, audio);
+        }
+      } catch (e) {
+        console.error(`Could not render audio asset ${index}:`, e);
+      }
+    }
+    sendResponse({ kind: 'audio-result', index, data });
+    if (code && soundsChanged.size != 0) {
+      setTimeout(renderChangedAudio);
+    }
   }
 }
 
 onmessage = function messageHandler(evt: MessageEvent) {
   const msg = evt.data as WorkerRequest;
   switch (msg.kind) {
-    case 'sound-program':
+    case 'audio-program':
       audio[msg.index] = msg.data;
       if (soundsChanged.size == 0) {
-        setTimeout(renderSounds, 100);
+        setTimeout(renderChangedAudio, 100);
       }
       soundsChanged.add(msg.index);
       break;
-    case 'music-program':
-      music[msg.index] = msg.data;
-      break;
-    case 'render-music':
+    case 'set-music':
       break;
     default:
       throw new AssertionError('unknown message kind');

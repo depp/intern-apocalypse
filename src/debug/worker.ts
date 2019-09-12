@@ -1,5 +1,5 @@
 import { WorkerRequest, WorkerResponse } from '../worker/interface.debug';
-import { setSound, setMusic } from '../audio/audio';
+import { setAudioDebug } from '../audio/audio';
 
 let worker: Worker | null = null;
 
@@ -15,11 +15,11 @@ export function sendMessage(msg: WorkerRequest): void {
 function handleMessage(evt: MessageEvent): void {
   const msg = evt.data as WorkerResponse;
   switch (msg.kind) {
-    case 'sound-result':
-      setSound(msg.index, msg.data);
+    case 'audio-result':
+      setAudioDebug(msg.index, msg.data);
       break;
-    case 'music-result':
-      setMusic(msg.index, msg.data);
+    default:
+      console.error('unknown message kind', msg);
       break;
   }
 }
