@@ -1,11 +1,8 @@
-/** Watchers for file changes. */
-const watchers: (() => void)[] = [];
+/** Handler for data for a single file. */
+export type FileHandler = (data: string | null) => void;
 
-const EmptyFile: DataFile = {
-  name: '<empty>',
-  data: null,
-  version: 0,
-};
+/** Watchers for file changes. */
+const watchers = new Map<string, FileHandler[]>();
 
 /**
  * Information about a single file.
@@ -13,36 +10,26 @@ const EmptyFile: DataFile = {
 export interface DataFile {
   name: string;
   data: string | null;
-  version: number;
-}
-
-/** Information about all data files. */
-const files = new Map<string, DataFile>();
-
-/** Maximum version of any file. */
-let fileVersion: number = 0;
-
-/** Get the file with the given name, or the empty file if it doesn't exist. */
-export function getFile(name: string): DataFile {
-  return files.get(name) || EmptyFile;
 }
 
 /** Update data files. */
 export function updateFiles(updates: DataFile[]): void {
-  const version = ++fileVersion;
-  for (const file of updates) {
-    file.version = version;
-    files.set(file.name, file);
-  }
-  for (const watcher of watchers) {
-    watcher();
+  for (const { name, data } of updates) {
+    const handlers = watchers.get(name);
+    if (handlers != null) {
+      for (const handler of handlers) {
+        handler(data);
+      }
+    }
   }
 }
 
-/** Watch changes to files. */
-export function watchFiles(func: () => void): void {
-  watchers.push(func);
-  if (fileVersion > 0) {
-    func();
+/** Watch changes to a single file. */
+export function watchFile(name: string, handler: FileHandler): void {
+  const handlers = watchers.get(name);
+  if (handlers != null) {
+    handlers.push(handler);
+  } else {
+    watchers.set(name, [handler]);
   }
 }

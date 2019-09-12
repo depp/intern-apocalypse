@@ -38,7 +38,7 @@ function handleFilesMessage(obj: any): void {
     if (typeof data != 'string' && data !== null) {
       throw new BadMessage('invalid file data');
     }
-    updates.push({ name, data, version: 0 });
+    updates.push({ name, data });
   }
   updateFiles(updates);
 }

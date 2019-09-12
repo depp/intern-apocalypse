@@ -1,4 +1,4 @@
-import { getFile, watchFiles } from './files';
+import { watchFile } from './files';
 import { loadModel, unloadModel, Model, models } from '../model/model';
 import { getModelNames } from '../model/models';
 import { convertModel } from '../model/convert';
@@ -9,10 +9,9 @@ import { logSourceError } from './source';
 interface ModelInfo {
   index: number;
   filename: string;
-  version: number;
+  isDirty: boolean;
+  source: string | null;
 }
-
-let modelInfos: ModelInfo[] = [];
 
 /** Load a model from text format. */
 function loadTextModel(filename: string, source: string): Model | null {
@@ -32,48 +31,46 @@ function loadTextModel(filename: string, source: string): Model | null {
 }
 
 /** Update a single model after files have been updated. */
-function update(info: ModelInfo): void {
-  const file = getFile(info.filename);
-  if (file.version == info.version) {
+function updateModel(info: ModelInfo): void {
+  if (!info.isDirty) {
     return;
   }
-
+  info.isDirty = false;
+  const { index, filename, source } = info;
+  if (!source) {
+    return;
+  }
   if (hashVariables.logAssets) {
     console.log(`Loading ${info.filename}`);
   }
-  let model: Model | null;
-  if (file.data == null) {
-    model = null;
-  } else {
-    try {
-      model = loadTextModel(info.filename, file.data);
-    } catch (e) {
-      console.error(e);
-      model = null;
-    }
+  const model = loadTextModel(filename, source);
+  const old = models[index];
+  if (old) {
+    unloadModel(old);
   }
-  info.version = file.version;
-  const oldModel = models[info.index];
-  if (oldModel != null) {
-    unloadModel(oldModel);
-  }
-  models[info.index] = model;
+  models[index] = model;
 }
 
-/** Respond to files being received over the web socket. */
-function filesChanged(): void {
-  for (const info of modelInfos) {
-    update(info);
-  }
+function watchModel(index: number, filename: string): void {
+  const info: ModelInfo = {
+    index,
+    filename,
+    isDirty: false,
+    source: null,
+  };
+  watchFile(filename, data => {
+    if (data != info.source) {
+      info.source = data;
+      info.isDirty = true;
+      setTimeout(() => updateModel(info));
+    }
+  });
 }
 
 /** Load models from data files received over the web socket. */
 export function watchModels(): void {
   const modelNames = getModelNames();
-  modelInfos = [];
   for (let index = 0; index < modelNames.length; index++) {
-    const filename = modelNames[index];
-    modelInfos.push({ index, filename, version: 0 });
+    watchModel(index, modelNames[index]);
   }
-  watchFiles(filesChanged);
 }
