@@ -3,7 +3,7 @@
  */
 
 import { gl, startGL } from '../lib/global';
-import { renderLevel, initRenderLevel } from './level';
+import { initRenderLevel } from './level';
 import { renderModels } from './model';
 import { renderParticles } from './particles';
 import { renderUI, initRenderUI } from './ui';
@@ -28,7 +28,6 @@ export function render(): void {
 
   gl.enable(gl.CULL_FACE);
   gl.enable(gl.DEPTH_TEST);
-  renderLevel();
   renderModels();
   renderParticles();
   gl.disable(gl.DEPTH_TEST);

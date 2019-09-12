@@ -7,7 +7,10 @@ import { gl } from '../lib/global';
 import { modelInstances } from '../game/entity';
 import { modelShader, ModelAttrib } from './shaders';
 import { models } from '../model/model';
+import { GenModel } from '../model/genmodel';
 import * as genmodel from '../model/genmodel';
+import { Matrix, identityMatrix } from '../lib/matrix';
+import { levelModel } from './level';
 
 /**
  * Render all models in the level.
@@ -18,6 +21,23 @@ export function renderModels(): void {
     return;
   }
 
+  function drawModel(model: GenModel, transform: Matrix): void {
+    // Indexes and attributes
+    genmodel.bind3D(
+      model,
+      ModelAttrib.Pos,
+      ModelAttrib.Color,
+      -1,
+      ModelAttrib.Normal,
+    );
+
+    // Uniforms
+    gl.uniformMatrix4fv(p.Model, false, transform);
+
+    // Draw
+    gl.drawElements(gl.TRIANGLES, model.icount, gl.UNSIGNED_SHORT, 0);
+  }
+
   gl.useProgram(p.program);
 
   // Attributes
@@ -26,27 +46,12 @@ export function renderModels(): void {
   // Common uniforms
   gl.uniformMatrix4fv(p.ViewProjection, false, cameraMatrix);
 
+  drawModel(levelModel, identityMatrix);
   for (const instance of modelInstances) {
     const model = models[instance.model];
-    if (!model) {
-      continue;
+    if (model) {
+      drawModel(model.mesh, instance.transform);
     }
-    const { mesh } = model;
-
-    // Indexes and attributes
-    genmodel.bind3D(
-      mesh,
-      ModelAttrib.Pos,
-      ModelAttrib.Color,
-      -1,
-      ModelAttrib.Normal,
-    );
-
-    // Uniforms
-    gl.uniformMatrix4fv(p.Model, false, instance.transform);
-
-    // Draw
-    gl.drawElements(gl.TRIANGLES, mesh.icount, gl.UNSIGNED_SHORT, 0);
   }
 
   // Cleanup

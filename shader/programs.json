@@ -6,12 +6,6 @@
     "attributes": ["aPos", "aColor", "aTexCoord"]
   },
   {
-    "name": "level",
-    "vertex": "level.vert",
-    "fragment": "level.frag",
-    "attributes": ["aPos", "aColor"]
-  },
-  {
     "name": "model",
     "vertex": "model.vert",
     "fragment": "model.frag",

@@ -13,15 +13,6 @@ export const enum UiAttrib {
   TexCoord = 2,
 }
 
-export interface LevelProgram extends ShaderProgram {
-  ModelViewProjection: WebGLUniformLocation | null;
-}
-export const levelShader = {} as LevelProgram;
-export const enum LevelAttrib {
-  Pos = 0,
-  Color = 1,
-}
-
 export interface ModelProgram extends ShaderProgram {
   Model: WebGLUniformLocation | null;
   ViewProjection: WebGLUniformLocation | null;
@@ -62,14 +53,6 @@ export function getShaderSpecs(): ShaderSpec[] {
       object: uiShader,
     },
     {
-      name: 'level',
-      vertex: 'level.vert',
-      fragment: 'level.frag',
-      attributes: ['aPos', 'aColor'],
-      uniforms: ['ModelViewProjection'],
-      object: levelShader,
-    },
-    {
       name: 'model',
       vertex: 'model.vert',
       fragment: 'model.frag',
@@ -103,24 +86,16 @@ export function loadShaders(data: readonly string[]): void {
     uiShader,
     ['Scale', 'Texture'],
     ['aPos', 'aColor', 'aTexCoord'],
-    data[shaderOffset + 7],
-    data[shaderOffset + 6],
+    data[shaderOffset + 5],
+    data[shaderOffset + 4],
     'ui',
-  );
-  compileShader(
-    levelShader,
-    ['ModelViewProjection'],
-    ['aPos', 'aColor'],
-    data[shaderOffset + 1],
-    data[shaderOffset + 0],
-    'level',
   );
   compileShader(
     modelShader,
     ['Model', 'ViewProjection'],
     ['aPos', 'aColor', '', 'aNormal'],
-    data[shaderOffset + 3],
-    data[shaderOffset + 2],
+    data[shaderOffset + 1],
+    data[shaderOffset + 0],
     'model',
   );
   compileShader(
@@ -136,8 +111,8 @@ export function loadShaders(data: readonly string[]): void {
       'ViewProjection',
     ],
     ['aPos', 'aRandom', 'aColor'],
-    data[shaderOffset + 5],
-    data[shaderOffset + 4],
+    data[shaderOffset + 3],
+    data[shaderOffset + 2],
     'particles',
   );
 }

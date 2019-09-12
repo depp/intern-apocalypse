@@ -2,18 +2,14 @@
  * Level geometry renderer.
  */
 
-import { cameraMatrix } from '../game/camera';
-import { gl } from '../lib/global';
 import { level } from '../game/world';
 import { Random } from '../lib/random';
-import { clamp } from '../lib/util';
-import { levelShader, LevelAttrib } from './shaders';
 import { Edge } from '../game/level';
-import { GenModel } from '../model/genmodel';
 import * as genmodel from '../model/genmodel';
 import { packColor } from './util';
 
-const model = genmodel.newModel();
+/** The level model data. */
+export const levelModel = genmodel.newModel();
 
 const random = new Random(9876);
 
@@ -65,28 +61,10 @@ function createGeometry(): void {
       }
     }
   }
-  genmodel.upload(model);
+  genmodel.upload(levelModel);
 }
 
 /** Initialize the level renderer. */
 export function initRenderLevel(): void {
   createGeometry();
-}
-
-/**
- * Render the level geometry.
- */
-export function renderLevel(): void {
-  const p = levelShader;
-  if (!p.program || !model.icount) {
-    return;
-  }
-
-  gl.useProgram(p.program);
-
-  genmodel.enableAttr(LevelAttrib.Pos, LevelAttrib.Color);
-  genmodel.bind3D(model, LevelAttrib.Pos, LevelAttrib.Color, -1, -1);
-  gl.uniformMatrix4fv(p.ModelViewProjection, false, cameraMatrix);
-  gl.drawElements(gl.TRIANGLES, model.icount, gl.UNSIGNED_SHORT, 0);
-  genmodel.disableAttr(LevelAttrib.Pos, LevelAttrib.Color);
 }
