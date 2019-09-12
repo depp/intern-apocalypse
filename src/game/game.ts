@@ -32,10 +32,10 @@ export function resetGame(): void {
 
 /** Update the game state. */
 export function updateGame(): void {
+  updateColliders();
   for (const entity of entities) {
     entity.update();
   }
-  updateColliders();
   clearDead(entities);
   clearDead(colliders);
   clearDead(particlesInstances);
