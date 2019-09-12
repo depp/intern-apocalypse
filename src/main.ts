@@ -24,10 +24,18 @@ import { updateTime } from './game/time';
 import { MusicTracks } from './audio/sounds';
 import { setGameTimeout } from './game/entity';
 
+/** Handle when the game loses focus. */
+function loseFocus(): void {
+  if (currentState == State.Game) {
+    setState(State.GameMenu);
+  }
+}
+
 /**
  * Initialize game.
  */
 export function initialize(): void {
+  window.addEventListener('blur', loseFocus);
   startInput();
   resetGame();
 }
