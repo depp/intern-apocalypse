@@ -2,7 +2,7 @@
  * Audio synthesizer execution engine.
  */
 
-import { AssertionError, isDebug } from '../debug/debug';
+import { AssertionError, isDebug, isCompetition } from '../debug/debug';
 import {
   decodeLinear,
   decodeExponential,
@@ -46,28 +46,13 @@ export function runProgram(
       ? ((gateTime + decodeExponential(code![0])) * sampleRate) | 0
       : 0;
 
+  /** Create a new buffer. */
+  function newBuffer(): Float32Array {
+    return new Float32Array(bufferSize);
+  }
+
   /** Random number generator for audio. */
   let random = new Random(9);
-
-  /** Synthesizer numeric execution stack. */
-  let stack: Float32Array[] = [];
-
-  /** Get an unused buffer, push it onto the stack, and return it. */
-  function pushBuffer(): Float32Array {
-    const result = new Float32Array(bufferSize);
-    stack.push(result);
-    return result;
-  }
-
-  /**
-   * Read oporator arguments from the top of the stack, popping them.
-   */
-  function getArgs(argCount: number): Float32Array[] {
-    if (stack.length < argCount) {
-      throw new AssertionError('stack underflow');
-    }
-    return stack.splice(stack.length - argCount);
-  }
 
   /** Current position in the instruction array. */
   let instructionPos = 1;
@@ -78,15 +63,6 @@ export function runProgram(
       throw new AssertionError('missing instruction parameters');
     }
     return code[instructionPos++];
-  }
-
-  /** Return the buffer on the top of the stack, but do not pop it. */
-  function topBuffer(): Float32Array {
-    const result = stack[stack.length - 1];
-    if (!result) {
-      throw new AssertionError('stack underflow');
-    }
-    return result;
   }
 
   // ===========================================================================
@@ -198,76 +174,62 @@ export function runProgram(
     frequency: Float32Array,
     mode: FilterMode,
     invq: number,
-  ): void {
-    if (mode < 0 || 2 < mode) {
-      throw new AssertionError('invalid mode', { mode });
+  ): Float32Array {
+    for (let i = 0; i < mode; i += 3) {
+      let a = 0;
+      let b = 0;
+      let c;
+      const bufs = [newBuffer(), newBuffer(), newBuffer()];
+      const [lp, hp, bp] = bufs;
+      for (let i = 0; i < bufferSize; i++) {
+        // We oversample the filter, running it twice with a corner frequency
+        // scaled by 1/2. Without oversampling, the filter stops working well at
+        // high frequencies.
+        let f = Math.sin(
+          ((2 * Math.PI) / sampleRate) * Math.min(frequency[i] / 2, 2e4),
+        );
+        b += f * a;
+        c = data[i] - b - invq * a;
+        a += f * c;
+        lp[i] = b += f * a;
+        hp[i] = c = data[i] - b - invq * a;
+        bp[i] = a += f * c;
+      }
+      data = bufs[mode % 3];
     }
-    let a = 0;
-    let b = 0;
-    let c;
-    const lp = new Float32Array(bufferSize);
-    const hp = new Float32Array(bufferSize);
-    const bp = new Float32Array(bufferSize);
-    for (let i = 0; i < bufferSize; i++) {
-      // We oversample the filter, running it twice with a corner frequency
-      // scaled by 1/2. Without oversampling, the filter stops working well at
-      // high frequencies.
-      let f = Math.sin(
-        ((2 * Math.PI) / sampleRate) * Math.min(frequency[i] / 2, 2e4),
-      );
-      b += f * a;
-      c = data[i] - b - invq * a;
-      a += f * c;
-      lp[i] = b += f * a;
-      hp[i] = c = data[i] - b - invq * a;
-      bp[i] = a += f * c;
-    }
-    data.set([lp, hp, bp][mode]);
+    return data;
   }
 
   // ===========================================================================
   // Operator definitions
   // ===========================================================================
 
-  const operators: (() => void)[] = [
+  const stack: Float32Array[] = [];
+
+  const operators: ((...args: Float32Array[]) => Float32Array | void)[] = [
     // =========================================================================
     // Oscillators and generators
     // =========================================================================
 
     /** Generate oscillator phase from pitch. */
-    function oscillator(): void {
-      const out = topBuffer();
+    function oscillator(buf): Float32Array {
       let phase = 0;
-      for (let i = 0; i < bufferSize; i++) {
-        out[i] = phase = (phase + (1 / sampleRate) * out[i]) % 1;
-      }
+      return buf.map(x => (phase = (phase + (1 / sampleRate) * x) % 1));
     },
 
     /** Generate sawtooth waveform from phase. */
-    function sawtooth(): void {
-      const out = topBuffer();
-      for (let i = 0; i < bufferSize; i++) {
-        let x = out[i] % 1;
-        if (x < 0) {
-          x += 1;
-        }
-        out[i] = x * 2 - 1;
-      }
+    function sawtooth(buf): Float32Array {
+      return buf.map(x => 2 * ((x %= 1) < 0 ? x + 1 : x) - 1);
     },
 
-    function sine(): void {
-      const out = topBuffer();
-      for (let i = 0; i < bufferSize; i++) {
-        out[i] = Math.sin(2 * Math.PI * out[i]);
-      }
+    /** Generate sine waveform from phase. */
+    function sine(buf): Float32Array {
+      return buf.map(x => Math.sin(2 * Math.PI * x));
     },
 
     /** Create a buffer filled with noise. */
-    function noise(): void {
-      const out = pushBuffer();
-      for (let i = 0; i < bufferSize; i++) {
-        out[i] = random.range(-1, 1);
-      }
+    function noise(): Float32Array {
+      return new Float32Array(bufferSize).map(x => random.range(-1, 1));
     },
 
     // =========================================================================
@@ -275,25 +237,23 @@ export function runProgram(
     // =========================================================================
 
     /** Simple constant two-pole high-pass filter with fixed Q. */
-    function highPass(): void {
-      const out = topBuffer();
-      const frequency = new Float32Array(bufferSize);
-      frequency.fill(decodeFrequency(readParam()));
-      filter(out, frequency, FilterMode.HighPass, 1.4);
+    function highPass(buf): Float32Array {
+      return filter(
+        buf,
+        new Float32Array(bufferSize).fill(decodeFrequency(readParam())),
+        FilterMode.HighPass,
+        1.4,
+      );
     },
 
     /** Apply a state-variable filter. */
-    function stateVariableFilter(): void {
-      const [audio, frequency] = getArgs(2);
-      const mode = readParam();
-      const invq = decodeExponential(readParam());
-      if (mode == 3) {
-        filter(audio, frequency, FilterMode.LowPass, invq);
-        filter(audio, frequency, FilterMode.LowPass, invq);
-      } else {
-        filter(audio, frequency, mode, invq);
-      }
-      stack.push(audio);
+    function stateVariableFilter(buf, frequency): Float32Array {
+      return filter(
+        buf,
+        frequency,
+        readParam(),
+        decodeExponential(readParam()),
+      );
     },
 
     // =========================================================================
@@ -301,19 +261,13 @@ export function runProgram(
     // =========================================================================
 
     /** Apply saturation distortion to a buffer. */
-    function saturate(): void {
-      const out = topBuffer();
-      for (let i = 0; i < bufferSize; i++) {
-        out[i] = Math.tanh(out[i]);
-      }
+    function saturate(buf): Float32Array {
+      return buf.map(Math.tanh);
     },
 
     /** Replace negative values with zero. */
-    function rectify(): void {
-      const out = topBuffer();
-      for (let i = 0; i < bufferSize; i++) {
-        out[i] = Math.max(out[i], 0);
-      }
+    function rectify(buf): Float32Array {
+      return buf.map(x => (x > 0 ? x : 0));
     },
 
     // =========================================================================
@@ -332,13 +286,17 @@ export function runProgram(
     },
 
     /** Finish an envelope, push it on the stack. */
-    function env_end(): void {
+    function env_end(): Float32Array {
       if (!envBuf) {
         throw new AssertionError('null env');
       }
       envSeek(bufferSize);
-      stack.push(envBuf);
+      if (isCompetition) {
+        return envBuf;
+      }
+      const value = envBuf;
       envBuf = null;
+      return value;
     },
 
     /** Envelope: set value. */
@@ -392,50 +350,35 @@ export function runProgram(
     // =========================================================================
 
     /** Multiply two buffers. */
-    function multiply(): void {
-      const [out, input] = getArgs(2);
-      for (let i = 0; i < bufferSize; i++) {
-        out[i] *= input[i];
-      }
-      stack.push(out);
+    function multiply(buf1, buf2): Float32Array {
+      return buf1.map((x, i) => x * buf2[i]);
     },
 
     /** Create a constant frequency envelope from a value. */
-    function constant(): void {
-      pushBuffer().fill(decodeFrequency(readParam()));
+    function constant(): Float32Array {
+      return newBuffer().fill(decodeFrequency(readParam()));
     },
 
     /** Convert envelope to frequency data. */
-    function frequency(): void {
-      const out = topBuffer();
-      for (let i = 0; i < bufferSize; i++) {
-        out[i] = 630 * 32 ** out[i];
-      }
+    function frequency(buf): Float32Array {
+      return buf.map(x => 630 * 32 ** x);
     },
 
     /** Multiply a buffer by a scalar, adding the result to a second buffer. */
-    function mix(): void {
-      const [out, input] = getArgs(2);
-      const p = readParam();
-      const level = decodeExponential(p);
-      for (let i = 0; i < bufferSize; i++) {
-        out[i] += level * input[i];
-      }
-      stack.push(out);
+    function mix(buf1, buf2): Float32Array {
+      const level = decodeExponential(readParam());
+      return buf1.map((x, i) => x + level * buf2[i]);
     },
 
     /** Push a buffer filled with zeroes. */
-    function zero(): void {
-      pushBuffer();
+    function zero(): Float32Array {
+      return newBuffer();
     },
 
     /** Scale a buffer by an integer. */
-    function scaleInt(): void {
-      const out = topBuffer();
+    function scaleInt(buf): Float32Array {
       const scale = readParam();
-      for (let i = 0; i < bufferSize; i++) {
-        out[i] *= scale;
-      }
+      return buf.map(x => x * scale);
     },
 
     // =========================================================================
@@ -443,12 +386,12 @@ export function runProgram(
     // =========================================================================
 
     /** Dereference a variable, indexed from the bottom of the stack. */
-    function deref(): void {
+    function deref(): Float32Array {
       const index = readParam();
       if (index >= stack.length) {
         throw new AssertionError('invalid variable ref');
       }
-      stack.push(stack[index]);
+      return stack[index];
     },
 
     /** Copy a buffer, indexed from the bottom of the stack, copying it. */
@@ -462,10 +405,8 @@ export function runProgram(
     },
 
     /** Create a buffer containing the musical note, as a frequency. */
-    function note(): void {
-      const offset = readParam() - 48;
-      const out = pushBuffer();
-      out.fill(decodeNote(noteValue + offset));
+    function note(): Float32Array {
+      return newBuffer().fill(decodeNote(noteValue + readParam() - 48));
     },
   ];
 
@@ -486,7 +427,10 @@ export function runProgram(
     if (func == null) {
       throw new AssertionError('invalid opcode');
     }
-    func();
+    const result = func(...stack.splice(stack.length - func.length));
+    if (result) {
+      stack.push(result);
+    }
   }
   const result = stack.pop();
   if (!result) {
