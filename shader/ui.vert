@@ -11,5 +11,5 @@ uniform vec4 Scale;
 void main() {
   Color = aColor;
   TexCoord = aTexCoord * Scale.zw;
-  gl_Position = vec4(aPos * Scale.xy +vec2(-1.0, 1.0), 0.0, 1.0);
+  gl_Position = vec4(aPos * Scale.xy + vec2(-1.0, 1.0), 0.0, 1.0);
 }
