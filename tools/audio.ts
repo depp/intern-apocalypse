@@ -252,9 +252,18 @@ function compile(
 /** Reduce the gain so a buffer doesn't clip. */
 function autoGain(data: Float32Array): void {
   let maxValue = 0;
+  let sumSquare = 0;
   for (let i = 0; i < data.length; i++) {
     maxValue = Math.max(maxValue, Math.abs(data[i]));
+    sumSquare += data[i] ** 2;
   }
+  const rmsLevel = Math.sqrt(sumSquare / data.length);
+  function showLevel(name: string, level: number): void {
+    cli.log(`${name}: ${(20 * Math.log10(level)).toFixed(1)} dB`);
+  }
+  showLevel('Peak level', maxValue);
+  showLevel('RMS level', rmsLevel);
+  cli.log('Max l');
   if (maxValue > 1) {
     const gain = 1 / maxValue;
     for (let i = 0; i < data.length; i++) {
