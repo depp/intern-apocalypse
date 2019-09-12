@@ -8,13 +8,23 @@ import {
   distanceSquared,
   findLineSplit,
   lerp,
-  lineIntersectsCircle,
   vector,
   Rect,
   newRect,
   initRect,
   rectAddCircle,
 } from '../lib/math';
+
+/** A cell being built. */
+interface BuildCell {
+  readonly center: Vector;
+  readonly index: number;
+  edge: Edge;
+  bounds?: Readonly<Rect>;
+  walkable?: boolean;
+  centroid?: Vector;
+  edges(): IterableIterator<Edge>;
+}
 
 /**
  * The smallest area in a level.
@@ -28,13 +38,13 @@ export interface Cell {
   /** The index of this cell, identifies this cell. */
   readonly index: number;
   /** Arbitrary edge in the cell. */
-  edge: Edge;
+  readonly edge: Edge;
   /** Bounds of the cell. */
-  bounds: Rect;
+  readonly bounds: Readonly<Rect>;
   /** True if you can walk through this cell. */
   walkable: boolean;
-  /** Calculate the centroid of the cell. */
-  centroid(): Vector;
+  /** The centroid of the cell. */
+  readonly centroid: Vector;
   /** Iterate over all cell edges, exactly once each. */
   edges(): IterableIterator<Edge>;
 }
@@ -42,19 +52,7 @@ export interface Cell {
 /**
  * Create a new cell.
  */
-function makeCell(center: Vector, index: number, firstEdge: Edge): Cell {
-  function centroid(this: Cell): Vector {
-    let area = 0,
-      xarea = 0,
-      yarea = 0;
-    for (const { vertex0, vertex1 } of this.edges()) {
-      const a = vertex0.x * vertex1.y - vertex1.x * vertex0.y;
-      area += a / 2;
-      xarea += ((vertex0.x + vertex1.x) * a) / 6;
-      yarea += ((vertex0.y + vertex1.y) * a) / 6;
-    }
-    return vector(xarea / area, yarea / area);
-  }
+function makeCell(center: Vector, index: number, firstEdge: Edge): BuildCell {
   function* edges(this: Cell): IterableIterator<Edge> {
     let { edge } = this;
     if (this.index < 0) {
@@ -68,13 +66,10 @@ function makeCell(center: Vector, index: number, firstEdge: Edge): Cell {
       cur = cur.next;
     } while (cur && cur != edge);
   }
-  const cell: Cell = {
+  const cell: BuildCell = {
     center,
     index,
     edge: firstEdge,
-    bounds: newRect(),
-    walkable: true,
-    centroid,
     edges,
   };
   let edge: Edge | null = firstEdge;
@@ -82,7 +77,7 @@ function makeCell(center: Vector, index: number, firstEdge: Edge): Cell {
     if (edge.cell != null) {
       throw new AssertionError('edge is already in use');
     }
-    edge.cell = cell;
+    edge.cell = cell as Cell;
     edge = edge.next;
   } while (edge && edge != firstEdge);
   return cell;
@@ -198,7 +193,7 @@ interface EdgeSplit {
  * @param centers Center of each cell in the level.
  */
 export function createLevel(size: number, centers: readonly Vector[]): Level {
-  const cells: Cell[] = [];
+  const cells: BuildCell[] = [];
 
   {
     const center = centers[0];
@@ -227,9 +222,9 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
   /**
    * Find the cell that contains the given point.
    */
-  function findCell(point: Vector): Cell {
+  function findCell(point: Vector): BuildCell {
     let bestDistanceSquared = Infinity;
-    let bestCell: Cell | undefined;
+    let bestCell: BuildCell | undefined;
     for (const parent of cells) {
       const distSquared = distanceSquared(point, parent.center);
       if (distSquared < bestDistanceSquared) {
@@ -275,7 +270,7 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
    * @param center Center of the cell.
    * @param edges Array of cell edges, in anticlockwise order.
    */
-  function newCell(center: Vector, edges: readonly Edge[]): Cell {
+  function newCell(center: Vector, edges: readonly Edge[]): BuildCell {
     if (!edges.length) {
       throw new AssertionError('no edges');
     }
@@ -362,7 +357,7 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
     const edges: Edge[] = [];
     for (const split of splits) {
       const { front, vertex: vertex1 } = split;
-      const { cell } = front;
+      const cell = front.cell as BuildCell;
       if (!cell) {
         throw new AssertionError('cell is null');
       }
@@ -395,7 +390,7 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
         e1.next = next;
       }
       cell.edge = e1;
-      e1.cell = cell;
+      e1.cell = cell as Cell;
       ({ back, vertex: vertex0 } = split);
     }
     edges.reverse();
@@ -403,19 +398,34 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
     newCell(center, edges);
   }
 
+  // Collect edges and fill in missing cell properties.
   const edges: Edge[] = [];
   for (const cell of cells) {
-    const { bounds } = cell;
+    // Centroid accumulators
+    let area = 0;
+    let xarea = 0;
+    let yarea = 0;
+    cell.walkable = true;
+    const bounds = newRect();
+    cell.bounds = bounds;
     initRect(bounds);
     for (const edge of cell.edges()) {
-      rectAddCircle(bounds, edge.vertex0);
-      if (!edge.back || !edge.back.cell) {
+      const { vertex0, vertex1, back } = edge;
+      rectAddCircle(bounds, vertex0);
+      // Update centroid
+      const a = vertex0.x * vertex1.y - vertex1.x * vertex0.y;
+      area += a / 2;
+      xarea += ((vertex0.x + vertex1.x) * a) / 6;
+      yarea += ((vertex0.y + vertex1.y) * a) / 6;
+      // Remove border cells
+      if (!back || !back.cell) {
         throw new AssertionError('back == null || back.cell == null');
       }
-      if (edge.back.cell.index == -1) {
+      if (back.cell.index == -1) {
         edge.back = null;
       }
       edges.push(edge);
+      cell.centroid = vector(xarea / area, yarea / area);
     }
   }
 
@@ -430,9 +440,9 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
   }
 
   return {
-    cells,
+    cells: cells as Cell[],
     edges,
-    findCell,
+    findCell: findCell as (point: Vector) => Cell,
     updateProperties,
   };
 }
