@@ -69,94 +69,10 @@ export function runProgram(
   // Envelope generator state
   // ===========================================================================
 
-  /**
-   * An envelope segment fills the envelope to the given position.
-   */
-  type EnvelopeSegment = (pos: number) => void;
-
   /** Envelope buffer, if we are creating an envelope. */
   let envBuf: Float32Array | undefined | null;
   /** Position in envelope buffer. */
   let envPos: number | undefined;
-  /**
-   * The current envelope time, in samples (generally not the same as envPos).
-   */
-  let envTime: number | undefined;
-  /** The current envelope segment. */
-  let envSegment: EnvelopeSegment | undefined;
-
-  /** Seek in the envelope to the given time, in samples. */
-  function envSeek(time: number): void {
-    if (!envSegment) {
-      throw new AssertionError('null env');
-    }
-    const pos = Math.min(time | 0, bufferSize);
-    envSegment(pos + 1);
-    envPos = pos;
-  }
-
-  /** Create a constant envelope segment. */
-  function envConstant(value: number): EnvelopeSegment {
-    return pos => {
-      if (envBuf == null || envPos == null) {
-        throw new AssertionError('null env');
-      }
-      envBuf.fill(value, envPos, pos);
-    };
-  }
-
-  /** Create a linear envelope segment. */
-  function envLinear(endPos: number, endValue: number): EnvelopeSegment {
-    if (envBuf == null || envPos == null) {
-      throw new AssertionError('null env');
-    }
-    const startPos = envPos;
-    const startValue = envBuf[envPos];
-    envTime = endPos;
-    if (startPos >= endPos) {
-      return envConstant(endValue);
-    }
-    const delta = (endValue - startValue) / (endPos - startPos);
-    return pos => {
-      if (envBuf == null || envPos == null) {
-        throw new AssertionError('null env');
-      }
-      const posTarget = Math.min(pos, endPos);
-      for (let i = envPos; i < posTarget; i++) {
-        envBuf[i] = startValue + (i - startPos) * delta;
-      }
-      if (posTarget < pos) {
-        envBuf.fill(endValue, posTarget, pos);
-      }
-    };
-  }
-
-  /** Create an exponetntial envelope segment. */
-  function envExponential(
-    timeConstant: number,
-    endValue: number,
-  ): EnvelopeSegment {
-    if (envBuf == null || envPos == null || envTime == null) {
-      throw new AssertionError('null env');
-    }
-    const endTolerance = 0.05;
-    const startPos = envPos;
-    const startValue = envBuf[envPos];
-    const delta = Math.abs(startValue - endValue);
-    const envLength =
-      delta > endTolerance ? timeConstant * Math.log(delta / endTolerance) : 0;
-    envTime += envLength;
-    return pos => {
-      if (envBuf == null || envPos == null) {
-        throw new AssertionError('null env');
-      }
-      for (let i = envPos; i < pos; i++) {
-        envBuf[i] =
-          endValue +
-          (startValue - endValue) * Math.exp((startPos - i) / timeConstant);
-      }
-    };
-  }
 
   // ===========================================================================
   // Filter definition
@@ -279,10 +195,8 @@ export function runProgram(
       if (envBuf) {
         throw new AssertionError('non-null env');
       }
-      envBuf = new Float32Array(bufferSize + 1);
+      envBuf = newBuffer();
       envPos = 0;
-      envTime = 0;
-      envSegment = envConstant(0);
     },
 
     /** Finish an envelope, push it on the stack. */
@@ -290,7 +204,6 @@ export function runProgram(
       if (!envBuf) {
         throw new AssertionError('null env');
       }
-      envSeek(bufferSize);
       if (isCompetition) {
         return envBuf;
       }
@@ -301,48 +214,56 @@ export function runProgram(
 
     /** Envelope: set value. */
     function env_set(): void {
-      if (!envBuf || envTime == null) {
+      if (!envBuf || envPos == null) {
         throw new AssertionError('null env');
       }
-      envSeek(envTime);
-      envSegment = envConstant(decodeLinear(readParam()));
+      envBuf.fill(decodeLinear(readParam()), envPos);
     },
 
     /** Envelope: linear segment. */
     function env_lin(): void {
-      if (!envBuf || envTime == null) {
+      if (!envBuf || envPos == null) {
         throw new AssertionError('null env');
       }
-      envSeek(envTime);
-      envSegment = envLinear(
-        envTime + ((decodeExponential(readParam()) * sampleRate) | 0),
-        decodeLinear(readParam()),
-      );
+      const deltaTime = (decodeExponential(readParam()) * sampleRate) | 0;
+      const endValue = decodeLinear(readParam());
+      let value = envBuf[envPos];
+      const endPos = envPos + deltaTime;
+      const delta = (endValue - value) / deltaTime;
+      for (; envPos < endPos; envPos++) {
+        envBuf[envPos] = value += delta;
+      }
+      envBuf.fill(endValue, endPos);
     },
 
     /** Envelope: exponential segment. */
     function env_exp(): void {
-      if (!envBuf || envTime == null) {
+      if (!envBuf || envPos == null) {
         throw new AssertionError('null env');
       }
-      envSeek(envTime);
-      envSegment = envExponential(
-        decodeExponential(readParam()) * sampleRate,
-        decodeLinear(readParam()),
-      );
+      const coefficient = 1 / (decodeExponential(readParam()) * sampleRate);
+      const startPos = envPos;
+      const base = decodeLinear(readParam());
+      const delta = envBuf[envPos] - base;
+      for (let i = envPos; i < bufferSize; i++) {
+        envBuf[i] = base + delta * Math.exp((startPos - i) * coefficient);
+      }
+      while (envPos < bufferSize && Math.abs(envBuf[envPos] - base) > 0.05) {
+        envPos++;
+      }
     },
 
     /** Envelope: hold value. */
     function env_delay(): void {
-      if (!envBuf || envTime == null) {
+      if (!envBuf || envPos == null) {
         throw new AssertionError('null env');
       }
-      envTime += (decodeExponential(readParam()) * sampleRate) | 0;
+      envPos += (decodeExponential(readParam()) * sampleRate) | 0;
     },
 
     /** Envelope: hold value until gate. */
     function env_gate(): void {
-      envTime = (gateTime * sampleRate) | 0;
+      envPos = (gateTime * sampleRate) | 0;
     },
 
     // =========================================================================
