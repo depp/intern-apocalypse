@@ -8,10 +8,11 @@
 export class Random {
   // This uses the Xorshift32 algorithm by George Marsaglia.
 
-  private state: number;
+  /** The state, which can be used to manually seed. */
+  state: number;
 
-  constructor(seed: number) {
-    this.state = seed | 0 || 1;
+  constructor(seed?: number) {
+    this.state = seed || 1;
   }
 
   /**

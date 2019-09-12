@@ -23,6 +23,7 @@ interface BuildCell {
   bounds?: Readonly<Rect>;
   walkable?: boolean;
   centroid?: Vector;
+  height?: number;
   edges(): IterableIterator<Edge>;
 }
 
@@ -45,6 +46,8 @@ export interface Cell {
   walkable: boolean;
   /** The centroid of the cell. */
   readonly centroid: Vector;
+  /** The height of the cell. */
+  height: number;
   /** Iterate over all cell edges, exactly once each. */
   edges(): IterableIterator<Edge>;
 }
@@ -106,7 +109,7 @@ export interface Edge {
   passable: boolean;
 
   /** The that this edge belongs to. */
-  cell: Cell | null;
+  cell: Cell;
 
   /**
    * The edge on the back side of this edge. If it exists, the vertexes are the
@@ -125,6 +128,11 @@ export interface Edge {
    * for each cell, except the border cells.
    */
   next: Edge | null;
+
+  /** Vertex 0 height. */
+  z0?: number;
+  /** Vertex 1 height. */
+  z1?: number;
 
   /** Highlight color for this edge. */
   debugColor?: DebugColor;
@@ -245,11 +253,10 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
       vertex1,
       center,
       passable: true,
-      cell: null,
       back: null,
       prev: null,
       next: null,
-    };
+    } as Edge; // Cheating - we don't set 'cell'
   }
 
   /** Create a new edge pair (front and back). */

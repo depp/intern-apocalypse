@@ -24,6 +24,7 @@ import { resetGame, updateGame } from './game/game';
 import { updateTime } from './game/time';
 import { MusicTracks } from './audio/sounds';
 import { setGameTimeout } from './game/entity';
+import { createBaseLevel, createForest } from './game/world';
 
 /** Handle when the game loses focus. */
 function loseFocus(): void {
@@ -39,6 +40,7 @@ export function initialize(): void {
   window.addEventListener('blur', loseFocus);
   startInput();
   resetGame();
+  createForest();
 }
 
 /** The game state as of the last frame. */

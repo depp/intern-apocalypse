@@ -3,7 +3,7 @@
  */
 
 import { gl, startGL } from '../lib/global';
-import { initRenderLevel } from './level';
+import { updateRenderLevel } from './level';
 import { renderModels } from './model';
 import { renderParticles } from './particles';
 import { renderUI, initRenderUI } from './ui';
@@ -15,7 +15,6 @@ import { initRandomVec4 } from './random';
 export function initRenderer(): void {
   startGL();
   initRandomVec4();
-  initRenderLevel();
   initRenderUI();
 }
 
@@ -23,6 +22,8 @@ export function initRenderer(): void {
  * Render the game.
  */
 export function render(): void {
+  updateRenderLevel();
+
   gl.clearColor(0.5, 0.5, 0.5, 0);
   gl.clear(gl.COLOR_BUFFER_BIT);
 

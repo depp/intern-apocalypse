@@ -2,11 +2,14 @@
  * Level geometry renderer.
  */
 
-import { level } from '../game/world';
+import { level, levelVersion } from '../game/world';
 import { Random } from '../lib/random';
 import { Edge } from '../game/level';
 import * as genmodel from '../model/genmodel';
 import { packColor } from './util';
+
+/** See levelVersion. */
+let geometryVersion = 0;
 
 /** The level model data. */
 export const levelModel = genmodel.newModel();
@@ -64,7 +67,10 @@ function createGeometry(): void {
   genmodel.upload(levelModel);
 }
 
-/** Initialize the level renderer. */
-export function initRenderLevel(): void {
-  createGeometry();
+/** Update the level renderer. */
+export function updateRenderLevel(): void {
+  if (levelVersion > geometryVersion) {
+    createGeometry();
+    geometryVersion = levelVersion;
+  }
 }

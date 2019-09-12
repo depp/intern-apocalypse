@@ -21,6 +21,7 @@ import { Sounds } from '../audio/sounds';
 import { Collider, colliders } from './physics';
 import { NavigationGraph, newNavigationGraph } from './navigation';
 import { levelTime, frameDT } from './time';
+import { level } from './world';
 
 /** Interval, in seconds, between navigation updates. */
 const navigationUpdateInterval = 0.5;
@@ -49,11 +50,11 @@ function updateNavigation(): void {
     }
   }
   if (!navigationGraph) {
-    navigationGraph = newNavigationGraph();
+    navigationGraph = newNavigationGraph(level);
   }
   if (levelTime > lastNavigationUpdateTime + navigationUpdateInterval) {
     lastNavigationUpdateTime = levelTime;
-    navigationGraph.update(navigationTarget && navigationTarget.pos);
+    navigationGraph.update(navigationTarget ? [navigationTarget.pos] : []);
   }
 }
 

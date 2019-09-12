@@ -13,9 +13,9 @@ import {
 import { globalRandom } from '../lib/random';
 
 /** Maximum number of vertexes. */
-const maxVertexCount = 2048;
+const maxVertexCount = 8 * 1024;
 /** Maximum number of indexes. */
-const maxIndexCount = 2048;
+const maxIndexCount = 8 * 2048;
 
 /**
  * General model type. Used for any shader.
@@ -131,6 +131,7 @@ export function upload(
     }
   }
   m.vcount = vertex - offset;
+  console.log(m.vcount, m.icount);
   if (isDebug) {
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
