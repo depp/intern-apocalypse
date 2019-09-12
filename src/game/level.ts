@@ -152,13 +152,6 @@ export interface Level {
    * Update precomputed properties.
    */
   updateProperties(): void;
-
-  /**
-   * List all edges within the given circle that cannot be walked thorugh.
-   * @param center Center of the circle.
-   * @param radius Radius of the circle.
-   */
-  findUnpassableEdges(center: Vector, radius: number): Edge[];
 }
 
 /**
@@ -410,33 +403,6 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
     newCell(center, edges);
   }
 
-  /**
-   * List all edges within the given circle that cannot be walked thorugh.
-   * @param center Center of the circle.
-   * @param radius Radius of the circle.
-   */
-  function findUnpassableEdges(center: Vector, radius: number): Edge[] {
-    const result: Edge[] = [];
-    for (const cell of cells) {
-      if (cell.index >= 0) {
-        for (const edge of cell.edges()) {
-          if (
-            !edge.passable &&
-            lineIntersectsCircle(
-              edge.vertex0,
-              edge.vertex1,
-              center,
-              radius ** 2,
-            )
-          ) {
-            result.push(edge);
-          }
-        }
-      }
-    }
-    return result;
-  }
-
   const edges: Edge[] = [];
   for (const cell of cells) {
     const { bounds } = cell;
@@ -468,6 +434,5 @@ export function createLevel(size: number, centers: readonly Vector[]): Level {
     edges,
     findCell,
     updateProperties,
-    findUnpassableEdges,
   };
 }
