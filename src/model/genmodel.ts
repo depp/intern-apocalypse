@@ -1,4 +1,4 @@
-import { quad, packColor } from './util';
+import { quad, packColor } from '../render/util';
 import { AssertionError, isDebug } from '../debug/debug';
 import { gl } from '../lib/global';
 

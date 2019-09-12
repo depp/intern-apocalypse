@@ -9,7 +9,7 @@ import {
   playerMana,
   playerManaMax,
 } from '../game/player';
-import * as genmodel from './genmodel';
+import * as genmodel from '../model/genmodel';
 
 /** If true, we are drawing the HUD. */
 let hudMode: boolean | undefined;
