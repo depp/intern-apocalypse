@@ -9,6 +9,7 @@ export const debugView = {
   level: false,
   centroids: false,
   entities: false,
+  coordinates: false,
 };
 
 /** Settings for the camera. */

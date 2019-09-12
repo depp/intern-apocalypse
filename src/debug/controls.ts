@@ -163,6 +163,7 @@ function startGUI(dat: typeof datTypes): void {
     gui.add(data, 'level');
     gui.add(data, 'centroids');
     gui.add(data, 'entities');
+    gui.add(data, 'coordinates');
   });
 
   folder('Camera', cameraSettings, cameraDefaults, (gui, data) => {
