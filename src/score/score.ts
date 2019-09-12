@@ -9,7 +9,7 @@ export function renderScore(
   program: Uint8Array,
   sounds: (Uint8Array | null)[],
 ): Float32Array {
-  const dataChunks: Uint8Array[] = [];
+  const dataChunks: Uint8Array[] = [new Uint8Array()];
   let pos = 0;
   let size: number;
   if (program.length == 0) {
@@ -77,6 +77,17 @@ export function renderScore(
 
       case Opcode.Reverse:
         reverse = !reverse;
+        break;
+
+      case Opcode.Skip:
+        if (time == null) {
+          throw new AssertionError('null time');
+        }
+        if (pos >= program.length) {
+          throw new AssertionError('end of program');
+        }
+        const skipValue = program[pos++];
+        time += skipValue * baseDuration * 16 * 6;
         break;
 
       default:

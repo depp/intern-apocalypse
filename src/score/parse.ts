@@ -186,6 +186,7 @@ enum Kind {
   Track,
   Pattern,
   Values,
+  Skip,
   Emit,
   HardTranspose,
   SoftTranspose,
@@ -224,6 +225,12 @@ interface Values extends ItemBase {
   values: NoteValue[];
 }
 
+/** Skip measures. */
+interface Skip extends ItemBase {
+  kind: Kind.Skip;
+  count: number;
+}
+
 /** Emit notes. */
 interface Emit extends ItemBase {
   kind: Kind.Emit;
@@ -259,6 +266,7 @@ type Item =
   | Track
   | Pattern
   | Values
+  | Skip
   | Emit
   | Transpose
   | Tempo
@@ -346,6 +354,18 @@ deftype('values', function parseNotes(loc, fields): Values {
     loc,
     name: fields[0],
     values,
+  };
+});
+
+deftype('skip', function parseSkip(loc, fields): Skip {
+  if (fields.length != 1) {
+    throw new SourceError(loc, `skip requires 1 field, got ${fields.length}`);
+  }
+  const count = parseIntExact(fields[0]);
+  return {
+    kind: Kind.Skip,
+    loc,
+    count,
   };
 });
 
@@ -618,6 +638,11 @@ function requireTrack(w: ScoreWriter, item: ItemBase): void {
   }
 }
 
+function writeSkip(w: ScoreWriter, item: Skip): void {
+  requireTrack(w, item);
+  w.commands.write(Opcode.Skip, item.count);
+}
+
 function writeEmit(w: ScoreWriter, item: Emit): void {
   if (!w.hasTempo) {
     throw new SourceError(item.loc, 'tempo directive required');
@@ -721,6 +746,9 @@ function writeItem(w: ScoreWriter, item: Item): void {
     case Kind.Values:
       writeValues(w, item);
       break;
+    case Kind.Skip:
+      writeSkip(w, item);
+      break;
     case Kind.Emit:
       writeEmit(w, item);
       break;
@@ -792,6 +820,7 @@ export function parseScore(source: string): Score {
       ref.locs.push(instrument);
     }
   }
+  const zeroChunk = new Uint8Array();
   return {
     sounds,
     emit(sounds: ReadonlyMap<string, number>): Uint8Array {
@@ -803,8 +832,10 @@ export function parseScore(source: string): Score {
         commands,
         trackName: null,
         trackNames: [],
-        emittedChunks: [],
-        namedChunks: new Map<string, DataChunk>(),
+        emittedChunks: [zeroChunk],
+        namedChunks: new Map<string, DataChunk>([
+          ['.-', { kind: Kind.Values, data: zeroChunk, size: 0 }],
+        ]),
         transposeGlobal: 0,
         transposeLocal: 0,
         hasTempo: false,

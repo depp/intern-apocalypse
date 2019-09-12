@@ -4,6 +4,7 @@ export const enum Opcode {
   Transpose,
   Inversion,
   Reverse,
+  Skip,
   Notes, // Must be last.
 }
 
