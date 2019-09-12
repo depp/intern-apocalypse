@@ -63,6 +63,8 @@ export function createBaseLevel(): void {
 }
 
 export function createForest(): void {
+  // Impassible border size.
+  const border = 9;
   // Divide the level up into "zones". Place the zones using Voronoi relaxation,
   // then fill in the rest of the level.
   const size = 40;
@@ -83,16 +85,26 @@ export function createForest(): void {
   graph.update(centers.slice(0, zoneCount));
   const zoneAssignments = graph.targetData;
   const distances = graph.distanceData;
-  for (let i = 0; i < cellCount; i++) {
-    const cell = level.cells[i];
+  level.cells.forEach((cell, index) => {
     cell.walkable = false;
+    const center = cell.center;
+    const distance = Math.max(Math.abs(center.x), Math.abs(center.y));
+    if (distance > size - border) {
+      // Too close to the border. Make it impassable.
+      return;
+    }
     const zone = zoneAssignments[cell.index];
     for (const edge of cell.edges()) {
+      if (!edge.back) {
+        // Somehow we got a large border cell.
+        cell.walkable = false;
+        return;
+      }
       if (edge.back && zoneAssignments[edge.back.cell.index] != zone) {
+        // Borders between zones are passable.
         cell.walkable = true;
       }
     }
-    cell.height = -distances[i] * 0.2;
-  }
+  });
   level.updateProperties();
 }
