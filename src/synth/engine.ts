@@ -91,7 +91,7 @@ export function runProgram(
     mode: FilterMode,
     invq: number,
   ): Float32Array {
-    for (let i = 0; i < mode; i += 3) {
+    for (let i = 0; i <= mode; i += 3) {
       let a = 0;
       let b = 0;
       let c;
