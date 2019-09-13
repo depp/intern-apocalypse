@@ -91,7 +91,11 @@ let dialogueStartTime: number | undefined;
 
 function startGameDialogue(): void {
   dialogueStartTime = levelTime;
-  startMenu({ flexspace: 1 }, { text: pendingDialogue });
+  startMenu(
+    { flexspace: 1 },
+    { text: pendingDialogue, outlined: true },
+    { space: 32 },
+  );
 }
 
 function exitDialogue(): void {

@@ -38,6 +38,7 @@ export interface MenuItem {
   size?: number;
   flexspace?: number;
   space?: number;
+  outlined?: boolean;
   click?(): void;
 }
 
@@ -138,18 +139,20 @@ function updateMenu(): void {
 
   const baseLineHeight = 40;
   const textureMargin = 8;
+  const boxMargin = 16;
 
   // Calculate the positions of the menu items.
   let fixspace = 0;
   let flexspace = 0;
-  let itemcount = 0;
   for (const item of items) {
     flexspace += item.flexspace;
     if (item.text) {
       ctx.font = getFont(item);
-      itemcount++;
       item.lines = wrapText(item.text, canvasSize.x * 0.95);
       fixspace += baseLineHeight * item.size * item.lines.length;
+      if (item.outlined) {
+        fixspace += boxMargin * 2;
+      }
     }
     fixspace += item.space;
   }
@@ -168,6 +171,10 @@ function updateMenu(): void {
       const delta = baseLineHeight * item.size * item.lines.length;
       ypos += delta;
       vpos += delta + textureMargin * 2;
+      if (item.outlined) {
+        ypos += boxMargin * 3;
+        vpos += boxMargin * 3;
+      }
     }
     ypos += item.space + flexamt * item.flexspace;
     item.y1 = (ypos | 0) + textureMargin;
@@ -183,14 +190,40 @@ function updateMenu(): void {
 
     const lineHeight = baseLineHeight * item.size;
     ctx.save();
-    ctx.translate(canvasSize.x / 2, item.v0 + lineHeight * 0.5 + textureMargin);
-    ctx.font = getFont(item);
+    ctx.translate(canvasSize.x / 2, item.v0 + textureMargin);
+    if (item.outlined) {
+      ctx.textAlign = 'left';
+      ctx.rect(
+        -(400 - 32),
+        0,
+        800 - 64,
+        lineHeight * item.lines.length + boxMargin * 2,
+      );
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fill();
+      ctx.lineWidth = 8;
+      ctx.save();
+      ctx.strokeStyle = '#666';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetX = 4;
+      ctx.shadowOffsetY = 4;
+      ctx.shadowColor = 'rgba(0,0,0,0.4)';
+      ctx.stroke();
+      ctx.restore();
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = '#000';
+      ctx.stroke();
+      ctx.translate(-(400 - 32) + boxMargin, boxMargin);
+    } else {
+      ctx.textAlign = 'center';
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#fff';
+    }
 
-    ctx.textAlign = 'center';
+    ctx.translate(0, lineHeight * 0.5);
+    ctx.font = getFont(item);
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#000';
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = '#fff';
     for (const line of item.lines) {
       ctx.fillText(line, 0, 0);
       ctx.translate(0, lineHeight);
