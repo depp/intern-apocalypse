@@ -39,6 +39,7 @@ export const enum State {
   Loading = 1,
   MainMenu,
   Game,
+  GameDialogue,
   GameMenu,
   Dead,
   DeadMenu,
@@ -53,4 +54,15 @@ export let currentState: State = State.Loading;
  */
 export function setState(state: State): void {
   currentState = state;
+}
+
+/**
+ * Pending text that should be shown to the player in the GameDialogue state.
+ */
+export let pendingDialogue: string;
+
+/** Set the game state to GameDialogue and set the dialogue text. */
+export function setGameDialogue(text: string): void {
+  currentState = State.GameDialogue;
+  pendingDialogue = text;
 }

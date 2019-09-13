@@ -2,12 +2,12 @@
  * Main game loop and initialization.
  */
 
-import { playSound, playMusic } from './audio/audio';
+import { playMusic } from './audio/audio';
 import { updateCamera } from './game/camera';
 import { startInput, endFrameInput, buttonPress, Button } from './lib/input';
 import { spawnPlayer } from './game/player';
 import { render } from './render/render';
-import { State, currentState, setState } from './lib/global';
+import { State, currentState, setState, pendingDialogue } from './lib/global';
 import {
   startMenu,
   pushMenu,
@@ -21,11 +21,12 @@ import { spawnMonster } from './game/monster';
 import { Difficulty, setDifficulty } from './game/difficulty';
 import { vector } from './lib/math';
 import { resetGame, updateGame } from './game/game';
-import { updateTime } from './game/time';
+import { updateTime, levelTime } from './game/time';
 import { MusicTracks } from './audio/sounds';
 import { setGameTimeout } from './game/entity';
-import { createBaseLevel, createForest } from './game/world';
+import { createForest } from './game/world';
 import { spawnNPC } from './game/npc';
+import { AssertionError } from './debug/debug';
 
 /** Handle when the game loses focus. */
 function loseFocus(): void {
@@ -86,6 +87,22 @@ function pushNewGameMenu(): void {
   );
 }
 
+let dialogueStartTime: number | undefined;
+
+function startGameDialogue(): void {
+  dialogueStartTime = levelTime;
+  startMenu({ flexspace: 1 }, { text: pendingDialogue });
+}
+
+function exitDialogue(): void {
+  if (dialogueStartTime == null) {
+    throw new AssertionError('dialogueStartTime == null');
+  }
+  if (levelTime > dialogueStartTime + 1) {
+    setState(State.Game);
+  }
+}
+
 function startGameMenu(): void {
   startMenu(
     { text: 'Paused', size: 1.5 },
@@ -111,9 +128,9 @@ export function newGame(difficulty: Difficulty): void {
   setDifficulty(difficulty);
   resetGame();
   spawnPlayer(vector(0, 0));
-  spawnMonster(vector(-9, -9));
-  spawnMonster(vector(-2, 9));
-  spawnMonster(vector(6, -9));
+  // spawnMonster(vector(-9, -9));
+  // spawnMonster(vector(-2, 9));
+  // spawnMonster(vector(6, -9));
   spawnNPC(vector(0, -5));
   playMusic(MusicTracks.Sylvan);
 }
@@ -140,6 +157,13 @@ export function main(curTimeMS: DOMHighResTimeStamp): void {
         setState(State.DeadMenu);
         playClickSound();
         break;
+      case State.GameDialogue:
+        exitDialogue();
+        break;
+    }
+  } else if (buttonPress[Button.Select] || buttonPress[Button.Action]) {
+    if (currentState == State.GameDialogue) {
+      exitDialogue();
     }
   }
   if (currentState != lastState) {
@@ -152,6 +176,9 @@ export function main(curTimeMS: DOMHighResTimeStamp): void {
         break;
       case State.Game:
         startHUD();
+        break;
+      case State.GameDialogue:
+        startGameDialogue();
         break;
       case State.GameMenu:
         startGameMenu();

@@ -10,12 +10,11 @@ import {
   madd,
   normalizeSubtract,
   Vector,
-  zeroVector,
   distanceSquared,
 } from '../lib/math';
 import { frameDT } from './time';
 import { ModelInstance, modelInstances, Team } from './entity';
-import { findColliders, colliders, Collider } from './physics';
+import { findColliders, Collider } from './physics';
 import { ModelAsset } from '../model/models';
 import { playerSettings } from '../lib/settings';
 import {
@@ -29,7 +28,7 @@ import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
 import { isDebug, DebugColor } from '../debug/debug';
 import { debugMarks } from '../debug/mark';
-import { spawnSlash, spawnDeath } from './particles';
+import { spawnDeath } from './particles';
 import { setState, State } from '../lib/global';
 import { spawnActor, Actor } from './actor';
 
@@ -53,6 +52,8 @@ export function spawnPlayer(pos: Vector): void {
   let pendingAttack = false;
   // True if the attack hasn't landed yet.
   let pendingHit = false;
+  // Cooldown before we can interact again.
+  let interactionCooldown = 0;
 
   spawnActor({
     pos,
@@ -88,10 +89,14 @@ export function spawnPlayer(pos: Vector): void {
         }
       }
 
-      // Update attack state.
+      // Update attack / interaction state.
+      interactionCooldown -= frameDT;
       if (buttonPress[Button.Action]) {
         if (interactible) {
-          interactible.playerAction!();
+          if (interactionCooldown < 0) {
+            interactible.playerAction!();
+            interactionCooldown = 1;
+          }
         } else {
           pendingAttack = true;
         }
