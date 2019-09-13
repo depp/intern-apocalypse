@@ -6,6 +6,7 @@ import { frameDT } from './time';
 export const enum Team {
   Player,
   Monster,
+  NPC,
 }
 
 /** Base interface for all entity types. */
