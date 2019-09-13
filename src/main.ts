@@ -109,7 +109,7 @@ export function newGame(difficulty: Difficulty): void {
   setState(State.Game);
   setDifficulty(difficulty);
   resetGame();
-  spawnPlayer();
+  spawnPlayer(vector(0, 0));
   spawnMonster(vector(-9, -9));
   spawnMonster(vector(-2, 9));
   spawnMonster(vector(6, -9));

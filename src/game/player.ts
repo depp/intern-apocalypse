@@ -9,17 +9,11 @@ import {
   scaleVector,
   madd,
   normalizeSubtract,
-  zeroVector,
+  Vector,
 } from '../lib/math';
 import { frameDT } from './time';
-import {
-  ModelInstance,
-  modelInstances,
-  entities,
-  Entity,
-  Team,
-} from './entity';
-import { Collider, findColliders, colliders } from './physics';
+import { ModelInstance, modelInstances, Team } from './entity';
+import { findColliders } from './physics';
 import { ModelAsset } from '../model/models';
 import { playerSettings } from '../lib/settings';
 import {
@@ -28,14 +22,14 @@ import {
   Axis,
   rotateMatrixFromDirection,
 } from '../lib/matrix';
-import { setCameraTarget, applyCameraShake } from './camera';
+import { setCameraTarget } from './camera';
 import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
-import { createWalker, Walker } from './walker';
 import { isDebug, DebugColor } from '../debug/debug';
 import { debugMarks } from '../debug/mark';
 import { spawnSlash, spawnDeath } from './particles';
 import { setState, State } from '../lib/global';
+import { spawnActor, Actor } from './actor';
 
 export let playerHealth = 10;
 export let playerHealthMax = 10;
@@ -44,10 +38,11 @@ export let playerMana = 0;
 export let playerManaMax = 0;
 
 /** Spawn the player in the level. */
-export function spawnPlayer(): void {
-  let pos = vector(0, 0);
-  let model: ModelInstance;
-  let sword: ModelInstance;
+export function spawnPlayer(pos: Vector): void {
+  const sword: ModelInstance = {
+    model: ModelAsset.Sword,
+    transform: matrixNew(),
+  };
 
   // Amount of time into attack.
   let attackTime = -1;
@@ -57,13 +52,17 @@ export function spawnPlayer(): void {
   // True if the attack hasn't landed yet.
   let pendingHit = false;
 
-  let walker: Walker;
-  const entity: Entity & Collider = {
+  spawnActor({
     pos,
-    velocity: zeroVector,
+    angle: 0,
+    model: ModelAsset.Person,
     radius: 0.5,
     team: Team.Player,
-    update() {
+    health: 10,
+    actorUpdate(this: Actor): void {
+      // Update camera position.
+      setCameraTarget(this.pos);
+
       // Update player position.
       let movement = vector(
         buttonAxis(Button.Left, Button.Right),
@@ -74,13 +73,7 @@ export function spawnPlayer(): void {
         // Maximum speed the same in all directions (no diagonal speed boost).
         movement = scaleVector(movement, 1 / Math.sqrt(magSquared));
       }
-      walker.update(playerSettings, movement);
-      if (isDebug) {
-        this.debugArrow = walker.facing;
-      }
-
-      // Update camera position.
-      setCameraTarget(this.pos);
+      this.actorMove(playerSettings, movement);
 
       // Update attack state.
       if (buttonPress[Button.Action]) {
@@ -99,7 +92,7 @@ export function spawnPlayer(): void {
         attackTime += frameDT;
         if (pendingHit && attackTime > playerSettings.attackTime * 0.3) {
           pendingHit = false;
-          const pos = madd(this.pos, walker.facing, 0.5);
+          const pos = madd(this.pos, this.facing, 0.5);
           const radius = 0.75;
           if (isDebug) {
             debugMarks.push({
@@ -115,7 +108,6 @@ export function spawnPlayer(): void {
             if (target != this) {
               const direction = normalizeSubtract(target.pos, this.pos);
               target.damage(direction);
-              spawnSlash(target.pos, direction);
             }
           }
         }
@@ -126,10 +118,9 @@ export function spawnPlayer(): void {
           blend = Math.min(2 * (1 - Math.abs(frac)), 1);
         }
       }
-
       // Set sword model transform.
       const swordTransform = sword.transform;
-      swordTransform.set(walker.transform);
+      swordTransform.set(this.transform);
       translateMatrix(swordTransform, [0.5 - 0.5 * Math.abs(frac), -0.4, 0.5]);
       rotateMatrixFromDirection(swordTransform, Axis.Y, 1 - blend, 1);
       rotateMatrixFromDirection(
@@ -139,33 +130,14 @@ export function spawnPlayer(): void {
         -2 * blend * frac,
       );
       rotateMatrixFromDirection(swordTransform, Axis.Z, 1, 1 - blend);
+      // Pass health to UI.
+      playerHealth = this.health;
     },
-    damage() {
-      if (this.isDead) {
-        return;
-      }
-      playerHealth--;
-      if (playerHealth < 0) {
-        setState(State.Dead);
-        playerHealth = 0;
-        this.isDead = model.isDead = sword.isDead = true;
-        spawnDeath(model.transform, model.model);
-        spawnDeath(sword.transform, sword.model);
-      } else {
-        applyCameraShake(0.1);
-      }
+    actorDamaged() {},
+    actorDied(): void {
+      setState(State.Dead);
+      spawnDeath(sword.transform, sword.model);
     },
-  };
-  walker = createWalker(entity);
-  model = {
-    model: ModelAsset.Person,
-    transform: walker.transform,
-  };
-  sword = {
-    model: ModelAsset.Sword,
-    transform: matrixNew(),
-  };
-  modelInstances.push(model, sword);
-  entities.push(entity);
-  colliders.push(entity);
+  });
+  modelInstances.push(sword);
 }

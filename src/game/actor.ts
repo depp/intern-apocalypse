@@ -29,7 +29,7 @@ import { frameDT } from './time';
 import { clamp } from '../lib/util';
 import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
-import { spawnDeath } from './particles';
+import { spawnDeath, spawnSlash } from './particles';
 import { isDebug } from '../debug/debug';
 
 /** Parameters for how an actor moves. */
@@ -139,6 +139,7 @@ export function spawnActor(arg: ActorArgument): void {
         return;
       }
       this.health--;
+      spawnSlash(this.pos, direction);
       if (this.health > 0) {
         playSound(Sounds.MonsterHit);
         this.velocity = scaleVector(direction, 12);
@@ -151,12 +152,13 @@ export function spawnActor(arg: ActorArgument): void {
       }
     },
     update(this: ActorImplementation): void {
-      this.actorUpdate();
       // Set the model transform.
       const { transform } = this;
       setIdentityMatrix(transform);
       translateMatrix(transform, [this.pos.x, this.pos.y]);
       rotateMatrixFromAngle(transform, Axis.Z, this.angle);
+      // Update client afterwards, so they can use transform.
+      this.actorUpdate();
       if (isDebug) {
         this.debugArrow = this.facing;
       }
