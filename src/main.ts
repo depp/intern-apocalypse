@@ -42,7 +42,6 @@ export function initialize(): void {
   window.addEventListener('blur', loseFocus);
   startInput();
   resetGame();
-  setLevel(loadLevel(0));
 }
 
 /** The game state as of the last frame. */

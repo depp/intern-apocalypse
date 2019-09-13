@@ -47,7 +47,7 @@ export function renderModels(): void {
   // Common uniforms
   gl.uniformMatrix4fv(p.ViewProjection, false, cameraMatrix);
 
-  if (!isDebug || currentLevel != null) {
+  if (currentLevel) {
     drawModel(currentLevel.levelModel, identityMatrix);
   }
   for (const instance of modelInstances) {
