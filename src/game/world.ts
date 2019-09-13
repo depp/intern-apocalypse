@@ -14,7 +14,7 @@ import { MusicTracks } from '../audio/sounds';
 import { playMusic } from '../audio/audio';
 import { spawnNPC } from './npc';
 import { spawnMonster } from './monster';
-import { spawnHouse } from './prop';
+import { spawnHouse, spawnPotion } from './prop';
 import { setGameDialogue } from '../lib/global';
 
 const rand = new Random();
@@ -302,7 +302,11 @@ const specs: LevelSpec[] = [
     exits: [, 1],
     music: MusicTracks.Sylvan,
     zones: 'rfrrf',
-    spawn() {},
+    spawn() {
+      spawnPotion(vector(23, -27), 0);
+      spawnPotion(vector(-6, -25), 1);
+      spawnPotion(vector(-27, -25), 2);
+    },
   },
 ];
 
