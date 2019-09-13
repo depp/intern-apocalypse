@@ -247,10 +247,7 @@ function drawStatusBars(): void {
   const barWidth = 125;
   const barHeight = 8;
 
-  const colors = '047 0ac 7dd 800 c00 f66 aaa'.split(' ');
-  const color = () => '#' + colors.pop();
-
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 2; i++) {
     ctx.save();
     ctx.translate(150, 16 + 32 * i);
 
@@ -265,7 +262,7 @@ function drawStatusBars(): void {
       ctx.lineWidth = 6;
       ctx.stroke();
       ctx.lineWidth = 3;
-      ctx.strokeStyle = color();
+      ctx.strokeStyle = '#aaa';
       ctx.stroke();
       ctx.fill();
     } else {
@@ -276,9 +273,9 @@ function drawStatusBars(): void {
       ctx.save();
       const gradient = ctx.createRadialGradient(0, -3, 1, 0, 0, barHeight);
 
-      gradient.addColorStop(0, color());
-      gradient.addColorStop(0.3, color());
-      gradient.addColorStop(1, color());
+      gradient.addColorStop(0, '#f66');
+      gradient.addColorStop(0.3, '#c00');
+      gradient.addColorStop(1, '#800');
       ctx.fillStyle = gradient;
       const scale = 20;
       ctx.scale(scale, 1);
