@@ -1,12 +1,32 @@
-# Internship at the Apocalypse
+# I Want to Help Fight the Demon Overlord, but I’m Just an Intern!
 
 “They are on a quest to save the world. You… are heading back to town to get them more potions.”
 
-A game being made for [JS13KGames 2019](http://js13kgames.com/) by Dietrich Epp (Twitter: [@DietrichEpp](https://twitter.com/DietrichEpp)). The goal is to create a game which runs in the browser and is no larger than 13 KiB compressed.
+A game made for [JS13KGames 2019](http://js13kgames.com/) by Dietrich Epp (Twitter: [@DietrichEpp](https://twitter.com/DietrichEpp)). The goal was to create a game which runs in the browser and is no larger than 13 KiB compressed. And I did it!
 
-## Technical Details
+## Play the Game
 
-The game is written in TypeScript and uses WebGL for graphics. It should run in recent versions of Firefox (version 68) and Chrome (version 76), other browsers are not a priority.
+The GitHub releases page has the 13 KiB zip file attached to the v1.0 release. The file is called “InternApocalypse_JS13K.zip” and you can see it here: https://github.com/depp/intern-apocalypse/releases/tag/v1.0
+
+If you want to play, just download, extract, and open it in your browser. It takes some time to load, be patient.
+
+## Development Notes and Technical Details
+
+The game is written in TypeScript and uses WebGL for graphics. It has been tested on the following browsers and known to work:
+
+- Safari, version 12.1.1
+- Firefox, version 69
+- Google Chrome, version 76
+
+Some facts, in no particular order:
+
+- There was a screen that said “The End” for when you beat the game, but it was integrated into the game because it pushed the file size slightly over the limit. Eventually you will just run out of things to do in the game.
+
+- The houses do not have hitboxes. The NPC in town will wander into them.
+
+- Assets are bundled into a `<script>` tag at the bottom of the HTML file. The audio data is loaded in a web worker.
+
+- The final change to make the game fit 13 KiB was to switch `<html lang="en">` to `<html>`, which causes the tag to be removed entirely by the minifier.
 
 ## Building
 
