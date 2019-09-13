@@ -50,7 +50,7 @@ export interface CampaignData {
 export const initialCampaignData: CampaignData = {
   playerHealth: 10,
   potions: 0,
-  stage: Stage.StartDungeon,
+  stage: Stage.GoPotions,
 };
 
 export const campaignData: CampaignData = {} as CampaignData;

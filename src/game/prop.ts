@@ -42,7 +42,7 @@ export function spawnPotion(pos: Vector, index: number): void {
     velocity: zeroVector,
     team: Team.NPC,
     damage() {},
-    playerAction() {
+    playerNear() {
       playSound(Sounds.Interact);
       const flags = (campaignData.potions |= mask);
       const count = (flags & 1) + (flags >> 2) + ((flags >> 1) & 1);
