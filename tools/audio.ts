@@ -44,6 +44,7 @@ interface Note {
 interface AudioArgs {
   score: boolean;
   write: boolean;
+  writeMIDI: boolean;
   input: string[];
   play: boolean;
   notes: Note[];
@@ -67,6 +68,11 @@ function parseArgs(): AudioArgs {
         type: 'boolean',
         default: false,
         desc: 'Write output WAVE files',
+      },
+      'write-midi': {
+        type: 'boolean',
+        default: false,
+        desc: 'Write out MIDI files',
       },
       play: {
         alias: 'p',
@@ -154,6 +160,7 @@ function parseArgs(): AudioArgs {
   const args: AudioArgs = {
     score: argv.score,
     write: argv.write,
+    writeMIDI: argv['write-midi'],
     input: argv._,
     play: argv.play,
     notes,
@@ -441,6 +448,11 @@ async function runMain(
     let tracks: Track[] = [];
     try {
       const score = parseScore(source);
+      if (args.writeMIDI) {
+        const midiPath = pathWithExt(input, '.midi');
+        const midiData = score.emitMIDI();
+        await fs.promises.writeFile(midiPath, midiData);
+      }
       const { sounds } = score;
       const soundMap = new Map<string, number>();
       for (let i = 0; i < sounds.length; i++) {

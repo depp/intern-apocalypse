@@ -11,6 +11,7 @@ import { SourceError, SourceSpan, HasSourceLoc } from '../lib/sourcepos';
 import { DataWriter } from '../lib/data.writer';
 import { Opcode, signedOffset, noteRewind } from './opcode';
 import { toDataClamp, encodeExponential } from '../lib/data.encode';
+import { MIDITrackWriter, encodeMIDI } from './midi';
 
 // =============================================================================
 // Base data types
@@ -81,6 +82,9 @@ export enum DurationModifier {
   Dotted,
   Triplet,
 }
+
+/** The lengths of duration modifiers. */
+const durationModifiers: readonly number[] = [6, 9, 4];
 
 /** Types of elements that can appear in a rhythm. */
 export enum RhythmKind {
@@ -782,6 +786,257 @@ function writeItem(w: ScoreWriter, item: Item): void {
 }
 
 // =============================================================================
+// MIDI output
+// =============================================================================
+
+interface MIDITrack {
+  names: Map<string, Pattern | Values>;
+  output: MIDITrackWriter;
+  hardTranspose: number;
+  duration: number;
+  inversion: number;
+  reverse: boolean;
+}
+
+interface MIDIState {
+  names: Map<string, Pattern | Values>;
+  tracks: Map<string, MIDITrack>;
+  track: MIDITrack | null;
+  globalTrack: MIDITrackWriter;
+  time: number;
+  hardTranspose: number;
+  softTranspose: number;
+}
+
+/** Convert Values to MIDI note values. */
+function convertValues(
+  state: MIDIState,
+  track: MIDITrack,
+  values: Values,
+): Int32Array {
+  const result = new Int32Array(values.values.length);
+  for (let i = 0; i < values.values.length; i++) {
+    result[i] =
+      values.values[i].value +
+      track.hardTranspose +
+      state.softTranspose +
+      60 -
+      middleC;
+  }
+  const chromaticity = result.map(x => x % 12);
+  for (let i = 0; i < track.inversion; i++) {
+    let newValue = result[result.length - 1];
+    for (let j = 1; j < 13; j++) {
+      if (chromaticity.includes((newValue + j) % 12)) {
+        newValue += j;
+        break;
+      }
+    }
+    result.copyWithin(0, 1);
+    result[result.length - 1] = newValue;
+  }
+  if (track.reverse) {
+    result.reverse();
+  }
+  return result;
+}
+
+function emitMIDINoteSegment(
+  state: MIDIState,
+  track: MIDITrack,
+  pattern: Pattern,
+  values: Values,
+): void {
+  const notes = convertValues(state, track, values);
+  const startTime = state.time;
+  for (const rh of pattern.notes) {
+    switch (rh.kind) {
+      case RhythmKind.Rewind:
+        state.time = startTime;
+        break;
+      case RhythmKind.Note:
+        {
+          const { noteIndex, baseDuration, durationModifier } = rh;
+          let duration = durationModifiers[durationModifier];
+          if (!duration) {
+            throw new AssertionError('invalid duration modifier');
+          }
+          duration <<= 4 - baseDuration;
+          const time = state.time;
+          if (
+            noteIndex != null &&
+            0 < noteIndex &&
+            noteIndex <= values.values.length
+          ) {
+            const note = notes[noteIndex - 1];
+            track.output.noteOn(time, note);
+            track.output.noteOff(time + duration, note);
+          }
+          state.time = time + duration;
+          track.duration = Math.max(track.duration, state.time);
+        }
+        break;
+      default:
+        const dummy: never = rh;
+        throw new AssertionError('invalid kind');
+    }
+  }
+}
+
+function emitMIDINotes(state: MIDIState, emit: Emit): void {
+  const { track } = state;
+  if (!track) {
+    throw new SourceError(emit.loc, 'needs track');
+  }
+  let pattern: Pattern | null = null;
+  for (const item of emit.items) {
+    const obj = track.names.get(item.text) || state.names.get(item.text);
+    if (obj == null) {
+      throw new SourceError(item, 'no such object');
+    }
+    switch (obj.kind) {
+      case Kind.Pattern:
+        pattern = obj;
+        break;
+      case Kind.Values:
+        if (pattern == null) {
+          throw new SourceError(item, 'needs pattern');
+        }
+        emitMIDINoteSegment(state, track, pattern, obj);
+        break;
+      default:
+        const dummy: never = obj;
+        throw new AssertionError('bad kind');
+    }
+  }
+}
+
+function emitMIDIItem(state: MIDIState, item: Item): void {
+  switch (item.kind) {
+    case Kind.Track:
+      {
+        const name = item.name.text;
+        let track = state.tracks.get(name);
+        if (track == null) {
+          const output = new MIDITrackWriter();
+          output.trackName(0, name);
+          track = {
+            names: new Map<string, Pattern | Values>(),
+            output,
+            hardTranspose: 0,
+            duration: 0,
+            inversion: 0,
+            reverse: false,
+          };
+          state.tracks.set(name, track);
+        }
+        track.hardTranspose = state.hardTranspose;
+        track.inversion = 0;
+        track.reverse = false;
+        state.track = track;
+        state.time = 0;
+      }
+      break;
+    case Kind.Pattern:
+      {
+        const names = state.track ? state.track.names : state.names;
+        names.set(item.name.text, item);
+      }
+      break;
+    case Kind.Values:
+      {
+        const names = state.track ? state.track.names : state.names;
+        names.set(item.name.text, item);
+      }
+      break;
+    case Kind.Skip:
+      {
+        const { track } = state;
+        if (!track) {
+          throw new SourceError(item.loc, 'track required');
+        }
+        state.time += item.count * 6 * 16;
+        track.duration = Math.max(track.duration, state.time);
+      }
+      break;
+    case Kind.Emit:
+      emitMIDINotes(state, item);
+      break;
+    case Kind.HardTranspose:
+      {
+        const { track } = state;
+        if (track) {
+          track.hardTranspose = state.hardTranspose + item.amount;
+        } else {
+          state.hardTranspose = item.amount;
+        }
+      }
+      break;
+    case Kind.SoftTranspose:
+      state.softTranspose = item.amount;
+      break;
+    case Kind.Tempo:
+      {
+        const usecPerQuarterNote = Math.round((60 * 1e6) / item.tempo);
+        state.globalTrack.setTempo(0, usecPerQuarterNote);
+      }
+      break;
+    case Kind.Inversion:
+      {
+        const { track } = state;
+        if (!track) {
+          throw new SourceError(item.loc, 'requires track');
+        }
+        track.inversion = item.amount;
+      }
+      break;
+    case Kind.Reverse:
+      {
+        const { track } = state;
+        if (!track) {
+          throw new SourceError(item.loc, 'requires track');
+        }
+        track.reverse = item.enabled;
+      }
+      break;
+    default:
+      const dummy: never = item;
+      throw new AssertionError('unknown item kind');
+  }
+}
+
+function emitMIDI(items: Item[]): Uint8Array {
+  const state: MIDIState = {
+    names: new Map<string, Pattern | Values>(),
+    tracks: new Map<string, MIDITrack>(),
+    track: null,
+    globalTrack: new MIDITrackWriter(),
+    time: 0,
+    hardTranspose: 0,
+    softTranspose: 0,
+  };
+  for (const item of items) {
+    emitMIDIItem(state, item);
+  }
+  const tracks: Uint8Array[] = [];
+  let globalDuration = 0;
+  for (const { duration } of state.tracks.values()) {
+    globalDuration = Math.max(globalDuration, duration);
+  }
+  state.globalTrack.endTrack(globalDuration);
+  tracks.push(state.globalTrack.getData());
+  for (const { output, duration } of state.tracks.values()) {
+    output.endTrack(duration);
+    tracks.push(output.getData());
+  }
+  return encodeMIDI({
+    format: 1,
+    tracks,
+    ticksPerQuarterNote: 24,
+  });
+}
+
+// =============================================================================
 // Entry point
 // =============================================================================
 
@@ -812,6 +1067,9 @@ export interface Score {
     sounds: ReadonlyMap<string, number>,
     tracks?: readonly string[] | null,
   ): Uint8Array;
+
+  /** Emit the score a MIDI file. */
+  emitMIDI(): Uint8Array;
 }
 
 /** Parse a musical score. */
@@ -883,6 +1141,9 @@ export function parseScore(source: string): Score {
       result.set(b1);
       result.set(b2, b1.length + 1);
       return result;
+    },
+    emitMIDI(): Uint8Array {
+      return emitMIDI(items);
     },
   };
 }
