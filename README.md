@@ -10,6 +10,12 @@ The GitHub releases page has the 13 KiB zip file attached to the v1.0 release. T
 
 If you want to play, just download, extract, and open it in your browser. It takes some time to load, be patient.
 
+The soundtrack is available on SoundCloud:
+
+- https://soundcloud.com/twoseventwo/sylvan-path
+
+- https://soundcloud.com/twoseventwo/beyond-the-walls
+
 ## Development Notes and Technical Details
 
 The game is written in TypeScript and uses WebGL for graphics. It has been tested on the following browsers and known to work:
