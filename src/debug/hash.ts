@@ -11,6 +11,8 @@ interface HashVariables {
   difficulty: number;
   /** If true, log assets loaded. */
   logAssets: boolean;
+  /** Level to start at. */
+  level: number;
 }
 
 /** Variables in the URL fragment identifier. */
@@ -19,6 +21,7 @@ export const hashVariables: HashVariables = {
   game: false,
   difficulty: 1,
   logAssets: false,
+  level: 0,
 };
 
 /** Parse variables in the fragment identifier */
@@ -58,6 +61,10 @@ export function parseHash(): void {
       return false;
     }
     hashVariables.logAssets = true;
+    return true;
+  });
+  parser('level', value => {
+    hashVariables.level = parseInt(value);
     return true;
   });
   for (const item of hash.substring(1).split('&')) {

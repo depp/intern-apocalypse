@@ -2,10 +2,8 @@
  * Main game loop and initialization.
  */
 
-import { playMusic } from './audio/audio';
 import { updateCamera } from './game/camera';
 import { startInput, endFrameInput, buttonPress, Button } from './lib/input';
-import { spawnPlayer } from './game/player';
 import { render } from './render/render';
 import { State, currentState, setState, pendingDialogue } from './lib/global';
 import {
@@ -17,17 +15,13 @@ import {
   MenuItem,
   playClickSound,
 } from './render/ui';
-import { spawnMonster } from './game/monster';
 import { Difficulty, setDifficulty } from './game/difficulty';
-import { vector } from './lib/math';
 import { resetGame, updateGame } from './game/game';
 import { updateTime, levelTime } from './game/time';
-import { MusicTracks } from './audio/sounds';
 import { setGameTimeout } from './game/entity';
 import { loadLevel } from './game/world';
-import { spawnNPC } from './game/npc';
 import { AssertionError } from './debug/debug';
-import { setLevel } from './game/campaign';
+import { setLevel, setNextLevel, nextLevel } from './game/campaign';
 
 /** Handle when the game loses focus. */
 function loseFocus(): void {
@@ -132,7 +126,7 @@ export function newGame(difficulty: Difficulty): void {
   setState(State.Game);
   setDifficulty(difficulty);
   resetGame();
-  setLevel(loadLevel(0));
+  setNextLevel(0);
 }
 
 /**
@@ -192,6 +186,16 @@ export function main(curTimeMS: DOMHighResTimeStamp): void {
         break;
     }
     lastState = currentState;
+  }
+  if (currentState == State.Game) {
+    if (nextLevel == null) {
+      throw new AssertionError('nextLevel == null');
+    }
+    if (nextLevel >= 0) {
+      const level = loadLevel(nextLevel);
+      resetGame();
+      setLevel(level);
+    }
   }
   if (currentState == State.Game || currentState == State.Dead) {
     updateGame();

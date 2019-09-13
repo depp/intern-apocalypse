@@ -10,7 +10,7 @@ import { models } from '../model/model';
 import { GenModel } from '../model/genmodel';
 import * as genmodel from '../model/genmodel';
 import { Matrix, identityMatrix } from '../lib/matrix';
-import { levelModel } from '../game/campaign';
+import { currentLevel } from '../game/campaign';
 
 // prettier-ignore
 const lightColor = new Float32Array([
@@ -59,7 +59,7 @@ export function renderModels(): void {
   gl.uniform3fv(p.LightColor, lightColor);
   gl.uniform3fv(p.LightPos, lightPos);
 
-  drawModel(levelModel, identityMatrix);
+  drawModel(currentLevel.levelModel, identityMatrix);
   for (const instance of modelInstances) {
     if (!instance.hidden) {
       const model = models[instance.model];

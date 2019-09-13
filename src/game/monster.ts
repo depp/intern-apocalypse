@@ -9,7 +9,7 @@ import { Team } from './entity';
 import { Collider, colliders } from './physics';
 import { NavigationGraph, newNavigationGraph } from './navigation';
 import { levelTime, frameDT } from './time';
-import { level } from './campaign';
+import { currentLevel } from './campaign';
 import { spawnActor, Actor, MovementParameters } from './actor';
 import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
@@ -41,7 +41,7 @@ function updateNavigation(): void {
     }
   }
   if (!navigationGraph) {
-    navigationGraph = newNavigationGraph(level);
+    navigationGraph = newNavigationGraph(currentLevel.level);
   }
   if (levelTime > lastNavigationUpdateTime + navigationUpdateInterval) {
     lastNavigationUpdateTime = levelTime;

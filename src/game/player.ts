@@ -31,6 +31,7 @@ import { debugMarks } from '../debug/mark';
 import { spawnDeath } from './particles';
 import { setState, State } from '../lib/global';
 import { spawnActor, Actor } from './actor';
+import { currentLevel, setNextLevel } from './campaign';
 
 export let playerHealth = 10;
 export let playerHealthMax = 10;
@@ -63,6 +64,17 @@ export function spawnPlayer(pos: Vector): void {
     team: Team.Player,
     health: 10,
     actorUpdate(this: Actor): void {
+      // Check for level transitions.
+      const { level } = currentLevel;
+      [this.pos.x, this.pos.y, -this.pos.x, -this.pos.y].forEach((d, i) => {
+        if (d > level.size - 5) {
+          const exit = currentLevel.exits[i];
+          if (exit != null) {
+            setNextLevel(exit);
+          }
+        }
+      });
+
       // Update camera position.
       setCameraTarget(this.pos);
 

@@ -8,9 +8,9 @@ import { Random } from '../lib/random';
 import { newNavigationGraph } from './navigation';
 import { packColor } from '../render/util';
 import { AssertionError } from '../debug/debug';
-import { spawnExit } from './exit';
 import { LevelObject } from './campaign';
 import { spawnPlayer } from './player';
+import * as genmodel from '../model/genmodel';
 
 const rand = new Random();
 
@@ -35,14 +35,21 @@ function relax(count: number, size: number, centers: Vector[]): Vector[] {
   return centers;
 }
 
-function createForest(): LevelObject {
+interface LevelSpec {
+  seed: number;
+  size: number;
+  zoneCount: number;
+  cellSize: number;
+  exits: (number | undefined)[];
+}
+
+function createWorldLevel(spec: LevelSpec): LevelObject {
+  rand.state = spec.seed;
   // Impassible border size.
   const border = 9;
   // Divide the level up into "zones". Place the zones using Voronoi relaxation,
   // then fill in the rest of the level.
-  const size = 40;
-  const zoneCount = 16;
-  const cellSize = 8;
+  const { size, zoneCount, cellSize } = spec;
   const cellCount = ((size * size * 4) / cellSize) | 0;
   const centers = relax(
     1,
@@ -107,6 +114,9 @@ function createForest(): LevelObject {
   ];
   // Fill in all the cells near the border that are not exits.
   for (let i = 0; i < 4; i++) {
+    if (spec.exits[i] == null) {
+      continue;
+    }
     const fill: Cell[] = [];
     const exit = exits[i];
     if (!exit) {
@@ -135,27 +145,41 @@ function createForest(): LevelObject {
   level.updateProperties();
 
   return {
+    levelModel: genmodel.newModel(),
     level,
+    exits: spec.exits,
     spawn() {
       spawnPlayer(vector(0, 0));
-      for (const exit of exits) {
-        spawnExit(exit!.centroid);
-      }
     },
   };
 }
 
 const levels: LevelObject[] = [];
-const loaders: (() => LevelObject)[] = [createForest];
+const specs: LevelSpec[] = [
+  {
+    seed: 99,
+    size: 40,
+    zoneCount: 16,
+    cellSize: 8,
+    exits: [1],
+  },
+  {
+    seed: 88,
+    size: 30,
+    zoneCount: 5,
+    cellSize: 12,
+    exits: [, , 0],
+  },
+];
 
 export function loadLevel(index: number): LevelObject {
   let level = levels[index];
   if (!level) {
-    const loader = loaders[index];
-    if (!loader) {
-      throw new AssertionError('!loader', { index });
+    const spec = specs[index];
+    if (!spec) {
+      throw new AssertionError('!spec', { index });
     }
-    level = loader();
+    level = createWorldLevel(spec);
     levels[index] = level;
   }
   return level;

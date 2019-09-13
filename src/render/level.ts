@@ -6,7 +6,7 @@ import { Random } from '../lib/random';
 import { Edge } from '../game/level';
 import * as genmodel from '../model/genmodel';
 import { packColor } from './util';
-import { level, levelModel } from '../game/campaign';
+import { currentLevel } from '../game/campaign';
 
 /** See levelVersion. */
 let geometryVersion = 0;
@@ -25,7 +25,7 @@ function cellColor(walkable: boolean): number {
 function createGeometry(): void {
   genmodel.start3D();
   const wallHeight = 0.7;
-  for (const cell of level.cells) {
+  for (const cell of currentLevel.level.cells) {
     genmodel.setColor(cell.color || cellColor(cell.walkable));
     const z = ((!cell.walkable as unknown) as number) * wallHeight;
     const edges: Readonly<Edge>[] = Array.from(cell.edges());
@@ -61,12 +61,12 @@ function createGeometry(): void {
       }
     }
   }
-  genmodel.upload(levelModel);
+  genmodel.upload(currentLevel.levelModel);
 }
 
 /** Update the level renderer. */
 export function updateRenderLevel(): void {
-  if (!levelModel.vcount) {
+  if (!currentLevel.levelModel.vcount) {
     createGeometry();
   }
 }

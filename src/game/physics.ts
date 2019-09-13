@@ -18,7 +18,7 @@ import { EntityBase, Team } from './entity';
 import { isDebug, DebugColor } from '../debug/debug';
 import { frameDT } from './time';
 import { debugMarks } from '../debug/mark';
-import { level } from './campaign';
+import { currentLevel } from './campaign';
 import { Edge } from './level';
 
 /** A game entity, which other objects can collide with. */
@@ -180,7 +180,7 @@ export function updateColliders(): void {
   function initStatic(): void {
     edges.length = 0;
     vertexes.length = 0;
-    for (const cell of level.cells) {
+    for (const cell of currentLevel.level.cells) {
       if (rectsIntersect(cell.bounds, bounds)) {
         for (const edge of cell.edges()) {
           const { passable, vertex0, vertex1 } = edge;

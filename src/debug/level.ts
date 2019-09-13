@@ -7,7 +7,7 @@ import { debugView } from '../lib/settings';
 import { ctx } from './global';
 import { Cell, Edge } from '../game/level';
 import { Vector, vector } from '../lib/math';
-import { level } from '../game/campaign';
+import { currentLevel } from '../game/campaign';
 import { getCameraTarget } from '../game/camera';
 import { debugMarks } from '../debug/mark';
 import { frameDT } from '../game/time';
@@ -285,7 +285,7 @@ export function drawLevel(): void {
   ctx.scale(scale, -scale);
   const cameraTarget = getCameraTarget();
   ctx.translate(-cameraTarget.x, -cameraTarget.y);
-  for (const cell of level.cells) {
+  for (const cell of currentLevel.level.cells) {
     drawCell(cell, scale);
   }
   drawHighlights(scale);
@@ -303,7 +303,7 @@ export function drawLevel(): void {
  * Reset the debug view of the level.
  */
 export function resetLevelDebug(): void {
-  for (const edge of level.edges.values()) {
+  for (const edge of currentLevel.level.edges.values()) {
     edge.debugColor = DebugColor.None;
     edge.debugVertexColor = DebugColor.None;
   }

@@ -14,7 +14,7 @@ import {
 import { Vector, vector, zeroVector, lerp } from '../lib/math';
 import { frameDT } from './time';
 import { globalRandom } from '../lib/random';
-import { level } from './campaign';
+import { currentLevel } from './campaign';
 import { clamp } from '../lib/util';
 
 /** The view projection matrix for the UI. */
@@ -29,7 +29,7 @@ export function getCameraTarget(): Vector {
 
 /** Set the current target of the camera. */
 export function setCameraTarget(target: Vector): void {
-  const bound = level.size - cameraSettings.border;
+  const bound = currentLevel.level.size - cameraSettings.border;
   cameraTargetFilter[0] = vector(
     clamp(target.x, -bound, bound),
     clamp(target.y, -bound, bound),

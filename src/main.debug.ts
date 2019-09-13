@@ -25,6 +25,7 @@ import { readyAudio } from './audio/audio';
 import { resetTime } from './game/time';
 import { startWorker } from './debug/worker';
 import { setState, State } from './lib/global';
+import { setNextLevel } from './game/campaign';
 
 let counter = 0;
 let lastFrameMS = 0;
@@ -81,6 +82,9 @@ function start(): void {
   initialize();
   if (hashVariables.game) {
     newGame(hashVariables.difficulty);
+    if (hashVariables.level) {
+      setNextLevel(hashVariables.level);
+    }
   }
   readyAudio();
   requestAnimationFrame(mainDebug);
