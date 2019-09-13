@@ -21,7 +21,13 @@ import { updateTime, levelTime } from './game/time';
 import { setGameTimeout } from './game/entity';
 import { loadLevel } from './game/world';
 import { AssertionError } from './debug/debug';
-import { setLevel, setNextLevel, nextLevel } from './game/campaign';
+import {
+  setLevel,
+  setNextLevel,
+  nextLevel,
+  initialCampaignData,
+  campaignData,
+} from './game/campaign';
 
 /** Handle when the game loses focus. */
 function loseFocus(): void {
@@ -125,6 +131,7 @@ function startDeadMenu(): void {
 export function newGame(difficulty: Difficulty): void {
   setState(State.Game);
   setDifficulty(difficulty);
+  Object.assign(campaignData, initialCampaignData);
   resetGame();
   setNextLevel(0);
 }

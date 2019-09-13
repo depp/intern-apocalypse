@@ -43,6 +43,7 @@ interface LevelSpec {
   cellSize: number;
   exits: (number | undefined)[];
   music: MusicTracks;
+  spawn(): void;
 }
 
 function createWorldLevel(spec: LevelSpec): LevelObject {
@@ -171,10 +172,11 @@ const specs: LevelSpec[] = [
   {
     seed: 88,
     size: 30,
-    zoneCount: 5,
+    zoneCount: 8,
     cellSize: 12,
     exits: [, , 1],
     music: MusicTracks.Beyond,
+    spawn() {},
   },
   // MIDDLE: wilderness
   {
@@ -182,8 +184,39 @@ const specs: LevelSpec[] = [
     size: 40,
     zoneCount: 16,
     cellSize: 8,
-    exits: [0],
+    exits: [0, 3, 2, 4],
     music: MusicTracks.Sylvan,
+    spawn() {},
+  },
+  // LEFT: town
+  {
+    seed: 77,
+    size: 30,
+    zoneCount: 9,
+    cellSize: 8,
+    exits: [1],
+    music: MusicTracks.Sylvan,
+    spawn() {},
+  },
+  // TOP: wilderness
+  {
+    seed: 66,
+    size: 40,
+    zoneCount: 16,
+    cellSize: 8,
+    exits: [, , , 1],
+    music: MusicTracks.Sylvan,
+    spawn() {},
+  },
+  // BOTTOM: wilderness
+  {
+    seed: 55,
+    size: 40,
+    zoneCount: 16,
+    cellSize: 8,
+    exits: [, 1],
+    music: MusicTracks.Sylvan,
+    spawn() {},
   },
 ];
 

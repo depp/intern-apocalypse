@@ -32,13 +32,12 @@ import { debugMarks } from '../debug/mark';
 import { spawnDeath } from './particles';
 import { setState, State } from '../lib/global';
 import { spawnActor, Actor } from './actor';
-import { currentLevel, setNextLevel, exitLevel } from './campaign';
-
-export let playerHealth = 10;
-export let playerHealthMax = 10;
-
-export let playerMana = 0;
-export let playerManaMax = 0;
+import {
+  currentLevel,
+  setNextLevel,
+  exitLevel,
+  campaignData,
+} from './campaign';
 
 /** Spawn the player in the level. */
 export function spawnPlayer(pos: Vector, angle: number): void {
@@ -65,7 +64,7 @@ export function spawnPlayer(pos: Vector, angle: number): void {
     model: ModelAsset.Person,
     radius: 0.5,
     team: Team.Player,
-    health: 10,
+    health: campaignData.playerHealth,
     actorUpdate(this: Actor): void {
       // Check for level transitions.
       const { level } = currentLevel;
@@ -164,10 +163,10 @@ export function spawnPlayer(pos: Vector, angle: number): void {
         -2 * blend * frac,
       );
       rotateMatrixFromDirection(swordTransform, Axis.Z, 1, 1 - blend);
-      // Pass health to UI.
-      playerHealth = this.health;
     },
-    actorDamaged() {},
+    actorDamaged() {
+      campaignData.playerHealth = this.health;
+    },
     actorDied(): void {
       setState(State.Dead);
       spawnDeath(sword.transform, sword.model);

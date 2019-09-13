@@ -10,15 +10,10 @@ import { AssertionError, isDebug } from '../debug/debug';
 import { uiShader, UiAttrib } from './shaders';
 import { roundUpPow2 } from '../lib/util';
 import { Vector, vector } from '../lib/math';
-import {
-  playerHealth,
-  playerHealthMax,
-  playerMana,
-  playerManaMax,
-} from '../game/player';
 import * as genmodel from '../model/genmodel';
 import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
+import { campaignData } from '../game/campaign';
 
 /** Modes that the UI system can run in. */
 const enum UIMode {
@@ -307,9 +302,9 @@ function drawStatusBars(): void {
 /** Update the hud data. */
 function updateHUD(): void {
   genmodel.start2D();
-  if (playerHealthMax) {
-    const health = playerHealth / playerHealthMax;
-    const off = playerManaMax ? 0 : 200;
+  if (campaignData.playerHealthMax) {
+    const health = campaignData.playerHealth / campaignData.playerHealthMax;
+    const off = 0 /* mana */ ? 0 : 200;
     genmodel.addQuad(0, 0, 50 + off, 0, 300, 32);
     genmodel.addQuad(
       0,
@@ -320,8 +315,8 @@ function updateHUD(): void {
       32,
     );
   }
-  if (playerManaMax) {
-    const mana = playerMana / playerManaMax;
+  if (0 /* mana */) {
+    const mana = 0 /* playerMana / playerManaMax */;
     const d = mana < 1 ? 275 - 250 * mana : 0;
     genmodel.addQuad(0, 0, 450, 0, 300, 32);
     genmodel.addQuad(0 + d, 64, 450 + d, 0, 300 - d, 32);
