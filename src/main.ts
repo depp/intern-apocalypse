@@ -189,7 +189,6 @@ export function main(curTimeMS: DOMHighResTimeStamp): void {
   }
   if (currentState == State.Game || currentState == State.Dead) {
     updateGame();
-    updateGame();
   }
   updateCamera();
   endFrameInput();
