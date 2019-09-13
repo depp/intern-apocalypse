@@ -1,6 +1,6 @@
 import { getModelNames } from '../model/models';
 import { updateCamera } from '../game/camera';
-import { modelInstances, ModelInstance } from '../game/entity';
+import { modelInstances, ModelInstance, resetEntities } from '../game/entity';
 import { renderModels } from '../render/model';
 import {
   matrixNew,
@@ -43,6 +43,7 @@ function render(curTimeMS: DOMHighResTimeStamp): void {
 
 /** Run a view of a single model file. */
 export function runModelView(modelname: string): void {
+  resetEntities();
   let modelnameLower = modelname.toLowerCase();
   const names = getModelNames();
   for (let i = 0; i < names.length; i++) {
