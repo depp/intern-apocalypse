@@ -86,7 +86,7 @@ function initContext(): void {
 }
 
 function getFont(item: PositionedMenuItem): string {
-  return `${(item.size * 32) | 0}px Luminari`;
+  return `${(item.size * 32) | 0}px Luminari, "Ink Free"`;
 }
 
 function wrapText(text: string, width: number): string[] {
