@@ -224,13 +224,23 @@ function updateMenu(): void {
     ctx.font = getFont(item);
     ctx.textBaseline = 'middle';
     ctx.fillStyle = '#000';
+    ctx.strokeStyle = '#bbb';
+    ctx.lineWidth = 4;
     for (const line of item.lines) {
+      if (item.size > 1) {
+        ctx.shadowColor = '#000';
+        ctx.shadowOffsetX = 4;
+        ctx.shadowOffsetY = 4;
+        ctx.fillText(line, 0, 0);
+        ctx.shadowColor = 'transparent';
+        ctx.strokeText(line, 0, 0);
+      }
       ctx.fillText(line, 0, 0);
       ctx.translate(0, lineHeight);
     }
     ctx.restore();
 
-    genmodel.setRandomColor();
+    genmodel.setColor(-1);
     genmodel.addQuad(0, item.v0, 0, item.y0, canvasSize.x, item.y1 - item.y0);
   }
 
