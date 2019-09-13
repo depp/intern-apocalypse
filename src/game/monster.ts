@@ -12,6 +12,8 @@ import { NavigationGraph, newNavigationGraph } from './navigation';
 import { levelTime, frameDT } from './time';
 import { level } from './world';
 import { spawnActor, Actor } from './actor';
+import { playSound } from '../audio/audio';
+import { Sounds } from '../audio/sounds';
 
 /** Interval, in seconds, between navigation updates. */
 const navigationUpdateInterval = 0.5;
@@ -84,6 +86,7 @@ export function spawnMonster(pos: Vector): void {
             (this.radius + target.radius + attackDistance) ** 2
           ) {
             if (oldAttackTimer >= attackTime) {
+              playSound(Sounds.MonsterAttack);
               target.damage(movement);
             } else {
               attackTimer = oldAttackTimer + frameDT;

@@ -6,6 +6,7 @@ export const enum Sounds {
   Clang,
   Click,
   Harp,
+  MonsterAttack,
   MonsterDeath,
   MonsterHit,
   Sweep,
@@ -20,6 +21,7 @@ export function getSoundNames(): string[] {
     'audio/clang.lisp',
     'audio/click.lisp',
     'audio/harp.lisp',
+    'audio/monster_attack.lisp',
     'audio/monster_death.lisp',
     'audio/monster_hit.lisp',
     'audio/sweep.lisp',
@@ -30,7 +32,7 @@ export function getSoundNames(): string[] {
 
 /** Music track asset identifiers. */
 export const enum MusicTracks {
-  Beyond = 9,
+  Beyond = 10,
   Sylvan,
 }
 
@@ -40,4 +42,4 @@ export function getMusicNames(): string[] {
 }
 
 /** Index of first music track. */
-export const firstMusicTrack = 9;
+export const firstMusicTrack = 10;
