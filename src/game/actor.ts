@@ -110,7 +110,9 @@ export function spawnActor(arg: ActorArgument): void {
     ): void {
       // Calculate the new velocity.
       let { velocity } = this;
-      const targetVelocity = scaleVector(movement, params.speed);
+      const movementSquared = lengthSquared(movement);
+      const factor = movementSquared > 1 ? 1 / Math.sqrt(movementSquared) : 1;
+      const targetVelocity = scaleVector(movement, params.speed * factor);
       const maxDeltaVelocity = params.acceleration * frameDT;
       const deltaVelocity = distance(velocity, targetVelocity);
       if (deltaVelocity <= maxDeltaVelocity) {

@@ -25,6 +25,7 @@ import { updateTime } from './game/time';
 import { MusicTracks } from './audio/sounds';
 import { setGameTimeout } from './game/entity';
 import { createBaseLevel, createForest } from './game/world';
+import { spawnNPC } from './game/npc';
 
 /** Handle when the game loses focus. */
 function loseFocus(): void {
@@ -113,7 +114,7 @@ export function newGame(difficulty: Difficulty): void {
   spawnMonster(vector(-9, -9));
   spawnMonster(vector(-2, 9));
   spawnMonster(vector(6, -9));
-  spawnMonster(vector(2, 0));
+  spawnNPC(vector(0, -5));
   playMusic(MusicTracks.Sylvan);
 }
 

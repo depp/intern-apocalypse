@@ -1,3 +1,5 @@
+import { Vector, vector } from './math';
+
 /**
  * Random number generator.
  *
@@ -38,6 +40,11 @@ export class Random {
    */
   rangeInt(limit: number) {
     return (this.next() * limit * 2 ** -32) | 0;
+  }
+
+  /** Return a random vector. */
+  vector(): Vector {
+    return vector(this.range(-1, 1), this.range(-1, 1));
   }
 }
 
