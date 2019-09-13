@@ -15,6 +15,7 @@ import { playMusic } from '../audio/audio';
 import { spawnNPC } from './npc';
 import { spawnMonster } from './monster';
 import { spawnHouse } from './prop';
+import { setGameDialogue } from '../lib/global';
 
 const rand = new Random();
 
@@ -228,7 +229,11 @@ const specs: LevelSpec[] = [
     music: MusicTracks.Beyond,
     zones: 'rf',
     spawn(zones: Vector[]) {
-      spawnNPC(zones[1]);
+      spawnNPC(zones[1], () => {
+        setGameDialogue(
+          'What? Interns don’t fight monsters. Go back west to town and get us some potions.',
+        );
+      });
     },
   },
   // MIDDLE: wilderness
@@ -256,7 +261,9 @@ const specs: LevelSpec[] = [
     music: MusicTracks.Sylvan,
     zones: 'rrrf',
     spawn(zones: Vector[]) {
-      spawnNPC(zones[3]);
+      spawnNPC(zones[3], () => {
+        setGameDialogue('Sorry, the apothecary is up north gathering herbs.');
+      });
       spawnHouse(vector(3, 8), 1.8);
       spawnHouse(vector(-4, 2), 2.7);
       spawnHouse(vector(-1, -10), 1);
@@ -279,7 +286,11 @@ const specs: LevelSpec[] = [
         const y = (i & 2) - 1;
         spawnMonster(vector(center.x + x, center.y + y));
       }
-      spawnNPC(vector(27, 25));
+      spawnNPC(vector(27, 25), () => {
+        setGameDialogue(
+          'I think I dropped my potions when I was in the area to the south.',
+        );
+      });
     },
   },
   // BOTTOM: wilderness

@@ -21,7 +21,7 @@ import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
 import { setGameDialogue } from '../lib/global';
 
-export function spawnNPC(pos: Vector): void {
+export function spawnNPC(pos: Vector, action: () => void): void {
   const params: MovementParameters = {
     speed: 2,
     acceleration: 5,
@@ -76,7 +76,7 @@ export function spawnNPC(pos: Vector): void {
     },
     playerAction(this: Actor): void {
       playSound(Sounds.Interact);
-      setGameDialogue('Hello, there.');
+      action();
     },
   });
   modelInstances.push(pointer);
