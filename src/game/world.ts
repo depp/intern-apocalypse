@@ -53,6 +53,7 @@ interface LevelSpec {
   exits: (number | undefined)[];
   music: MusicTracks;
   zones: string;
+  monsters: number;
   spawn(zones: Vector[]): void;
 }
 
@@ -204,6 +205,12 @@ function createWorldLevel(spec: LevelSpec): LevelObject {
   });
   level.updateProperties();
 
+  const monsters = level.cells
+    .slice(spec.zoneCount)
+    .filter(cell => cell.walkable && linfinityNorm(cell.centroid) < size - 10)
+    .map(cell => cell.centroid)
+    .slice(0, spec.monsters);
+
   return {
     levelModel: genmodel.newModel(),
     level,
@@ -217,6 +224,7 @@ function createWorldLevel(spec: LevelSpec): LevelObject {
         angle = entranceDirection ^ 2;
       }
       spawnPlayer(spawnLoc, angle * 0.5 * Math.PI);
+      monsters.forEach(spawnMonster);
       spec.spawn(zones);
     },
   };
@@ -233,6 +241,7 @@ const specs: LevelSpec[] = [
     exits: [, , 1],
     music: MusicTracks.Beyond,
     zones: 'rf',
+    monsters: 0,
     spawn(zones: Vector[]) {
       spawnNPC(zones[1], () => {
         if (campaignData.stage == Stage.StartDungeon) {
@@ -257,6 +266,7 @@ const specs: LevelSpec[] = [
     exits: [0, 3, 2, 4],
     music: MusicTracks.Sylvan,
     zones: '',
+    monsters: 5,
     spawn() {
       // 23, -27
       // -5, -25
@@ -272,6 +282,7 @@ const specs: LevelSpec[] = [
     exits: [1],
     music: MusicTracks.Sylvan,
     zones: 'rrrf',
+    monsters: 0,
     spawn(zones: Vector[]) {
       if (campaignData.stage >= Stage.GoTown) {
         spawnNPC(zones[3], () => {
@@ -294,6 +305,7 @@ const specs: LevelSpec[] = [
     exits: [, , , 1],
     music: MusicTracks.Sylvan,
     zones: 'rrrhrrrrf',
+    monsters: 6,
     spawn(zones: Vector[]) {
       const center = zones[8];
       for (let i = 0; i < 4; i++) {
@@ -320,6 +332,7 @@ const specs: LevelSpec[] = [
     exits: [, 1],
     music: MusicTracks.Sylvan,
     zones: 'rfrrf',
+    monsters: 15,
     spawn() {
       if (campaignData.stage == Stage.GoPotions) {
         spawnPotion(vector(23, -27), 0);
