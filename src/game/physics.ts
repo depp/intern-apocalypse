@@ -38,6 +38,9 @@ export interface Collider extends EntityBase {
    */
   damage(direction: Vector): void;
 
+  /** Interact with the entity. */
+  playerAction?(): void;
+
   /** Arrow for debugging view. */
   debugArrow?: Vector;
 }

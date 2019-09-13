@@ -17,6 +17,8 @@ import {
   setIdentityMatrix,
   translateMatrix,
 } from '../lib/matrix';
+import { playSound } from '../audio/audio';
+import { Sounds } from '../audio/sounds';
 
 export function spawnNPC(pos: Vector): void {
   const params: MovementParameters = {
@@ -62,6 +64,9 @@ export function spawnNPC(pos: Vector): void {
     },
     actorDamaged() {},
     actorDied() {},
+    playerAction(this: Actor): void {
+      playSound(Sounds.Interact);
+    },
   });
   modelInstances.push(pointer);
 }

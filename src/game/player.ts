@@ -13,7 +13,7 @@ import {
 } from '../lib/math';
 import { frameDT } from './time';
 import { ModelInstance, modelInstances, Team } from './entity';
-import { findColliders } from './physics';
+import { findColliders, colliders, Collider } from './physics';
 import { ModelAsset } from '../model/models';
 import { playerSettings } from '../lib/settings';
 import {
@@ -77,6 +77,12 @@ export function spawnPlayer(pos: Vector): void {
 
       // Update attack state.
       if (buttonPress[Button.Action]) {
+        let interacted: boolean | undefined;
+        for (const entity of findColliders(this.pos, 3)) {
+          if (entity.playerAction) {
+            entity.playerAction();
+          }
+        }
         pendingAttack = true;
       }
       if (attackTime < 0 && pendingAttack) {
