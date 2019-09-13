@@ -24,9 +24,10 @@ import { resetGame, updateGame } from './game/game';
 import { updateTime, levelTime } from './game/time';
 import { MusicTracks } from './audio/sounds';
 import { setGameTimeout } from './game/entity';
-import { createForest } from './game/world';
+import { loadLevel } from './game/world';
 import { spawnNPC } from './game/npc';
 import { AssertionError } from './debug/debug';
+import { setLevel } from './game/campaign';
 
 /** Handle when the game loses focus. */
 function loseFocus(): void {
@@ -42,7 +43,7 @@ export function initialize(): void {
   window.addEventListener('blur', loseFocus);
   startInput();
   resetGame();
-  createForest();
+  setLevel(loadLevel(0));
 }
 
 /** The game state as of the last frame. */
@@ -131,12 +132,7 @@ export function newGame(difficulty: Difficulty): void {
   setState(State.Game);
   setDifficulty(difficulty);
   resetGame();
-  spawnPlayer(vector(0, 0));
-  // spawnMonster(vector(-9, -9));
-  // spawnMonster(vector(-2, 9));
-  // spawnMonster(vector(6, -9));
-  spawnNPC(vector(0, -5));
-  playMusic(MusicTracks.Sylvan);
+  setLevel(loadLevel(0));
 }
 
 /**

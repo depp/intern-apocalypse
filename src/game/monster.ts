@@ -9,7 +9,7 @@ import { Team } from './entity';
 import { Collider, colliders } from './physics';
 import { NavigationGraph, newNavigationGraph } from './navigation';
 import { levelTime, frameDT } from './time';
-import { level } from './world';
+import { level } from './campaign';
 import { spawnActor, Actor, MovementParameters } from './actor';
 import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';

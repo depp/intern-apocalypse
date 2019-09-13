@@ -10,7 +10,7 @@ import { models } from '../model/model';
 import { GenModel } from '../model/genmodel';
 import * as genmodel from '../model/genmodel';
 import { Matrix, identityMatrix } from '../lib/matrix';
-import { levelModel } from './level';
+import { levelModel } from '../game/campaign';
 
 // prettier-ignore
 const lightColor = new Float32Array([

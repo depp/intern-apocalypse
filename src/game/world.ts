@@ -2,17 +2,15 @@
  * World state.
  */
 
-import { Level, createLevel, Cell } from './level';
+import { createLevel, Cell } from './level';
 import { Vector, vector } from '../lib/math';
 import { Random } from '../lib/random';
 import { newNavigationGraph } from './navigation';
 import { packColor } from '../render/util';
 import { AssertionError } from '../debug/debug';
-
-/** Level data for the current level. */
-export let level: Level;
-/** Incremented each time the level changes. */
-export let levelVersion: number = 0;
+import { spawnExit } from './exit';
+import { LevelObject } from './campaign';
+import { spawnPlayer } from './player';
 
 const rand = new Random();
 
@@ -37,34 +35,7 @@ function relax(count: number, size: number, centers: Vector[]): Vector[] {
   return centers;
 }
 
-function createEmptyLevel(size: number, density: number): void {
-  levelVersion++;
-  const count = (density * size ** 2) | 0;
-  const cells: Vector[] = [];
-  for (let i = 0; i < count; i++) {
-    const vec = randomVector(size);
-    cells.push(vec);
-  }
-  level = createLevel(size, cells);
-
-  for (let j = 0; j < 3; j++) {
-    for (let i = 0; i < count; i++) {
-      cells[i] = level.cells[i].centroid;
-    }
-    level = createLevel(size, cells);
-  }
-}
-
-export function createBaseLevel(): void {
-  rand.state = 1234;
-  createEmptyLevel(10, 0.5);
-  for (const cell of level.cells) {
-    cell.walkable = rand.range() < 0.8;
-  }
-  level.updateProperties();
-}
-
-export function createForest(): void {
+function createForest(): LevelObject {
   // Impassible border size.
   const border = 9;
   // Divide the level up into "zones". Place the zones using Voronoi relaxation,
@@ -80,8 +51,7 @@ export function createForest(): void {
       randomVectors(size, cellCount - zoneCount),
     ),
   );
-  levelVersion++;
-  level = createLevel(size, centers);
+  const level = createLevel(size, centers);
   // We assign each cell to the closest zone, using the navigation code.
   const graph = newNavigationGraph(level);
   graph.update(centers.slice(0, zoneCount));
@@ -114,7 +84,6 @@ export function createForest(): void {
     }
     if (onBorder) {
       const { x, y } = cell.centroid;
-      let whichBorder: number;
       if (x * x > y * y) {
         const whichBorder = 1 - Math.sign(x);
         const other = exits[whichBorder];
@@ -163,19 +132,31 @@ export function createForest(): void {
       level.cells[index].walkable = false;
     }
   });
-
-  // const center = cell.center;
-  // const distance = Math.max(Math.abs(center.x), Math.abs(center.y));
-  // if (distance > size - border) {
-  //   // Too close to the border. Make it impassable.
-  //   return;
-  // }
-  // if (!edge.back) {
-  //   // Somehow we got a large border cell.
-  //   cell.walkable = false;
-  //   return;
-  // }
-  // // Borders between zones are passable.
-  // cell.walkable = true;
   level.updateProperties();
+
+  return {
+    level,
+    spawn() {
+      spawnPlayer(vector(0, 0));
+      for (const exit of exits) {
+        spawnExit(exit!.centroid);
+      }
+    },
+  };
+}
+
+const levels: LevelObject[] = [];
+const loaders: (() => LevelObject)[] = [createForest];
+
+export function loadLevel(index: number): LevelObject {
+  let level = levels[index];
+  if (!level) {
+    const loader = loaders[index];
+    if (!loader) {
+      throw new AssertionError('!loader', { index });
+    }
+    level = loader();
+    levels[index] = level;
+  }
+  return level;
 }

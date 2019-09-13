@@ -18,7 +18,7 @@ import { EntityBase, Team } from './entity';
 import { isDebug, DebugColor } from '../debug/debug';
 import { frameDT } from './time';
 import { debugMarks } from '../debug/mark';
-import { level } from './world';
+import { level } from './campaign';
 import { Edge } from './level';
 
 /** A game entity, which other objects can collide with. */
@@ -31,6 +31,8 @@ export interface Collider extends EntityBase {
   radius: number;
   /** The team that this entity is on. */
   team: Team;
+  /** Whether the object is a trigger (not solid). */
+  trigger?: boolean;
 
   /**
    * Damage this entity.
@@ -112,6 +114,9 @@ export function updateColliders(): void {
   // Create a group for each collider.
   for (let i = 0; i < colliders.length; i++) {
     const entity = colliders[i];
+    if (entity.trigger) {
+      continue;
+    }
     const movement = length(entity.velocity) * frameDT;
     // This typing is a bit ugly.
     const cent: {

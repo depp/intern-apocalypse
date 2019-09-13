@@ -14,7 +14,7 @@ import {
 import { Vector, vector, zeroVector, lerp } from '../lib/math';
 import { frameDT } from './time';
 import { globalRandom } from '../lib/random';
-import { level } from './world';
+import { level } from './campaign';
 import { clamp } from '../lib/util';
 
 /** The view projection matrix for the UI. */
