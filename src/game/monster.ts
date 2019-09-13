@@ -1,27 +1,17 @@
 import {
   Vector,
-  scaleVector,
   normalizeSubtract,
   zeroVector,
   distanceSquared,
 } from '../lib/math';
 import { ModelAsset } from '../model/models';
-import { createWalker, WalkerParameters, Walker } from './walker';
-import {
-  ModelInstance,
-  modelInstances,
-  entities,
-  Entity,
-  Team,
-} from './entity';
-import { spawnDeath, spawnSlash } from './particles';
-import { isDebug } from '../debug/debug';
-import { playSound } from '../audio/audio';
-import { Sounds } from '../audio/sounds';
+import { WalkerParameters } from './walker';
+import { Team } from './entity';
 import { Collider, colliders } from './physics';
 import { NavigationGraph, newNavigationGraph } from './navigation';
 import { levelTime, frameDT } from './time';
 import { level } from './world';
+import { spawnActor, Actor } from './actor';
 
 /** Interval, in seconds, between navigation updates. */
 const navigationUpdateInterval = 0.5;
@@ -70,16 +60,15 @@ export function spawnMonster(pos: Vector): void {
     acceleration: 20,
     turnSpeed: 20,
   };
-  let health = 2;
-  let walker: Walker;
-  let model: ModelInstance;
   let attackTimer = 0;
-  const entity: Entity & Collider = {
+  spawnActor({
     pos,
-    velocity: zeroVector,
+    angle: 0,
+    model: ModelAsset.Eyestalk,
     radius: 0.5,
     team: Team.Monster,
-    update() {
+    health: 2,
+    actorUpdate(this: Actor): void {
       const pos = this.pos;
       let movement = zeroVector;
       updateNavigation();
@@ -95,7 +84,6 @@ export function spawnMonster(pos: Vector): void {
             (this.radius + target.radius + attackDistance) ** 2
           ) {
             if (oldAttackTimer >= attackTime) {
-              spawnSlash(target.pos, movement);
               target.damage(movement);
             } else {
               attackTimer = oldAttackTimer + frameDT;
@@ -105,33 +93,9 @@ export function spawnMonster(pos: Vector): void {
           movement = navigationGraph!.navigate(pos).direction;
         }
       }
-      walker.update(params, movement);
-      if (isDebug) {
-        this.debugArrow = walker.facing;
-      }
+      this.actorMove(params, movement);
     },
-    damage(direction: Vector): void {
-      if (this.isDead) {
-        return;
-      }
-      health--;
-      if (health > 0) {
-        playSound(Sounds.MonsterHit);
-        this.velocity = scaleVector(direction, 12);
-      } else {
-        spawnDeath(model.transform, model.model);
-        playSound(Sounds.MonsterDeath);
-        this.isDead = true;
-        model.isDead = true;
-      }
-    },
-  };
-  walker = createWalker(entity);
-  model = {
-    model: ModelAsset.Eyestalk,
-    transform: walker.transform,
-  };
-  modelInstances.push(model);
-  entities.push(entity);
-  colliders.push(entity);
+    actorDamaged() {},
+    actorDied() {},
+  });
 }
