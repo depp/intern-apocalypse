@@ -54,6 +54,7 @@ export function spawnMonster(pos: Vector): void {
   // Distance at which monster navigates instead of just traveling towards
   // player.
   const navigationThreshold = 3;
+  const moveThreshold = 10;
   const attackDistance = 0.5;
   const attackTime = 0.5;
   const params: MovementParameters = {
@@ -91,7 +92,7 @@ export function spawnMonster(pos: Vector): void {
               attackTimer = oldAttackTimer + frameDT;
             }
           }
-        } else {
+        } else if (targetDistanceSquared < moveThreshold ** 2) {
           movement = navigationGraph!.navigate(pos).direction;
         }
       }
