@@ -10,6 +10,8 @@ import { AssertionError } from '../debug/debug';
 import { LevelObject, entranceDirection } from './campaign';
 import { spawnPlayer } from './player';
 import * as genmodel from '../model/genmodel';
+import { MusicTracks } from '../audio/sounds';
+import { playMusic } from '../audio/audio';
 
 const rand = new Random();
 
@@ -40,6 +42,7 @@ interface LevelSpec {
   zoneCount: number;
   cellSize: number;
   exits: (number | undefined)[];
+  music: MusicTracks;
 }
 
 function createWorldLevel(spec: LevelSpec): LevelObject {
@@ -150,6 +153,7 @@ function createWorldLevel(spec: LevelSpec): LevelObject {
     level,
     exits: spec.exits,
     spawn() {
+      playMusic(spec.music);
       let spawnLoc = zeroVector;
       let angle = -1;
       if (entranceDirection >= 0) {
@@ -163,19 +167,23 @@ function createWorldLevel(spec: LevelSpec): LevelObject {
 
 const levels: LevelObject[] = [];
 const specs: LevelSpec[] = [
-  {
-    seed: 99,
-    size: 40,
-    zoneCount: 16,
-    cellSize: 8,
-    exits: [1],
-  },
+  // RIGHT SIDE: dungeon
   {
     seed: 88,
     size: 30,
     zoneCount: 5,
     cellSize: 12,
-    exits: [, , 0],
+    exits: [, , 1],
+    music: MusicTracks.Beyond,
+  },
+  // MIDDLE: wilderness
+  {
+    seed: 99,
+    size: 40,
+    zoneCount: 16,
+    cellSize: 8,
+    exits: [0],
+    music: MusicTracks.Sylvan,
   },
 ];
 
