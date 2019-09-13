@@ -6,6 +6,7 @@ import { Model } from './model';
 export const enum ModelAsset {
   Eyestalk,
   Person,
+  Pointer,
   Slash,
   Sword,
 }
@@ -15,6 +16,7 @@ export function getModelNames(): string[] {
   return [
     'model/eyestalk.txt',
     'model/person.txt',
+    'model/pointer.txt',
     'model/slash.txt',
     'model/sword.txt',
   ];

@@ -1,9 +1,22 @@
-import { Vector, zeroVector, normalizeSubtract, madd } from '../lib/math';
+import {
+  Vector,
+  zeroVector,
+  normalizeSubtract,
+  madd,
+  canonicalAngle,
+} from '../lib/math';
 import { MovementParameters, spawnActor, Actor } from './actor';
 import { ModelAsset } from '../model/models';
-import { Team } from './entity';
+import { Team, ModelInstance, modelInstances } from './entity';
 import { frameDT } from './time';
 import { globalRandom } from '../lib/random';
+import {
+  matrixNew,
+  rotateMatrixFromAngle,
+  Axis,
+  setIdentityMatrix,
+  translateMatrix,
+} from '../lib/matrix';
 
 export function spawnNPC(pos: Vector): void {
   const params: MovementParameters = {
@@ -13,6 +26,11 @@ export function spawnNPC(pos: Vector): void {
   };
   let moveTimer = 0;
   let movement = zeroVector;
+  const pointer: ModelInstance = {
+    model: ModelAsset.Pointer,
+    transform: matrixNew(),
+  };
+  let pointerAngle = 0;
   spawnActor({
     pos,
     angle: 0,
@@ -21,6 +39,13 @@ export function spawnNPC(pos: Vector): void {
     team: Team.NPC,
     health: -1,
     actorUpdate(this: Actor): void {
+      // Update the pointer
+      pointerAngle = canonicalAngle(pointerAngle + frameDT);
+      setIdentityMatrix(pointer.transform);
+      translateMatrix(pointer.transform, [this.pos.x, this.pos.y]);
+      rotateMatrixFromAngle(pointer.transform, Axis.Z, pointerAngle);
+
+      // Decide where to move
       moveTimer -= frameDT;
       if (moveTimer < 0) {
         if (movement == zeroVector) {
@@ -38,4 +63,5 @@ export function spawnNPC(pos: Vector): void {
     actorDamaged() {},
     actorDied() {},
   });
+  modelInstances.push(pointer);
 }

@@ -1,0 +1,12 @@
+origin 0 -8 0
+scale 1/4
+symmetry xz
+
+p p1 0 0 0
+p p2 0 2 1
+p p3 1 2 0
+p p4 0 4 0
+
+color c64aff
+f p1 p3 p2
+f p2 p3 p4
