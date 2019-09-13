@@ -22,6 +22,7 @@ import { spawnMonster } from './monster';
 import { spawnHouse, spawnPotion } from './prop';
 import { setGameDialogue } from '../lib/global';
 import { packColor } from '../render/util';
+import { setCameraTarget } from './camera';
 
 const rand = new Random();
 
@@ -214,6 +215,7 @@ function createWorldLevel(spec: LevelSpec): LevelObject {
         angle = entranceDirection ^ 2;
       }
       spawnPlayer(spawnLoc, angle * 0.5 * Math.PI);
+      setCameraTarget(spawnLoc, true);
       monsters.forEach(spawnMonster);
       spec.spawn(zones);
     },

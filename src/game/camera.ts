@@ -28,12 +28,15 @@ export function getCameraTarget(): Vector {
 }
 
 /** Set the current target of the camera. */
-export function setCameraTarget(target: Vector): void {
+export function setCameraTarget(target: Vector, jump?: boolean): void {
   const bound = currentLevel.level.size - cameraSettings.border;
   cameraTargetFilter[0] = vector(
     clamp(target.x, -bound, bound),
     clamp(target.y, -bound, bound),
   );
+  if (jump) {
+    cameraTargetFilter[1] = cameraTargetFilter[2] = cameraTargetFilter[0];
+  }
 }
 
 /** The view projection matrix. */
