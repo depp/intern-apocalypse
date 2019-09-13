@@ -14,8 +14,6 @@ export const enum UiAttrib {
 }
 
 export interface ModelProgram extends ShaderProgram {
-  LightColor: WebGLUniformLocation | null;
-  LightPos: WebGLUniformLocation | null;
   Model: WebGLUniformLocation | null;
   ViewProjection: WebGLUniformLocation | null;
 }
@@ -59,7 +57,7 @@ export function getShaderSpecs(): ShaderSpec[] {
       vertex: 'model.vert',
       fragment: 'model.frag',
       attributes: ['aPos', 'aColor', '', 'aNormal'],
-      uniforms: ['LightColor', 'LightPos', 'Model', 'ViewProjection'],
+      uniforms: ['Model', 'ViewProjection'],
       object: modelShader,
     },
     {
@@ -94,7 +92,7 @@ export function loadShaders(data: readonly string[]): void {
   );
   compileShader(
     modelShader,
-    ['LightColor', 'LightPos', 'Model', 'ViewProjection'],
+    ['Model', 'ViewProjection'],
     ['aPos', 'aColor', '', 'aNormal'],
     data[shaderOffset + 1],
     data[shaderOffset + 0],
