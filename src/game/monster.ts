@@ -5,13 +5,12 @@ import {
   distanceSquared,
 } from '../lib/math';
 import { ModelAsset } from '../model/models';
-import { WalkerParameters } from './walker';
 import { Team } from './entity';
 import { Collider, colliders } from './physics';
 import { NavigationGraph, newNavigationGraph } from './navigation';
 import { levelTime, frameDT } from './time';
 import { level } from './world';
-import { spawnActor, Actor } from './actor';
+import { spawnActor, Actor, MovementParameters } from './actor';
 import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
 
@@ -57,7 +56,7 @@ export function spawnMonster(pos: Vector): void {
   const navigationThreshold = 3;
   const attackDistance = 0.5;
   const attackTime = 0.5;
-  const params: WalkerParameters = {
+  const params: MovementParameters = {
     speed: 4,
     acceleration: 20,
     turnSpeed: 20,
