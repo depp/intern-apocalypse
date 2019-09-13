@@ -33,16 +33,26 @@ export function exitLevel(direction: number): void {
   }
 }
 
+export const enum Stage {
+  StartDungeon,
+  GoTown,
+  GoApothecary,
+  GoPotions,
+  ReturnDungeon,
+}
+
 export interface CampaignData {
   playerHealth: number;
   playerHealthMax: number;
   potions: number;
+  stage: Stage;
 }
 
 export const initialCampaignData: CampaignData = {
   playerHealth: 10,
   playerHealthMax: 10,
   potions: 0,
+  stage: Stage.GoPotions,
 };
 
 export const campaignData: CampaignData = {} as CampaignData;

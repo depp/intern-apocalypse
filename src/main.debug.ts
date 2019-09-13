@@ -81,7 +81,7 @@ function start(): void {
   setState(State.MainMenu);
   initialize();
   if (hashVariables.game) {
-    newGame(hashVariables.difficulty);
+    newGame();
     if (hashVariables.level) {
       setNextLevel(hashVariables.level);
     }
