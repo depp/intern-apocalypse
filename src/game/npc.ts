@@ -44,7 +44,11 @@ export function spawnNPC(pos: Vector): void {
       // Update the pointer
       pointerAngle = canonicalAngle(pointerAngle + frameDT);
       setIdentityMatrix(pointer.transform);
-      translateMatrix(pointer.transform, [this.pos.x, this.pos.y]);
+      translateMatrix(pointer.transform, [
+        this.pos.x,
+        this.pos.y,
+        0.5 * Math.sin(pointerAngle * 2),
+      ]);
       rotateMatrixFromAngle(pointer.transform, Axis.Z, pointerAngle);
 
       // Decide where to move
