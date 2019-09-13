@@ -9,7 +9,7 @@ import {
 } from '../lib/matrix';
 import { ModelAsset } from '../model/models';
 import { Collider, colliders } from './physics';
-import { campaignData } from './campaign';
+import { campaignData, Stage } from './campaign';
 import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
 import { setGameDialogue } from '../lib/global';
@@ -46,7 +46,16 @@ export function spawnPotion(pos: Vector, index: number): void {
       playSound(Sounds.Interact);
       const flags = (campaignData.potions |= mask);
       const count = (flags & 1) + (flags >> 2) + ((flags >> 1) & 1);
-      setGameDialogue(`Found ${count} potions!`);
+      setGameDialogue(
+        [
+          'Found a potion! But one is surely not enough…',
+          'Another potion! I should get one more just to be safe.',
+          'Three potions? I hope it’s enough.',
+        ][count - 1],
+      );
+      if (count == 3) {
+        campaignData.stage = Stage.ReturnDungeon;
+      }
       this.isDead = true;
     },
   };

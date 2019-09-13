@@ -7,7 +7,12 @@ import { Vector, vector, linfinityNorm, zeroVector } from '../lib/math';
 import { Random } from '../lib/random';
 import { newNavigationGraph } from './navigation';
 import { AssertionError, isDebug } from '../debug/debug';
-import { LevelObject, entranceDirection } from './campaign';
+import {
+  LevelObject,
+  entranceDirection,
+  campaignData,
+  Stage,
+} from './campaign';
 import { spawnPlayer } from './player';
 import * as genmodel from '../model/genmodel';
 import { MusicTracks } from '../audio/sounds';
@@ -230,9 +235,16 @@ const specs: LevelSpec[] = [
     zones: 'rf',
     spawn(zones: Vector[]) {
       spawnNPC(zones[1], () => {
-        setGameDialogue(
-          'What? Interns don’t fight monsters. Go back west to town and get us some potions.',
-        );
+        if (campaignData.stage == Stage.StartDungeon) {
+          setGameDialogue(
+            'What? Interns don’t fight monsters. Go back west to town and get us some potions.',
+          );
+          campaignData.stage = Stage.GoTown;
+        } else if (campaignData.stage == Stage.ReturnDungeon) {
+          setGameDialogue('Finally! What took you so long?');
+        } else {
+          setGameDialogue('Do you have my potions yet? Town! To the WEST!');
+        }
       });
     },
   },
@@ -261,9 +273,12 @@ const specs: LevelSpec[] = [
     music: MusicTracks.Sylvan,
     zones: 'rrrf',
     spawn(zones: Vector[]) {
-      spawnNPC(zones[3], () => {
-        setGameDialogue('Sorry, the apothecary is up north gathering herbs.');
-      });
+      if (campaignData.stage >= Stage.GoTown) {
+        spawnNPC(zones[3], () => {
+          setGameDialogue('Sorry, the apothecary is up north gathering herbs.');
+          campaignData.stage = Math.max(campaignData.stage, Stage.GoApothecary);
+        });
+      }
       spawnHouse(vector(3, 8), 1.8);
       spawnHouse(vector(-4, 2), 2.7);
       spawnHouse(vector(-1, -10), 1);
@@ -286,11 +301,14 @@ const specs: LevelSpec[] = [
         const y = (i & 2) - 1;
         spawnMonster(vector(center.x + x, center.y + y));
       }
-      spawnNPC(vector(27, 25), () => {
-        setGameDialogue(
-          'I think I dropped my potions when I was in the area to the south.',
-        );
-      });
+      if (campaignData.stage >= Stage.GoApothecary) {
+        spawnNPC(vector(27, 25), () => {
+          setGameDialogue(
+            'I think I dropped my potions when I was in the area to the south.',
+          );
+        });
+        campaignData.stage = Math.max(campaignData.stage, Stage.GoPotions);
+      }
     },
   },
   // BOTTOM: wilderness
@@ -303,9 +321,11 @@ const specs: LevelSpec[] = [
     music: MusicTracks.Sylvan,
     zones: 'rfrrf',
     spawn() {
-      spawnPotion(vector(23, -27), 0);
-      spawnPotion(vector(-6, -25), 1);
-      spawnPotion(vector(-27, -25), 2);
+      if (campaignData.stage == Stage.GoPotions) {
+        spawnPotion(vector(23, -27), 0);
+        spawnPotion(vector(-6, -25), 1);
+        spawnPotion(vector(-27, -25), 2);
+      }
     },
   },
 ];
