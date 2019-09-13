@@ -239,7 +239,11 @@ const specs: LevelSpec[] = [
     exits: [0, 3, 2, 4],
     music: MusicTracks.Sylvan,
     zones: '',
-    spawn() {},
+    spawn() {
+      // 23, -27
+      // -5, -25
+      // -27, -18
+    },
   },
   // LEFT: town
   {
@@ -249,8 +253,10 @@ const specs: LevelSpec[] = [
     cellSize: 8,
     exits: [1],
     music: MusicTracks.Sylvan,
-    zones: '',
-    spawn() {},
+    zones: 'rrrf',
+    spawn(zones: Vector[]) {
+      spawnNPC(zones[3]);
+    },
   },
   // TOP: wilderness
   {
@@ -279,7 +285,7 @@ const specs: LevelSpec[] = [
     cellSize: 8,
     exits: [, 1],
     music: MusicTracks.Sylvan,
-    zones: '',
+    zones: 'rfrrf',
     spawn() {},
   },
 ];
