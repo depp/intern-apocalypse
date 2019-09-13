@@ -143,7 +143,7 @@ function updateMenu(): void {
     flexspace += item.flexspace;
     if (item.text) {
       ctx.font = getFont(item);
-      item.lines = wrapText(item.text, canvasSize.x * 0.95);
+      item.lines = wrapText(item.text, 800 - 96);
       fixspace += baseLineHeight * item.size * item.lines.length;
       if (item.outlined) {
         fixspace += boxMargin * 2;
