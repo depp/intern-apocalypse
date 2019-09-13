@@ -189,7 +189,8 @@ function createWorldLevel(spec: LevelSpec): LevelObject {
         break;
     }
     let luminance =
-      0.2 * (cell.walkable ? 4 : 2 - ((close as unknown) as number));
+      0.2 *
+      ((cell.walkable ? 4 : 2 - ((close as unknown) as number)) + rand.range());
     cell.color = packColor(luminance, luminance, luminance);
   });
   level.updateProperties();
