@@ -7,6 +7,7 @@ export const enum ModelAsset {
   Eyestalk,
   Person,
   Pointer,
+  Potion,
   Slash,
   Sword,
 }
@@ -17,6 +18,7 @@ export function getModelNames(): string[] {
     'model/eyestalk.txt',
     'model/person.txt',
     'model/pointer.txt',
+    'model/potion.txt',
     'model/slash.txt',
     'model/sword.txt',
   ];
