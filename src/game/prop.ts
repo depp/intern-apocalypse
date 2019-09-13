@@ -1,5 +1,5 @@
 import { Vector, zeroVector } from '../lib/math';
-import { ModelInstance, modelInstances, entities, Team } from './entity';
+import { ModelInstance, modelInstances, Team } from './entity';
 import {
   matrixNew,
   setIdentityMatrix,
@@ -9,6 +9,10 @@ import {
 } from '../lib/matrix';
 import { ModelAsset } from '../model/models';
 import { Collider, colliders } from './physics';
+import { campaignData } from './campaign';
+import { playSound } from '../audio/audio';
+import { Sounds } from '../audio/sounds';
+import { setGameDialogue } from '../lib/global';
 
 export function spawnHouse(pos: Vector, angle: number): void {
   const transform = matrixNew();
@@ -23,6 +27,10 @@ export function spawnHouse(pos: Vector, angle: number): void {
 }
 
 export function spawnPotion(pos: Vector, index: number): void {
+  const mask = 1 << index;
+  if (campaignData.potions & mask) {
+    return;
+  }
   const transform = matrixNew();
   setIdentityMatrix(transform);
   translateMatrix(transform, [pos.x, pos.y, 1]);
@@ -35,7 +43,11 @@ export function spawnPotion(pos: Vector, index: number): void {
     team: Team.NPC,
     damage() {},
     playerAction() {
-      console.log('GOT POTION');
+      playSound(Sounds.Interact);
+      const flags = (campaignData.potions |= mask);
+      const count = (flags & 1) + (flags >> 2) + ((flags >> 1) & 1);
+      setGameDialogue(`Found ${count} potions!`);
+      this.isDead = true;
     },
   };
   modelInstances.push(entity);

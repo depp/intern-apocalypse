@@ -19,7 +19,6 @@ import {
 } from '../lib/matrix';
 import { playSound } from '../audio/audio';
 import { Sounds } from '../audio/sounds';
-import { setGameDialogue } from '../lib/global';
 
 export function spawnNPC(pos: Vector, action: () => void): void {
   const params: MovementParameters = {

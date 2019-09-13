@@ -36,11 +36,13 @@ export function exitLevel(direction: number): void {
 export interface CampaignData {
   playerHealth: number;
   playerHealthMax: number;
+  potions: number;
 }
 
 export const initialCampaignData: CampaignData = {
   playerHealth: 10,
   playerHealthMax: 10,
+  potions: 0,
 };
 
 export const campaignData: CampaignData = {} as CampaignData;
