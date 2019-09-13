@@ -303,6 +303,9 @@ export function drawLevel(): void {
  * Reset the debug view of the level.
  */
 export function resetLevelDebug(): void {
+  if (!currentLevel) {
+    return;
+  }
   for (const edge of currentLevel.level.edges.values()) {
     edge.debugColor = DebugColor.None;
     edge.debugVertexColor = DebugColor.None;

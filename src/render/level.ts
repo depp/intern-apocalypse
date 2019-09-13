@@ -59,7 +59,7 @@ function createGeometry(): void {
 
 /** Update the level renderer. */
 export function updateRenderLevel(): void {
-  if (!currentLevel.levelModel.vcount) {
+  if (currentLevel && !currentLevel.levelModel.vcount) {
     createGeometry();
   }
 }
