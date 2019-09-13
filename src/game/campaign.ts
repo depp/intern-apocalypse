@@ -43,14 +43,12 @@ export const enum Stage {
 
 export interface CampaignData {
   playerHealth: number;
-  playerHealthMax: number;
   potions: number;
   stage: Stage;
 }
 
 export const initialCampaignData: CampaignData = {
   playerHealth: 10,
-  playerHealthMax: 10,
   potions: 0,
   stage: Stage.StartDungeon,
 };

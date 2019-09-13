@@ -302,25 +302,8 @@ function drawStatusBars(): void {
 /** Update the hud data. */
 function updateHUD(): void {
   genmodel.start2D();
-  if (campaignData.playerHealthMax) {
-    const health = campaignData.playerHealth / campaignData.playerHealthMax;
-    const off = 0 /* mana */ ? 0 : 200;
-    genmodel.addQuad(0, 0, 50 + off, 0, 300, 32);
-    genmodel.addQuad(
-      0,
-      32,
-      50 + off,
-      0,
-      health < 1 ? 25 + 250 * health : 300,
-      32,
-    );
-  }
-  if (0 /* mana */) {
-    const mana = 0 /* playerMana / playerManaMax */;
-    const d = mana < 1 ? 275 - 250 * mana : 0;
-    genmodel.addQuad(0, 0, 450, 0, 300, 32);
-    genmodel.addQuad(0 + d, 64, 450 + d, 0, 300 - d, 32);
-  }
+  genmodel.addQuad(0, 0, 250, 0, 300, 32);
+  genmodel.addQuad(0, 32, 250, 0, 25 + 25 * campaignData.playerHealth, 32);
   genmodel.upload(gmodel);
 }
 
