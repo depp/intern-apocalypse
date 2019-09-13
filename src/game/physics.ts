@@ -38,6 +38,9 @@ export interface Collider extends EntityBase {
    */
   damage(direction: Vector): void;
 
+  /** Called when player is near interaction range. */
+  playerNear?(): void;
+
   /** Interact with the entity. */
   playerAction?(): void;
 

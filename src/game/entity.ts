@@ -20,6 +20,8 @@ export interface ModelInstance extends EntityBase {
   model: ModelAsset;
   /** Model transformation matrix. */
   transform: Matrix;
+  /** If true, the model is hidden. */
+  hidden?: boolean;
 }
 
 /** All model instances in the level. */

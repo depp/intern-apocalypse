@@ -61,9 +61,11 @@ export function renderModels(): void {
 
   drawModel(levelModel, identityMatrix);
   for (const instance of modelInstances) {
-    const model = models[instance.model];
-    if (model) {
-      drawModel(model.mesh, instance.transform);
+    if (!instance.hidden) {
+      const model = models[instance.model];
+      if (model) {
+        drawModel(model.mesh, instance.transform);
+      }
     }
   }
 

@@ -10,6 +10,8 @@ import {
   madd,
   normalizeSubtract,
   Vector,
+  zeroVector,
+  distanceSquared,
 } from '../lib/math';
 import { frameDT } from './time';
 import { ModelInstance, modelInstances, Team } from './entity';
@@ -75,15 +77,24 @@ export function spawnPlayer(pos: Vector): void {
       }
       this.actorMove(playerSettings, movement);
 
+      // Find nearby things to interact with.
+      let interactible: Collider | undefined;
+      for (const entity of findColliders(this.pos, 3)) {
+        if (entity.playerNear) {
+          entity.playerNear();
+        }
+        if (entity.playerAction && distanceSquared(entity.pos, this.pos) < 4) {
+          interactible = entity;
+        }
+      }
+
       // Update attack state.
       if (buttonPress[Button.Action]) {
-        let interacted: boolean | undefined;
-        for (const entity of findColliders(this.pos, 3)) {
-          if (entity.playerAction) {
-            entity.playerAction();
-          }
+        if (interactible) {
+          interactible.playerAction!();
+        } else {
+          pendingAttack = true;
         }
-        pendingAttack = true;
       }
       if (attackTime < 0 && pendingAttack) {
         pendingAttack = false;

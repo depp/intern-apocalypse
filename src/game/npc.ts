@@ -8,7 +8,7 @@ import {
 import { MovementParameters, spawnActor, Actor } from './actor';
 import { ModelAsset } from '../model/models';
 import { Team, ModelInstance, modelInstances } from './entity';
-import { frameDT } from './time';
+import { frameDT, levelTime } from './time';
 import { globalRandom } from '../lib/random';
 import {
   matrixNew,
@@ -33,6 +33,7 @@ export function spawnNPC(pos: Vector): void {
     transform: matrixNew(),
   };
   let pointerAngle = 0;
+  let playerVisit = 0;
   spawnActor({
     pos,
     angle: 0,
@@ -50,6 +51,7 @@ export function spawnNPC(pos: Vector): void {
         0.5 * Math.sin(pointerAngle * 2),
       ]);
       rotateMatrixFromAngle(pointer.transform, Axis.Z, pointerAngle);
+      pointer.hidden = levelTime > playerVisit + 1;
 
       // Decide where to move
       moveTimer -= frameDT;
@@ -68,6 +70,9 @@ export function spawnNPC(pos: Vector): void {
     },
     actorDamaged() {},
     actorDied() {},
+    playerNear(this: Actor): void {
+      playerVisit = levelTime;
+    },
     playerAction(this: Actor): void {
       playSound(Sounds.Interact);
     },

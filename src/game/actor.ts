@@ -55,6 +55,7 @@ export interface ActorArgument {
   actorUpdate: ActorCallback;
   actorDamaged: ActorCallback;
   actorDied: ActorCallback;
+  playerNear?: ActorCallback;
   playerAction?: ActorCallback;
 }
 
