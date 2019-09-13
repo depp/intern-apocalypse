@@ -21,6 +21,7 @@ import { spawnNPC } from './npc';
 import { spawnMonster } from './monster';
 import { spawnHouse, spawnPotion } from './prop';
 import { setGameDialogue } from '../lib/global';
+import { packColor } from '../render/util';
 
 const rand = new Random();
 
@@ -161,13 +162,7 @@ function createWorldLevel(spec: LevelSpec): LevelObject {
       }
     }
   }
-  // prettier-ignore
-  const colors = [
-    0x000000, 0x0000ff, 0x00ff00, 0x00ffff,
-    0xff0000, 0xff00ff, 0xffff00, 0xffffff,
-    0x333333, 0x000080, 0x008000, 0x008080,
-    0x800000, 0x800080, 0x808000, 0x808080,
-  ];
+  const zoneColors = zones.map(() => [rand.range(0.1, 0.2)]);
   level.cells.forEach((cell, index) => {
     const cellCode = cellCodes[index];
     const distance = distances[index];
@@ -176,18 +171,15 @@ function createWorldLevel(spec: LevelSpec): LevelObject {
       case CellCodes.Floor:
         cell.walkable = true;
         cell.height = 0;
-        cell.color = 0x888888;
         break;
       case CellCodes.Rock:
       case CellCodes.ExitCandidate:
         cell.walkable = false;
         cell.height = 0.7 + close * 2;
-        cell.color = 0xff333333;
         break;
       case CellCodes.Hole:
         cell.walkable = false;
         cell.height = -2 - close * 2;
-        cell.color = 0xff442222;
         break;
       default:
         if (isDebug) {
@@ -196,12 +188,9 @@ function createWorldLevel(spec: LevelSpec): LevelObject {
         }
         break;
     }
-    if (isDebug && !cell.walkable) {
-      const color = colors[zoneAssignments[cell.index]];
-      if (color) {
-        cell.color = color;
-      }
-    }
+    let luminance =
+      0.2 * (cell.walkable ? 4 : 2 - ((close as unknown) as number));
+    cell.color = packColor(luminance, luminance, luminance);
   });
   level.updateProperties();
 
