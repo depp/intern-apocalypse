@@ -15,10 +15,16 @@ track bass bass -9
 
 pattern P1 et1 qtr et1 et1 et1 et1 qtr et1 qtr
 emit P1 A B C D E F G H
+emit P1 A B C D E F G H
+emit P1 A B C D E F G H
 
 # ==============================================================================
 
 track synth synth -18
 
 pattern P1 w2 / w3 / w4
+emit P1 A B C D E F G H
+inversion 1
+emit P1 A B C D E F G H
+inversion 2
 emit P1 A B C D E F G H
