@@ -1,0 +1,15 @@
+origin 0 0 0
+scale 1
+symmetry xz
+
+p p1 3 0 4
+p p2 3 2 4
+p p3 0 4 4
+
+color d4c7a5
+f p1 p1.x p1.xz p1.z
+f p1 p2 p3 p2.x p1.x
+f p1 p1.z p2.z p2
+
+color 70542a
+f p2 p2.z p3.z p3

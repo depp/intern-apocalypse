@@ -14,6 +14,7 @@ import { MusicTracks } from '../audio/sounds';
 import { playMusic } from '../audio/audio';
 import { spawnNPC } from './npc';
 import { spawnMonster } from './monster';
+import { spawnHouse } from './prop';
 
 const rand = new Random();
 
@@ -256,6 +257,10 @@ const specs: LevelSpec[] = [
     zones: 'rrrf',
     spawn(zones: Vector[]) {
       spawnNPC(zones[3]);
+      spawnHouse(vector(3, 8), 1.8);
+      spawnHouse(vector(-4, 2), 2.7);
+      spawnHouse(vector(-1, -10), 1);
+      spawnHouse(vector(10, -10), 2);
     },
   },
   // TOP: wilderness
