@@ -53,7 +53,7 @@ function startFrontMenu(...items: MenuItem[]): void {
   startMenu(
     { space: 32 },
     {
-      text: "I Want to Help Fight the Demon Overlord, but I'm Just an Intern!",
+      text: 'I Want to Help Fight the Demon Overlord, but I’m Just an Intern!',
       size: 1.8,
     },
     { flexspace: 1 },
