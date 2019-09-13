@@ -3,12 +3,11 @@
  */
 
 import { createLevel, Cell } from './level';
-import { Vector, vector } from '../lib/math';
+import { Vector, vector, linfinityNorm, zeroVector } from '../lib/math';
 import { Random } from '../lib/random';
 import { newNavigationGraph } from './navigation';
-import { packColor } from '../render/util';
 import { AssertionError } from '../debug/debug';
-import { LevelObject } from './campaign';
+import { LevelObject, entranceDirection } from './campaign';
 import { spawnPlayer } from './player';
 import * as genmodel from '../model/genmodel';
 
@@ -73,8 +72,7 @@ function createWorldLevel(spec: LevelSpec): LevelObject {
   level.cells.forEach(cell => {
     const zone = zoneAssignments[cell.index];
     let onBorder = false;
-    const { x, y } = cell.centroid;
-    let nearBorder = Math.max(Math.abs(x), Math.abs(y)) > size - border;
+    let nearBorder = linfinityNorm(cell.centroid) > size - border;
     cell.walkable = false;
     for (const edge of cell.edges()) {
       if (!edge.back) {
@@ -106,13 +104,9 @@ function createWorldLevel(spec: LevelSpec): LevelObject {
       }
     }
   });
-  const colors = [
-    packColor(1, 0, 0),
-    packColor(0, 1, 0),
-    packColor(1, 0, 1),
-    packColor(0, 1, 1),
-  ];
-  // Fill in all the cells near the border that are not exits.
+  // Fill in all the cells near the border that are not exits. Also calculate
+  // exit locations.
+  const exitLocs: (Vector | undefined)[] = [];
   for (let i = 0; i < 4; i++) {
     if (spec.exits[i] == null) {
       continue;
@@ -123,11 +117,18 @@ function createWorldLevel(spec: LevelSpec): LevelObject {
       throw new AssertionError(`no exit generated for direction ${i}`);
     }
     fill.push(exit);
-    exit.color = colors[i];
+    exit.color = 0xff0000ff;
     while (fill.length) {
       const cell = fill.pop()!;
+      if (
+        !exitLocs[i] &&
+        cell.walkable &&
+        linfinityNorm(cell.centroid) < size - 6
+      ) {
+        exitLocs[i] = cell.centroid;
+      }
       if (nearBorderCellFlag[cell.index]) {
-        cell.color = colors[i];
+        cell.color = 0xff00ff00;
         nearBorderCellFlag[cell.index] = 0;
         for (const edge of cell.edges()) {
           if (edge.back) {
@@ -149,7 +150,13 @@ function createWorldLevel(spec: LevelSpec): LevelObject {
     level,
     exits: spec.exits,
     spawn() {
-      spawnPlayer(vector(0, 0));
+      let spawnLoc = zeroVector;
+      let angle = -1;
+      if (entranceDirection >= 0) {
+        spawnLoc = exitLocs[entranceDirection] || spawnLoc;
+        angle = entranceDirection ^ 2;
+      }
+      spawnPlayer(spawnLoc, angle * 0.5 * Math.PI);
     },
   };
 }

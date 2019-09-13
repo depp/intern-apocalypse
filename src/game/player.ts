@@ -11,6 +11,7 @@ import {
   normalizeSubtract,
   Vector,
   distanceSquared,
+  angleVector,
 } from '../lib/math';
 import { frameDT } from './time';
 import { ModelInstance, modelInstances, Team } from './entity';
@@ -31,7 +32,7 @@ import { debugMarks } from '../debug/mark';
 import { spawnDeath } from './particles';
 import { setState, State } from '../lib/global';
 import { spawnActor, Actor } from './actor';
-import { currentLevel, setNextLevel } from './campaign';
+import { currentLevel, setNextLevel, exitLevel } from './campaign';
 
 export let playerHealth = 10;
 export let playerHealthMax = 10;
@@ -40,7 +41,7 @@ export let playerMana = 0;
 export let playerManaMax = 0;
 
 /** Spawn the player in the level. */
-export function spawnPlayer(pos: Vector): void {
+export function spawnPlayer(pos: Vector, angle: number): void {
   const sword: ModelInstance = {
     model: ModelAsset.Sword,
     transform: matrixNew(),
@@ -56,9 +57,11 @@ export function spawnPlayer(pos: Vector): void {
   // Cooldown before we can interact again.
   let interactionCooldown = 0;
 
+  console.log(angle, angleVector(angle));
+
   spawnActor({
     pos,
-    angle: 0,
+    angle,
     model: ModelAsset.Person,
     radius: 0.5,
     team: Team.Player,
@@ -68,10 +71,7 @@ export function spawnPlayer(pos: Vector): void {
       const { level } = currentLevel;
       [this.pos.x, this.pos.y, -this.pos.x, -this.pos.y].forEach((d, i) => {
         if (d > level.size - 5) {
-          const exit = currentLevel.exits[i];
-          if (exit != null) {
-            setNextLevel(exit);
-          }
+          exitLevel(i);
         }
       });
 

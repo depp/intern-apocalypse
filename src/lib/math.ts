@@ -57,6 +57,11 @@ export function length(u: Vector): number {
   return Math.hypot(u.x, u.y);
 }
 
+/** Get the L-infinity norm of a vector. */
+export function linfinityNorm(v: Vector) {
+  return Math.max(Math.abs(v.x), Math.abs(v.y));
+}
+
 /** Compute u+v*a. */
 export function madd(u: Vector, v: Vector, a: number = 1): Vector {
   return vector(u.x + v.x * a, u.y + v.y * a);
