@@ -97,7 +97,7 @@ export function playSound(
 }
 
 let musicTrack: MusicTracks | undefined;
-let musicNode: AudioBufferSourceNode | undefined;
+let musicNode: AudioBufferSourceNode | undefined | null;
 let loopTimeout: number | undefined;
 
 function loopMusic(): void {
@@ -127,6 +127,10 @@ function startMusic(index: MusicTracks): void {
 /** Play a music track, on repeat. */
 export function playMusic(index: MusicTracks): void {
   if (musicTrack != index) {
+    if (musicNode) {
+      musicNode.stop();
+      musicNode = null;
+    }
     startMusic(index);
   }
 }
