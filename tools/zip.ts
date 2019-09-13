@@ -151,14 +151,17 @@ async function makeZopfliZip(
     data: Buffer;
     name: string;
     size: number;
+    crc32: number;
   }
   const promises: Promise<File>[] = [];
   for (const [name, src] of files.entries()) {
     promises.push(
       (async () => {
-        const { size } = await fs.promises.stat(src);
+        const rawdata = await fs.promises.readFile(src);
+        const size = rawdata.length;
+        const crc32 = crc.crc32(rawdata);
         const data = await runZopfli(src, options);
-        return { data, name, size };
+        return { data, name, size, crc32 };
       })(),
     );
   }
@@ -172,7 +175,6 @@ async function makeZopfliZip(
   let pos = 0;
   for (const file of await Promise.all(promises)) {
     const name = Buffer.from(file.name, 'ascii');
-    const fileCRC = crc.crc32(file.data);
     const fileBody = [
       pack(
         'IHHHHHIIIHH',
@@ -182,7 +184,7 @@ async function makeZopfliZip(
         8, // compression method
         mdate.time, // mod time
         mdate.date, // mod date
-        fileCRC, // crc-32
+        file.crc32, // crc-32
         file.data.length, // compressed size
         file.size, // uncompressed size
         name.length, // file name length
@@ -201,7 +203,7 @@ async function makeZopfliZip(
         8, // compression method
         mdate.time, // mod time
         mdate.date, // mod date
-        fileCRC, // crc-32
+        file.crc32, // crc-32
         file.data.length, // compressed size
         file.size, // uncompressed size
         name.length, // file name length
