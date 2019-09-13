@@ -137,7 +137,7 @@ export function spawnActor(arg: ActorArgument): void {
       }
     },
     damage(this: ActorImplementation, direction: Vector): void {
-      if (this.isDead) {
+      if (this.health <= 0) {
         return;
       }
       this.health--;

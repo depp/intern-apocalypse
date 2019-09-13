@@ -19,7 +19,7 @@ export function spawnNPC(pos: Vector): void {
     model: ModelAsset.Person,
     radius: 0.5,
     team: Team.Player,
-    health: 10,
+    health: -1,
     actorUpdate(this: Actor): void {
       moveTimer -= frameDT;
       if (moveTimer < 0) {
