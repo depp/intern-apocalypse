@@ -6,25 +6,40 @@ A game made for [JS13KGames 2019](http://js13kgames.com/) by Dietrich Epp (Twitt
 
 ![Game screenshot](shot1.png)
 
-## Play the Game
+### Links
 
-The GitHub releases page has the 13 KiB zip file attached to the v1.0 release. The file is called “InternApocalypse_JS13K.zip” and you can see it here: https://github.com/depp/intern-apocalypse/releases/tag/v1.0
+- [JS13K Entry Page](https://2019.js13kgames.com/entries/i-want-to-help-fight-the-demon-overlord-but-im-just-an-intern) — you can play the game from here in your browser.
 
-If you want to play, just download, extract, and open it in your browser. It takes some time to load, be patient.
+- [Playthrough video](https://www.youtube.com/watch?v=yvTGU7uvmLU)
 
-The soundtrack is available on SoundCloud:
+- Final build [InternApocalypse_JS13K.zip](https://github.com/depp/intern-apocalypse/releases/download/v1.0/InternApocalypse_JS13K.zip), from the [v1.0 release page](https://github.com/depp/intern-apocalypse/releases/tag/v1.0). You can download, extract, and play the game in your browser.
 
-- https://soundcloud.com/twoseventwo/sylvan-path
+- Soundtrack
 
-- https://soundcloud.com/twoseventwo/beyond-the-walls
+  - https://soundcloud.com/twoseventwo/sylvan-path
+  - https://soundcloud.com/twoseventwo/beyond-the-walls
 
-## Development Notes and Technical Details
+### Instructions
 
-The game is written in TypeScript and uses WebGL for graphics. It has been tested on the following browsers and known to work:
+You want to defeat the demon overlord, but you’re just an intern! Go back to town and fetch us some potions.
+
+Controls:
+
+- WASD or arrow keys to move
+- Space or control to attack or interact with NPCs
+- Click on the menu items
+
+Note that there is a loading screen. In my experience, this completes within about 10 seconds. Most of this time is spent generating the soundtrack.
+
+The game has been testend to work on the following browsers:
 
 - Safari, version 12.1.1
 - Firefox, version 69
 - Google Chrome, version 76
+
+## Development Notes and Technical Details
+
+The game is written in TypeScript and uses WebGL for graphics.
 
 Some facts, in no particular order:
 
