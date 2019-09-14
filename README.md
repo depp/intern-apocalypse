@@ -4,6 +4,8 @@
 
 A game made for [JS13KGames 2019](http://js13kgames.com/) by Dietrich Epp (Twitter: [@DietrichEpp](https://twitter.com/DietrichEpp)). The goal was to create a game which runs in the browser and is no larger than 13 KiB compressed. And I did it!
 
+![Game screenshot](shot1.png)
+
 ## Play the Game
 
 The GitHub releases page has the 13 KiB zip file attached to the v1.0 release. The file is called “InternApocalypse_JS13K.zip” and you can see it here: https://github.com/depp/intern-apocalypse/releases/tag/v1.0
