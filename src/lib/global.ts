@@ -24,7 +24,6 @@ export let gl!: WebGLRenderingContext;
 export function startGL(): void {
   gl = canvas.getContext('webgl', {
     'alpha': false,
-    'antialias': false,
   })!;
   if (!gl) {
     throw new Error('No WebGL.');
