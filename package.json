@@ -18,7 +18,7 @@
     "fb-watchman": "^2.0.0",
     "glsl-parser": "^2.0.1",
     "glsl-tokenizer": "^2.1.5",
-    "handlebars": "^4.2.0",
+    "handlebars": "^4.3.0",
     "html-minifier": "^4.0.0",
     "husky": "^3.0.5",
     "jest": "^24.9.0",
