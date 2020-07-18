@@ -6,6 +6,8 @@ A game made for [JS13KGames 2019](http://js13kgames.com/) by Dietrich Epp (Twitt
 
 ![Game screenshot](shot1.png)
 
+JS13K 2019 is over and this repository is now read-only.
+
 ### Links
 
 - [JS13K Entry Page](https://2019.js13kgames.com/entries/i-want-to-help-fight-the-demon-overlord-but-im-just-an-intern) — you can play the game from here in your browser.
